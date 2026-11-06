@@ -4,14 +4,14 @@ Copy everything below the line into Antigravity as your first message.
 
 ---
 
-You are my senior engineering partner on a university project. I am a third-semester CS student at NED University building a Complex Computing Problem (CCP) for my Data Structures & Algorithms course. I must be able to explain and defend every part of this codebase in a viva, so favour clarity over cleverness, and comment the non-obvious decisions.
+You are my senior engineering partner on a university project. I am a CS student at NED University (2nd Year, Batch 2025) building a Complex Computing Problem (CCP) for my course **CT-159: Data Structure Algorithms & Applications** (Instructor: Furqan Hussain Essani). I must be able to explain and defend every part of this codebase in a viva, so favour clarity over cleverness, and comment the non-obvious decisions.
 
 # 1. The project
 
 Build a **3D Data Structures & Algorithms Visualizer** that runs entirely in the browser (no backend).
 
 Two modes:
-- **Library mode:** built-in data structures and algorithms, animated step by step in 3D.
+- **Library mode:** built-in data structures and algorithms covering the full CT-159 15-week syllabus, animated step by step in 3D.
 - **Upload mode:** the user pastes or uploads their own code. The app runs it in a sandbox, records what it does, and visualizes it in the same 3D scene.
 
 The 3D space must feel like Blender's viewport: free orbit / pan / zoom, an infinite grid floor, an XYZ axis gizmo, click-to-select objects, and camera presets (front / top / side / focus-selected).
@@ -53,7 +53,7 @@ type TraceEvent =
 
 Requirements:
 - Playback engine supports step back by storing periodic state snapshots (keyframes), not by re-running the algorithm.
-- Each data structure has its own renderer and a 3D layout strategy: arrays along an axis, linked lists along a path, trees fanning out in depth (not just left/right), graphs with a force-directed layout, heaps as trees plus an array strip.
+- Each data structure has its own renderer and a 3D layout strategy: arrays along an axis, linked lists along a path (or ring for circular lists), trees fanning out in depth (not just left/right), graphs with a force-directed layout, heaps as trees plus an array strip, and hash tables as an indexed bucket rail with probe arcs or chaining lists.
 - Use instanced meshes once node count exceeds a threshold. Target 60 fps at 500 nodes. Cap rendered nodes and show a message when capped.
 
 # 4. UI layout
@@ -66,14 +66,19 @@ Requirements:
 
 ## 4.1 Operations, Play button and animation language
 
-**Operations panel (left side).** Each structure exposes its operations as buttons with input fields:
-- Array: insert at index, delete at index, update, linear/binary search, reverse, rotate.
-- Linked list: insert at head/tail/position, delete head/tail/value, search, reverse, traverse.
-- Stack: push, pop, peek. Queue: enqueue, dequeue, peek.
-- BST: insert, delete (leaf, one child and two-children cases), search, min/max, inorder / preorder / postorder / level-order traversal.
-- AVL: insert and delete with visible rotations (LL, RR, LR, RL).
-- Heap: insert (bubble up), extract (bubble down), heapify.
-- Graph: add/remove vertex and edge, BFS, DFS, Dijkstra.
+**Operations panel (left side).** Each structure exposes its operations as buttons with input fields (aligned to CT-159 Weeks 1–15):
+- **Week 1 — Array & Search:** insert at index, delete at index, update, linear search, binary search, reverse, rotate.
+- **Weeks 2 & 3 — Linked Lists (Singly, Doubly, Circular):** insert at head/tail/position, delete head/tail/value, search, sort linked list, reverse, traverse.
+- **Weeks 4 & 5 — Recursion, Stack, Queue, Circular Queue, Double-Ended Queue (Deque):**
+  - Stack: push, pop, peek.
+  - Queue & Circular Queue: enqueue, dequeue, peek.
+  - Deque: insertFront, insertRear, deleteFront, deleteRear, peekFront, peekRear.
+- **Weeks 9, 11, 12 — Binary Tree, BST & AVL:**
+  - Binary Tree & BST: insert, delete (leaf, one child and two-children cases), search, min/max, inorder / preorder / postorder / level-order traversal.
+  - AVL: insert and delete with visible rotations (LL, RR, LR, RL).
+- **Week 10 — Binary Heap, Heap Sort & Priority Queue:** insert (bubble up), extract (bubble down), heapify, heap sort, priority queue push/pop.
+- **Weeks 13 & 14 — Graphs (Traversal, MST, Topological Sort):** add/remove vertex and edge, BFS, DFS, Prim's MST, Kruskal's MST, Topological Sort (Kahn's / DFS), Dijkstra.
+- **Week 15 — Hashing:** hash function evaluation (`key % m`), insert/search/delete with Linear Probing, Quadratic Probing, Double Hashing, and Separate Chaining.
 
 **Play flow.** The user picks an operation and enters a value. The library generates a trace for it, and the viewport is then ready to play.
 - A large Play button sits as an overlay in the 3D viewport and is mirrored in the bottom bar. Spacebar toggles it.
@@ -93,14 +98,17 @@ Requirements:
 
 **Uploaded code** uses the same machinery. Let the user optionally tag the entry function as insert / delete / search / traverse so the captions and visuals use the right vocabulary. Otherwise, fall back to generic events.
 
-# 5. Built-in library (Library mode)
+# 5. Built-in library (Library mode — CT-159 Syllabus)
 
-Sorting: bubble, selection, insertion, merge, quick, heap sort.
-Linear: array, singly/doubly linked list, stack, queue.
-Trees: BST (insert / delete / search / traversals), AVL with rotations.
-Heap: min/max heap insert and extract.
-Graphs: BFS, DFS, Dijkstra.
-Each algorithm ships with pseudocode, complexity info, and unit tests.
+- **Searching & Arrays (Week 1):** array ADT, linear search, binary search.
+- **Linked Lists (Weeks 2–3):** singly linked list (including sorting), doubly linked list, circular linked list.
+- **Stacks, Recursion & Queues (Weeks 4–5):** recursion call-stack visualizer, stack, linear queue, circular queue, double-ended queue (deque).
+- **Sorting (Weeks 6–7 & 10):** bubble, selection, insertion, merge, quick, heap sort.
+- **Trees (Weeks 9, 11, 12):** binary tree, BST (insert / delete / search / traversals), AVL with rotations (LL, RR, LR, RL).
+- **Heaps & Priority Queue (Week 10):** min/max binary heap insert, extract, heapify, priority queue.
+- **Graphs (Weeks 13–14):** adjacency list & matrix, BFS, DFS, Minimum Spanning Tree (Prim's, Kruskal's), Topological Sorting, Dijkstra.
+- **Hashing (Week 15):** hash functions (division/modulo), open addressing (linear probing, quadratic probing, double hashing), separate chaining.
+Each algorithm ships with C++ source/pseudocode, complexity info, and unit tests.
 
 # 6. Upload Mode (the headline feature)
 
@@ -184,14 +192,14 @@ Uploaded code is untrusted. Treat it as hostile.
 
 0. **Plan:** plan, folder structure, risks, questions. No code.
 1. **Scaffold + viewport:** Vite/React/TS project, Blender-style scene (grid, gizmo, orbit/pan/zoom, camera presets, click-select), dark UI shell.
-2. **Trace engine + arrays:** TraceEvent types, playback engine with step back, array renderer, bubble/insertion/merge/quick sort, bottom playback bar, large viewport Play button, operations panel for arrays (insert/delete/search/reverse), narration captions, code panel with line highlight.
-3. **Linear + trees:** linked list, stack, queue, BST, AVL rotations, 3D tree layout, with every operation from section 4.1 (insert, delete, search, traversals) animated and playable.
-4. **Heap + graphs:** heap, BFS, DFS, Dijkstra, force-directed layout, graph input editor.
+2. **Trace engine + arrays (Weeks 1, 6, 7):** TraceEvent types, playback engine with step back, array renderer, bubble/selection/insertion/merge/quick sort, bottom playback bar, large viewport Play button, operations panel for arrays (insert/delete/update/linear & binary search/reverse/rotate), narration captions, code panel with line highlight.
+3. **Linear + trees (Weeks 2, 3, 4, 5, 9, 11, 12):** singly/doubly/circular linked list (including sorting), recursion & stack, linear/circular/double-ended queue (deque), binary tree, BST, AVL rotations, 3D tree layout, with every operation from section 4.1 animated and playable.
+4. **Heaps, graphs & hashing (Weeks 10, 13, 14, 15):** binary heap, heap sort, priority queue, graph representation & traversals (BFS, DFS), Minimum Spanning Tree (Prim's, Kruskal's), Topological Sorting, Dijkstra, force-directed layout, graph input editor, and Hashing (division hash function, linear/quadratic probing, separate chaining).
 5. **Sandbox + JS upload:** the full section 7 isolation, instrumentation pipeline, structure auto-detect, all hostile-sample tests passing. JS is the cheap test bed that proves the pipeline before the C++ work.
 6. **C++ upload (the big one), in three steps, each approved separately:**
    - 6a: tree-sitter parsing, interpreter core (types, expressions, control flow, functions, recursion, arrays, `cin`/`cout`), trace emission, array and sorting programs working.
    - 6b: simulated memory, pointers, structs/classes, `new`/`delete`, memory-error detection, linked-list and tree programs visualized with pointer arrows.
-   - 6c: the supported STL subset, graph programs, auto-detect with override, C++ hostile-sample tests, and the course-program corpus passing.
+   - 6c: the supported STL subset, graph & hashing programs, auto-detect with override, C++ hostile-sample tests, and the course-program corpus passing.
 7. **Polish + docs:** performance pass, error UX, README, architecture doc (with diagram), demo script, and a report outline (problem, design decisions, trade-offs, limitations, testing evidence).
 
 **Stretch (only if I ask):** Python via Pyodide, shareable trace files, VR/AR view.
@@ -200,9 +208,61 @@ Uploaded code is untrusted. Treat it as hostile.
 
 - `npm run build`, `npm run test` and `npm run lint` all pass.
 - Works in current Chrome and Firefox.
-- Pressing Play animates insert, delete, search and traversal on every built-in structure, and I can orbit the camera freely while it plays.
+- Pressing Play animates insert, delete, search and traversal on every built-in structure across the CT-159 syllabus, and I can orbit the camera freely while it plays.
 - All section 7 sandbox tests pass.
 - I can upload a bubble sort, a linked-list reversal and a BST insert, written by me in C++, and see them animate correctly with pointers drawn as arrows.
 - The sample programs from my DSA course all run with output identical to g++.
 
 Begin with Phase 0 only.
+
+---
+
+# 11. CT-159 C++ DSA Corpus Checklist (`cpp_corpus/`)
+
+- **Week 1 — Arrays & Searching (`01_arrays_and_searching/`):**
+  - [ ] Array Insert at Index, Delete at Index, Update, Reverse, Rotate Left/Right
+  - [ ] Linear Search (Iterative & Recursive)
+  - [ ] Binary Search (Iterative, Recursive, First/Last Occurrence)
+- **Week 2 — Singly Linked List (`02_singly_linked_list/`):**
+  - [ ] Insert (Head, Tail, Position `k`)
+  - [ ] Delete (Head, Tail, by Value / Position `k`)
+  - [ ] Search, Traverse, Reverse (Iterative & Recursive)
+  - [ ] Linked List Sorting (Bubble / Selection / Merge Sort on nodes)
+- **Week 3 — Doubly & Circular Linked List (`03_doubly_circular_linked_list/`):**
+  - [ ] Doubly Linked List — Insert, Delete, Search, Reverse, Forward/Backward Traverse
+  - [ ] Circular Singly Linked List — Insert, Delete, Search, Traverse (`tail->next == head`)
+- **Week 4 — Recursion & Stack (`04_recursion_and_stack/`):**
+  - [ ] Stack (Array-based & Linked-List-based) — `push`, `pop`, `peek` / `top`
+  - [ ] Recursion — Factorial, Fibonacci, Tower of Hanoi, Recursive Array/List ops
+- **Week 5 — Queue, Circular Queue & Double-Ended Queue (`05_queues_and_deque/`):**
+  - [ ] Linear Queue (Array & Linked List) — `enqueue`, `dequeue`, `peek`
+  - [ ] Circular Queue (`(rear + 1) % capacity`) — `enqueue`, `dequeue`, `peek`
+  - [ ] Double-Ended Queue (Deque) — `insertFront`, `insertRear`, `deleteFront`, `deleteRear`
+- **Week 6 — Elementary Sorting (`06_elementary_sorting/`):**
+  - [ ] Bubble Sort (Standard & Early-Exit Optimized)
+  - [ ] Insertion Sort (Shift-based & Swap-based)
+  - [ ] Selection Sort
+- **Week 7 — Advanced Sorting (`07_advanced_sorting/`):**
+  - [ ] Merge Sort (Top-down recursive with auxiliary array)
+  - [ ] Quick Sort (Lomuto & Hoare / First / Middle pivot)
+- **Week 9 — Binary Tree (`09_binary_tree/`):**
+  - [ ] Binary Tree Creation, Level-Order Insertion, Preorder / Inorder / Postorder / Level-Order Traversals, Height & Node Count
+- **Week 10 — Binary Heap, Heap Sort & Priority Queue (`10_heap_and_priority_queue/`):**
+  - [ ] Max-Heap & Min-Heap — Insert (`siftUp`), Extract (`siftDown`), `buildHeap`
+  - [ ] Heap Sort & Priority Queue ADT
+- **Week 11 — Binary Search Tree (`11_binary_search_tree/`):**
+  - [ ] BST — Insert, Search, Find Min/Max, Traversals
+  - [ ] BST — Delete (Leaf, One Child, Two Children with In-Order Successor/Predecessor)
+- **Week 12 — AVL Tree (`12_avl_tree/`):**
+  - [ ] AVL — Insert & Delete with LL (Right), RR (Left), LR (Left-Right), and RL (Right-Left) Rotations
+- **Week 13 — Graph Representation & Traversal (`13_graph_traversal/`):**
+  - [ ] Adjacency Matrix & Adjacency List, Add/Remove Vertex & Edge
+  - [ ] Breadth-First Search (BFS) & Depth-First Search (DFS)
+- **Week 14 — Graph MST & Topological Sorting (`14_graph_mst_toposort/`):**
+  - [ ] Minimum Spanning Tree — Prim's Algorithm & Kruskal's Algorithm (Union-Find)
+  - [ ] Topological Sorting — Kahn's In-Degree BFS & DFS Post-Order
+  - [ ] Dijkstra's Shortest Path
+- **Week 15 — Hashing (`15_hashing/`):**
+  - [ ] Hash Functions (Division `key % m`, Folding, Mid-Square)
+  - [ ] Open Addressing — Linear Probing, Quadratic Probing, Double Hashing
+  - [ ] Closed Addressing — Separate Chaining (Linked List Buckets)

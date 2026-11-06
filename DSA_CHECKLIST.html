@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NED University CT-159 DSA Checklist</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 14mm 14mm 14mm 14mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      color: #1e293b;
+      background: #ffffff;
+      font-size: 10.5pt;
+      line-height: 1.45;
+    }
+
+    .doc-container {
+      max-width: 100%;
+    }
+
+    /* Header styling */
+    .header-box {
+      border: 1.5px solid #0f172a;
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      background: #f8fafc;
+      page-break-inside: avoid;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #cbd5e1;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+    }
+
+    .university-title {
+      font-size: 13pt;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: #0f172a;
+    }
+
+    .dept-title {
+      font-size: 9.5pt;
+      font-weight: 600;
+      color: #475569;
+      margin-top: 2px;
+    }
+
+    .ccp-badge {
+      background: #0f172a;
+      color: #ffffff;
+      font-size: 8pt;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 20px;
+      font-size: 9pt;
+    }
+
+    .meta-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .meta-key {
+      font-weight: 700;
+      color: #334155;
+      min-width: 105px;
+    }
+
+    .meta-val {
+      color: #0f172a;
+    }
+
+    .meta-val strong {
+      color: #0369a1;
+    }
+
+    /* Week cards */
+    .week-card {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      margin-bottom: 11px;
+      background: #ffffff;
+      page-break-inside: avoid;
+      overflow: hidden;
+    }
+
+    .week-header {
+      background: #f1f5f9;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 6px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .week-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .week-pill {
+      background: #0284c7;
+      color: #ffffff;
+      font-size: 7.5pt;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 3px;
+      letter-spacing: 0.04em;
+    }
+
+    .week-title {
+      font-size: 10pt;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .week-dir {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 8pt;
+      color: #64748b;
+      background: #ffffff;
+      padding: 2px 6px;
+      border: 1px solid #e2e8f0;
+      border-radius: 3px;
+    }
+
+    .checklist-body {
+      padding: 8px 14px;
+    }
+
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 3px 0;
+      font-size: 9pt;
+      line-height: 1.35;
+    }
+
+    .check-box {
+      width: 13px;
+      height: 13px;
+      border: 1.5px solid #64748b;
+      border-radius: 2px;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .item-text {
+      flex: 1;
+      color: #1e293b;
+    }
+
+    .viva-badge {
+      display: inline-block;
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+      font-size: 7.5pt;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+
+    .viva-row {
+      background: #fffbeb;
+      margin: 2px -6px;
+      padding: 3px 6px;
+      border-radius: 3px;
+    }
+
+    .viva-row .check-box {
+      border-color: #d97706;
+    }
+
+    .footer-note {
+      text-align: center;
+      font-size: 8pt;
+      color: #94a3b8;
+      margin-top: 14px;
+      padding-top: 8px;
+      border-top: 1px dashed #cbd5e1;
+    }
+  </style>
+</head>
+<body>
+
+<div class="doc-container">
+
+  <!-- HEADER BOX -->
+  <div class="header-box">
+    <div class="header-top">
+      <div>
+        <div class="university-title">NED University of Engineering &amp; Technology</div>
+        <div class="dept-title">Department of Computer Science &amp; Information Technology</div>
+      </div>
+      <div class="ccp-badge">Course Code: CT-159</div>
+    </div>
+    <div class="meta-grid">
+      <div class="meta-row">
+        <span class="meta-key">Course Title:</span>
+        <span class="meta-val"><strong>Data Structure Algorithms &amp; Applications</strong></span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-key">Assessment:</span>
+        <span class="meta-val">Complex Computing Problem (CCP) Visualizer</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-key">Instructor:</span>
+        <span class="meta-val">Furqan Hussain Essani (Reviewed: Dr. M. Mubashir Khan)</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-key">Class &amp; Batch:</span>
+        <span class="meta-val">2nd Year (Batch 2025) &bull; Fall 2026 Session</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- WEEK 1 -->
+  <div class="week-card">
+    <div class="week-header">
+      <div class="week-title-group">
+        <span class="week-pill">WEEK 01</span>
+        <span class="week-title">Introduction, ADT, Linear &amp; Binary Search</span>
+      </div>
+      <code class="week-dir">01_arrays_and_searching/</code>
+    </div>
+    <div class="checklist-body">
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Array ADT &mdash; Insert at Index (head <code>0</code>, middle <code>idx</code>, tail <code>n</code> with right-shift)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Array ADT &mdash; Delete at Index (with left-shift)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Array ADT &mdash; Update / Access at Index (<code>arr[idx] = val</code>)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Array ADT &mdash; Reverse In-Place &amp; Rotate Left / Right by <code>k</code></div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Linear Search (Iterative &amp; Recursive)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Binary Search (Iterative &amp; Recursive)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Binary Search &mdash; First / Last Occurrence (Duplicates / Lower &amp; Upper Bound)</div></div>
+    </div>
+  </div>
+
+  <!-- WEEK 2 -->
+  <div class="week-card">
+    <div class="week-header">
+      <div class="week-title-group">
+        <span class="week-pill">WEEK 02</span>
+        <span class="week-title">Singly Linked List</span>
+      </div>
+      <code class="week-dir">02_singly_linked_list/</code>
+    </div>
+    <div class="checklist-body">
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Singly Linked List &mdash; Insert at Head, Tail, and Position <code>k</code></div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Singly Linked List &mdash; Delete Head, Tail, and by Value / Position <code>k</code></div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Singly Linked List &mdash; Search by Value &amp; Traverse / Display</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Singly Linked List &mdash; Reverse (Iterative 3-pointer: <code>prev</code>, <code>curr</code>, <code>next</code>) &amp; Recursive</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Linked List Sorting (Merge Sort / Bubble Sort on node pointer chains)</div></div>
+      <div class="checklist-item viva-row"><div class="check-box"></div><div class="item-text"><span class="viva-badge">VIVA STAPLE</span>Find Middle Node of Linked List (Slow &amp; Fast pointer technique)</div></div>
+      <div class="checklist-item viva-row"><div class="check-box"></div><div class="item-text"><span class="viva-badge">VIVA STAPLE</span>Merge Two Sorted Linked Lists into one sorted list</div></div>
+    </div>
+  </div>
+
+  <!-- WEEK 3 -->
+  <div class="week-card">
+    <div class="week-header">
+      <div class="week-title-group">
+        <span class="week-pill">WEEK 03</span>
+        <span class="week-title">Doubly &amp; Circular Linked List</span>
+      </div>
+      <code class="week-dir">03_doubly_circular_linked_list/</code>
+    </div>
+    <div class="checklist-body">
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Doubly Linked List &mdash; Insert at Head, Tail, Position <code>k</code> (managing <code>prev</code> and <code>next</code>)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Doubly Linked List &mdash; Delete at Head, Tail, and by Value / Position</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Doubly Linked List &mdash; Search, Reverse, and Forward / Backward Bi-directional Traversal</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Circular Singly Linked List &mdash; Insert &amp; Delete at Head and Tail</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Circular Singly Linked List &mdash; Search &amp; Traversal (<code>do ... while (curr != head)</code>)</div></div>
+      <div class="checklist-item viva-row"><div class="check-box"></div><div class="item-text"><span class="viva-badge">VIVA STAPLE</span>Floyd&rsquo;s Cycle Detection Algorithm (Tortoise and Hare pointer loop check)</div></div>
+    </div>
+  </div>
+
+  <!-- WEEK 4 -->
+  <div class="week-card">
+    <div class="week-header">
+      <div class="week-title-group">
+        <span class="week-pill">WEEK 04</span>
+        <span class="week-title">Recursion &amp; Stack</span>
+      </div>
+      <code class="week-dir">04_recursion_and_stack/</code>
+    </div>
+    <div class="checklist-body">
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Stack (Array-based ADT) &mdash; <code>push</code>, <code>pop</code>, <code>peek</code> / <code>top</code>, <code>isEmpty</code>, <code>isFull</code></div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Stack (Linked-List-based ADT) &mdash; Dynamic node allocation at top</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Recursion Call Stack &mdash; Factorial, Fibonacci, Recursive reversal</div></div>
+      <div class="checklist-item viva-row"><div class="check-box"></div><div class="item-text"><span class="viva-badge">VIVA STAPLE</span>Tower of Hanoi (3-peg recursive solution &amp; move visualizer)</div></div>
+      <div class="checklist-item viva-row"><div class="check-box"></div><div class="item-text"><span class="viva-badge">VIVA STAPLE</span>Balanced Parentheses / Bracket Matching (<code>{[()]}</code> validation)</div></div>
+      <div class="checklist-item viva-row"><div class="check-box"></div><div class="item-text"><span class="viva-badge">VIVA STAPLE</span>Infix to Postfix Conversion (using operator precedence and stack)</div></div>
+      <div class="checklist-item viva-row"><div class="check-box"></div><div class="item-text"><span class="viva-badge">VIVA STAPLE</span>Postfix Expression Evaluation (operand stack calculation)</div></div>
+    </div>
+  </div>
+
+  <!-- WEEK 5 -->
+  <div class="week-card">
+    <div class="week-header">
+      <div class="week-title-group">
+        <span class="week-pill">WEEK 05</span>
+        <span class="week-title">Queue, Circular Queue &amp; Double-Ended Queue</span>
+      </div>
+      <code class="week-dir">05_queues_and_deque/</code>
+    </div>
+    <div class="checklist-body">
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Linear Queue (Array &amp; Linked-List-based) &mdash; <code>enqueue</code>, <code>dequeue</code>, <code>peek</code> / <code>front</code></div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Circular Queue (Array-based with <code>(rear + 1) % capacity</code>) &mdash; Full / Empty boundary logic</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Double-Ended Queue (Deque) &mdash; <code>insertFront</code>, <code>insertRear</code>, <code>deleteFront</code>, <code>deleteRear</code>, <code>getFront</code>, <code>getRear</code></div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Standard Template Library Comparison &mdash; <code>std::queue&lt;int&gt;</code> &amp; <code>std::deque&lt;int&gt;</code></div></div>
+    </div>
+  </div>
+
+  <!-- WEEK 6 -->
+  <div class="week-card">
+    <div class="week-header">
+      <div class="week-title-group">
+        <span class="week-pill">WEEK 06</span>
+        <span class="week-title">Elementary Sorting Techniques</span>
+      </div>
+      <code class="week-dir">06_elementary_sorting/</code>
+    </div>
+    <div class="checklist-body">
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Bubble Sort &mdash; Standard nested loops with pairwise comparison and swap</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Bubble Sort &mdash; Early-exit optimization with <code>bool swapped</code> flag (O(n) best-case)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Insertion Sort &mdash; Shift-based shifting prefix (<code>arr[j + 1] = arr[j]</code>) and swap-based variants</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Selection Sort &mdash; Finding <code>minIdx</code> per pass and single swap to sorted position</div></div>
+    </div>
+  </div>
+
+  <!-- WEEK 7 -->
+  <div class="week-card">
+    <div class="week-header">
+      <div class="week-title-group">
+        <span class="week-pill">WEEK 07</span>
+        <span class="week-title">Advanced Sorting Techniques</span>
+      </div>
+      <code class="week-dir">07_advanced_sorting/</code>
+    </div>
+    <div class="checklist-body">
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Merge Sort &mdash; Top-down recursive <code>mergeSort(arr, l, r)</code> + auxiliary merge step (O(n log n))</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Quick Sort &mdash; Lomuto Partition scheme (pivot at <code>arr[high]</code>)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Quick Sort &mdash; Hoare Partition scheme &amp; Median-of-Three pivot selection</div></div>
+    </div>
+  </div>
+
+  <!-- WEEK 9 -->
+  <div class="week-card">
+    <div class="week-header">
+      <div class="week-title-group">
+        <span class="week-pill">WEEK 09</span>
+        <span class="week-title">Binary Tree</span>
+      </div>
+      <code class="week-dir">09_binary_tree/</code>
+    </div>
+    <div class="checklist-body">
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Binary Tree &mdash; Dynamic node creation and Level-Order insertion (via Queue)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Tree Traversals &mdash; Preorder (NLR), Inorder (LNR), and Postorder (LRN) (Recursive &amp; Iterative)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Tree Traversals &mdash; Level-Order Traversal (Breadth-First Search using Queue)</div></div>
+      <div class="checklist-item viva-row"><div class="check-box"></div><div class="item-text"><span class="viva-badge">VIVA STAPLE</span>Calculate Tree Height / Maximum Depth (recursive bottom-up)</div></div>
+      <div class="checklist-item viva-row"><div class="check-box"></div><div class="item-text"><span class="viva-badge">VIVA STAPLE</span>Count Total Nodes and Count Leaf Nodes (recursive check <code>left == null && right == null</code>)</div></div>
+      <div class="checklist-item viva-row"><div class="check-box"></div><div class="item-text"><span class="viva-badge">VIVA STAPLE</span>Invert / Mirror Binary Tree (swapping left and right child pointers)</div></div>
+    </div>
+  </div>
+
+  <!-- WEEK 10 -->
+  <div class="week-card">
+    <div class="week-header">
+      <div class="week-title-group">
+        <span class="week-pill">WEEK 10</span>
+        <span class="week-title">Binary Heap, Heap Sort &amp; Priority Queue</span>
+      </div>
+      <code class="week-dir">10_heap_and_priority_queue/</code>
+    </div>
+    <div class="checklist-body">
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Max-Heap &amp; Min-Heap &mdash; Insert operation with <code>siftUp</code> / Bubble-Up</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Max-Heap &amp; Min-Heap &mdash; Extract Root with <code>siftDown</code> / Bubble-Down</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Build Heap &mdash; O(n) linear-time bottom-up <code>heapify</code> from index <code>n/2 - 1</code> down to 0</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Heap Sort &mdash; In-place array sorting using Build Max-Heap + root swaps &amp; heapify</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Priority Queue ADT &mdash; Heap-backed <code>push</code>, <code>pop</code>, and <code>top</code></div></div>
+    </div>
+  </div>
+
+  <!-- WEEK 11 -->
+  <div class="week-card">
+    <div class="week-header">
+      <div class="week-title-group">
+        <span class="week-pill">WEEK 11</span>
+        <span class="week-title">Binary Search Tree (BST)</span>
+      </div>
+      <code class="week-dir">11_binary_search_tree/</code>
+    </div>
+    <div class="checklist-body">
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">BST &mdash; Insert operation (Recursive &amp; Iterative with trailing parent pointer)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">BST &mdash; Search operation &amp; Extremes (<code>findMin</code> and <code>findMax</code>)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">BST &mdash; Delete Case 1: Deleting a Leaf Node (direct deallocation)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">BST &mdash; Delete Case 2: Node with One Child (bypass linking)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">BST &mdash; Delete Case 3: Node with Two Children (In-Order Successor / Predecessor replacement)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">BST &mdash; Inorder Traversal (producing monotonically sorted output)</div></div>
+      <div class="checklist-item viva-row"><div class="check-box"></div><div class="item-text"><span class="viva-badge">VIVA STAPLE</span>Check if a Binary Tree is a Valid BST (<code>isValidBST</code> with min/max range check)</div></div>
+      <div class="checklist-item viva-row"><div class="check-box"></div><div class="item-text"><span class="viva-badge">VIVA STAPLE</span>Lowest Common Ancestor (LCA) in BST</div></div>
+    </div>
+  </div>
+
+  <!-- WEEK 12 -->
+  <div class="week-card">
+    <div class="week-header">
+      <div class="week-title-group">
+        <span class="week-pill">WEEK 12</span>
+        <span class="week-title">AVL Tree (Self-Balancing BST)</span>
+      </div>
+      <code class="week-dir">12_avl_tree/</code>
+    </div>
+    <div class="checklist-body">
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">AVL Tree &mdash; Height &amp; Balance Factor computation (<code>height(left) - height(right)</code>)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">AVL Rotations &mdash; LL Imbalance &rarr; Right Rotation (<code>rightRotate</code>)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">AVL Rotations &mdash; RR Imbalance &rarr; Left Rotation (<code>leftRotate</code>)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">AVL Rotations &mdash; LR Imbalance &rarr; Left-Right Double Rotation (<code>leftRotate(left)</code> then <code>rightRotate(root)</code>)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">AVL Rotations &mdash; RL Imbalance &rarr; Right-Left Double Rotation (<code>rightRotate(right)</code> then <code>leftRotate(root)</code>)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">AVL Tree &mdash; Delete Node with Recursive Rebalancing Rotations</div></div>
+    </div>
+  </div>
+
+  <!-- WEEK 13 -->
+  <div class="week-card">
+    <div class="week-header">
+      <div class="week-title-group">
+        <span class="week-pill">WEEK 13</span>
+        <span class="week-title">Graph &mdash; Representation &amp; Traversal</span>
+      </div>
+      <code class="week-dir">13_graph_traversal/</code>
+    </div>
+    <div class="checklist-body">
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Graph Representation &mdash; Adjacency Matrix (<code>int adj[V][V]</code>) and Adjacency List (<code>vector&lt;vector&lt;int&gt;&gt;</code>)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Graph Operations &mdash; Add / Remove Vertex and Add / Remove Edge (Directed &amp; Undirected)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Breadth-First Search (BFS) &mdash; Queue-based level exploration with <code>visited[]</code> array</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Depth-First Search (DFS) &mdash; Recursive traversal and Iterative stack-based exploration</div></div>
+      <div class="checklist-item viva-row"><div class="check-box"></div><div class="item-text"><span class="viva-badge">VIVA STAPLE</span>Cycle Detection in Undirected Graph (using parent pointer in BFS/DFS)</div></div>
+      <div class="checklist-item viva-row"><div class="check-box"></div><div class="item-text"><span class="viva-badge">VIVA STAPLE</span>Cycle Detection in Directed Graph (using 3-color or recursion stack array)</div></div>
+    </div>
+  </div>
+
+  <!-- WEEK 14 -->
+  <div class="week-card">
+    <div class="week-header">
+      <div class="week-title-group">
+        <span class="week-pill">WEEK 14</span>
+        <span class="week-title">Graph &mdash; Minimum Spanning Tree &amp; Topological Sorting</span>
+      </div>
+      <code class="week-dir">14_graph_mst_toposort/</code>
+    </div>
+    <div class="checklist-body">
+      <div class="checklist-item viva-row"><div class="check-box"></div><div class="item-text"><span class="viva-badge">PREREQUISITE</span>Disjoint Set Union (DSU / Union-Find with Path Compression &amp; Union by Rank)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Minimum Spanning Tree &mdash; Prim&rsquo;s Algorithm (Greedy vertex exploration via <code>key[]</code>, <code>parent[]</code>, <code>inMST[]</code>)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Minimum Spanning Tree &mdash; Kruskal&rsquo;s Algorithm (Sorted edge list + DSU cycle prevention)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Topological Sorting &mdash; Kahn&rsquo;s Algorithm (In-Degree counting + Queue BFS on Directed Acyclic Graph)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Topological Sorting &mdash; DFS Post-Order Stack Method (push to stack on finish)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Dijkstra&rsquo;s Shortest Path Algorithm &mdash; Single-Source Shortest Path on non-negative weighted graphs</div></div>
+    </div>
+  </div>
+
+  <!-- WEEK 15 -->
+  <div class="week-card">
+    <div class="week-header">
+      <div class="week-title-group">
+        <span class="week-pill">WEEK 15</span>
+        <span class="week-title">Hashing &mdash; Hash Functions &amp; Collision Resolution</span>
+      </div>
+      <code class="week-dir">15_hashing/</code>
+    </div>
+    <div class="checklist-body">
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Hash Functions &mdash; Division Method (<code>key % m</code>), Mid-Square Method, Folding Method</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Open Addressing &mdash; Linear Probing (<code>(hash + i) % m</code>) with Insert, Search, and Tombstone Deletion</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Open Addressing &mdash; Quadratic Probing (<code>(hash + i*i) % m</code>) to reduce primary clustering</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Open Addressing &mdash; Double Hashing (<code>(h1(k) + i * h2(k)) % m</code>)</div></div>
+      <div class="checklist-item"><div class="check-box"></div><div class="item-text">Closed Addressing &mdash; Separate Chaining (Array of Linked Lists <code>Node* table[m]</code>)</div></div>
+      <div class="checklist-item viva-row"><div class="check-box"></div><div class="item-text"><span class="viva-badge">VIVA STAPLE</span>Load Factor Calculation (&alpha; = n / m) &amp; Dynamic Rehashing (doubling table to prime size)</div></div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    NED 3D DSA Studio &bull; Complex Computing Problem (CCP) &bull; Generated from CT-159 Course Syllabus (Weeks 1&ndash;15)
+  </div>
+
+</div>
+
+</body>
+</html>
