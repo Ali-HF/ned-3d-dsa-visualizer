@@ -159,3 +159,63 @@ export function IconPlus(props: IconProps) {
   );
 }
 
+export function IconTurtle(props: IconProps) {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M4 13c0-3.5 2.7-6 6.2-6 3.2 0 5.8 2.2 5.8 6H4z" />
+      <path d="M16 11.5c1.2-.5 2.3.2 2.3 1.2 0 .8-.8 1.3-2.3 1.3" />
+      <path d="M6 13v2.5M13.5 13v2.5M2.5 13H4" />
+    </svg>
+  );
+}
+
+export function IconRabbit(props: IconProps) {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M12.5 3.5c-.6 2.2-.8 4-.3 5.2M15 4c-.2 2-.6 3.7-1.2 4.8" />
+      <path d="M5 14c0-2.8 2.4-4.8 5.5-4.8 2.8 0 5 1.8 5 4.5H5z" />
+      <circle cx="3.8" cy="13.5" r="1.1" />
+      <path d="M7.5 14v2.3M13.5 14v2.3" />
+    </svg>
+  );
+}
+
+export function IconChevronDown(props: IconProps) {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="m4 6 4 4 4-4" />
+    </svg>
+  );
+}
+
+

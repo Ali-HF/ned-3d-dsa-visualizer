@@ -7,35 +7,122 @@ import {
   IconPause,
   IconPlay,
   IconPlus,
+  IconRabbit,
   IconRestart,
-  IconShield,
   IconSkipEnd,
   IconStepBack,
   IconStepForward,
   IconTarget,
+  IconTurtle,
 } from './components/icons/StudioIcons';
 
-const SORTING_BUTTONS: { id: ArrayOperationId; label: string; badge: string }[] = [
-  { id: 'bubble-sort', label: 'Bubble Sort', badge: 'O(n²)' },
-  { id: 'selection-sort', label: 'Selection Sort', badge: 'O(n²)' },
-  { id: 'insertion-sort', label: 'Insertion Sort', badge: 'O(n²)' },
-  { id: 'merge-sort', label: 'Merge Sort', badge: 'O(n log n)' },
-  { id: 'quick-sort', label: 'Quick Sort', badge: 'O(n log n)' },
-];
-
-const ARRAY_OP_BUTTONS: {
+interface ActionOption {
   id: ArrayOperationId;
   label: string;
-  needsIndex?: boolean;
-  needsValue?: boolean;
-}[] = [
-  { id: 'insert-at', label: 'Insert @ Index', needsIndex: true, needsValue: true },
-  { id: 'delete-at', label: 'Delete @ Index', needsIndex: true },
-  { id: 'update-at', label: 'Update @ Index', needsIndex: true, needsValue: true },
-  { id: 'linear-search', label: 'Linear Search', needsValue: true },
-  { id: 'binary-search', label: 'Binary Search', needsValue: true },
-  { id: 'reverse', label: 'Reverse In-Place' },
-  { id: 'rotate', label: 'Rotate Left (k)', needsIndex: true },
+  subtitle: string;
+  group: 'Sort' | 'Add' | 'Remove' | 'Find';
+  needsPosition?: boolean;
+  needsNumber?: boolean;
+  positionLabel?: string;
+  numberLabel?: string;
+}
+
+const GUIDE_ACTIONS: ActionOption[] = [
+  {
+    id: 'bubble-sort',
+    label: 'Bubble Sort',
+    subtitle: 'Compare neighbours and bubble the biggest number to the end',
+    group: 'Sort',
+  },
+  {
+    id: 'selection-sort',
+    label: 'Selection Sort',
+    subtitle: 'Find the smallest remaining number and move it to the front',
+    group: 'Sort',
+  },
+  {
+    id: 'insertion-sort',
+    label: 'Insertion Sort',
+    subtitle: 'Slide each number left into its sorted spot',
+    group: 'Sort',
+  },
+  {
+    id: 'merge-sort',
+    label: 'Merge Sort',
+    subtitle: 'Split in half, sort each half, and merge them back together',
+    group: 'Sort',
+  },
+  {
+    id: 'quick-sort',
+    label: 'Quick Sort',
+    subtitle: 'Pick a pivot number and partition smaller vs bigger numbers',
+    group: 'Sort',
+  },
+  {
+    id: 'reverse',
+    label: 'Reverse Order',
+    subtitle: 'Flip the array from front to back',
+    group: 'Sort',
+  },
+  {
+    id: 'rotate',
+    label: 'Shift Left',
+    subtitle: 'Move every number left and wrap the first numbers around',
+    group: 'Sort',
+    needsPosition: true,
+    positionLabel: 'How many steps to shift',
+  },
+  {
+    id: 'insert-at',
+    label: 'Insert a Number',
+    subtitle: 'Shift numbers right to make room and place a new number',
+    group: 'Add',
+    needsPosition: true,
+    needsNumber: true,
+    positionLabel: 'At position (0-based)',
+    numberLabel: 'Number to add',
+  },
+  {
+    id: 'update-at',
+    label: 'Replace a Number',
+    subtitle: 'Overwrite the number at a specific position',
+    group: 'Add',
+    needsPosition: true,
+    needsNumber: true,
+    positionLabel: 'At position (0-based)',
+    numberLabel: 'New number',
+  },
+  {
+    id: 'delete-at',
+    label: 'Remove a Number',
+    subtitle: 'Delete a number and shift the remaining numbers left',
+    group: 'Remove',
+    needsPosition: true,
+    positionLabel: 'At position (0-based)',
+  },
+  {
+    id: 'linear-search',
+    label: 'Linear Search',
+    subtitle: 'Check each number one by one from left to right',
+    group: 'Find',
+    needsNumber: true,
+    numberLabel: 'Number to find',
+  },
+  {
+    id: 'binary-search',
+    label: 'Binary Search',
+    subtitle: 'Jump to the middle of a sorted list and cut the search in half',
+    group: 'Find',
+    needsNumber: true,
+    numberLabel: 'Number to find',
+  },
+];
+
+const ACTION_GROUPS: ('Sort' | 'Add' | 'Remove' | 'Find')[] = [
+  'Sort',
+  'Add',
+  'Remove',
+  'Find',
 ];
 
 const PREVIEW_FALLBACK_CODE: Record<
@@ -87,7 +174,35 @@ const PREVIEW_FALLBACK_CODE: Record<
   },
 };
 
+function explainCodeLineInPlainEnglish(line: string, fallbackNarration: string): string {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed === '{' || trimmed === '}') {
+    return fallbackNarration;
+  }
+  if (trimmed.startsWith('for ')) {
+    return 'This loop steps through the positions one by one so every number gets checked.';
+  }
+  if (trimmed.startsWith('while ')) {
+    return 'This loop keeps repeating as long as the condition in parentheses stays true.';
+  }
+  if (trimmed.includes('swap(')) {
+    return 'This line swaps the two numbers so the smaller one sits on the left.';
+  }
+  if (trimmed.startsWith('if ')) {
+    return 'This line compares two values to decide what action to take next.';
+  }
+  if (trimmed.startsWith('return ')) {
+    return 'This line finishes the step and hands back the result.';
+  }
+  return fallbackNarration;
+}
+
 export function App() {
+  const uiMode = useViewportStore((s) => s.uiMode);
+  const toggleUiMode = useViewportStore((s) => s.toggleUiMode);
+  const detailsOpen = useViewportStore((s) => s.detailsOpen);
+  const toggleDetailsOpen = useViewportStore((s) => s.toggleDetailsOpen);
+
   const appMode = useViewportStore((s) => s.appMode);
   const setAppMode = useViewportStore((s) => s.setAppMode);
   const previewScene = useViewportStore((s) => s.previewScene);
@@ -120,13 +235,26 @@ export function App() {
   const runOperationNow = useViewportStore((s) => s.runOperationNow);
   const queueOperation = useViewportStore((s) => s.queueOperation);
 
+  // 3-step accordion state in the left column (only 1 step expanded at a time)
+  const [guideStep, setGuideStep] = useState<1 | 2 | 3>(2);
   const [arrayInputText, setArrayInputText] = useState(workingArray.join(', '));
   const [paramIndex, setParamIndex] = useState<number>(2);
-  const [paramValue, setParamValue] = useState<number>(55);
+  const [paramValue, setParamValue] = useState<number>(42);
+
+  const currentActionOption =
+    GUIDE_ACTIONS.find((a) => a.id === activeOperation) ?? GUIDE_ACTIONS[0];
 
   const selectedObj = selectedId ? sceneObjects[selectedId] : null;
   const displayedCodeMeta =
     previewScene === 'array' ? activeMetadata : PREVIEW_FALLBACK_CODE[previewScene];
+
+  const highlightedLineIndex = (currentSnapshot.activeLine ?? 1) - 1;
+  const highlightedLineText =
+    displayedCodeMeta.code[highlightedLineIndex] ?? displayedCodeMeta.code[0] ?? '';
+  const plainCodeExplanation = explainCodeLineInPlainEnglish(
+    highlightedLineText,
+    currentSnapshot.narration,
+  );
 
   // Playback timer loop
   useEffect(() => {
@@ -181,25 +309,43 @@ export function App() {
     triggerCameraPreset,
   ]);
 
-  const handleApplyCustomArray = () => {
-    const parsed = arrayInputText
+  const parseInputNumbers = (text: string): number[] => {
+    const parsed = text
       .split(/[\s,]+/)
       .map((s) => Number(s.trim()))
       .filter((n) => !Number.isNaN(n));
-    if (parsed.length > 0) {
-      setCustomArray(parsed);
-    }
+    return parsed.length > 0 ? parsed : [42, 17, 68, 29, 84, 12];
   };
+
+  const handleApplyAndRun = () => {
+    const nums = parseInputNumbers(arrayInputText);
+    setCustomArray(nums);
+    runOperationNow(activeOperation, paramIndex, paramValue);
+  };
+
+  const handleSurpriseMe = () => {
+    const rnd = Array.from({ length: 6 }, () => Math.floor(Math.random() * 85) + 10);
+    setArrayInputText(rnd.join(', '));
+    setCustomArray(rnd);
+    runOperationNow(activeOperation, paramIndex, paramValue);
+  };
+
+  const structureName =
+    previewScene === 'array'
+      ? 'Array'
+      : previewScene === 'linked-list'
+        ? 'Linked List'
+        : 'Tree';
+
+  const showRightSidebar = uiMode === 'pro' || detailsOpen;
 
   return (
     <div className="app-shell">
-      {/* Top Studio System Bar */}
+      {/* Top Studio Bar */}
       <header className="app-header">
         <div className="brand-title">
           <span className="brand-mark">DSA</span>
-          <span className="brand-name">3D Memory &amp; Algorithm Studio</span>
-          <span className="brand-divider" />
-          <span className="brand-subtitle">NED University • CS-214 CCP</span>
+          <span className="brand-name">Algorithm Studio</span>
         </div>
 
         <div className="workspace-tabs" role="tablist" aria-label="Workspace Mode">
@@ -208,402 +354,509 @@ export function App() {
             className={`ws-tab ${appMode === 'library' ? 'active' : ''}`}
             onClick={() => setAppMode('library')}
           >
-            Library Inspector
+            Learn
           </button>
           <button
             type="button"
             className={`ws-tab ${appMode === 'upload' ? 'active' : ''}`}
             onClick={() => setAppMode('upload')}
           >
-            Sandbox Code Runner (C++ / JS)
+            Run my code
           </button>
         </div>
 
-        <div className="security-status" title="Strict CSP + Isolated Worker Sandbox">
-          <IconShield />
-          <span>Your code runs locally in a sandbox and never leaves your browser.</span>
+        <div className="header-right-actions">
+          {uiMode === 'standard' && (
+            <button
+              type="button"
+              className={`details-drawer-toggle ${detailsOpen ? 'active' : ''}`}
+              onClick={toggleDetailsOpen}
+              title="Show or hide the code details drawer"
+            >
+              <span>{detailsOpen ? 'Hide Details' : 'Details'}</span>
+              <span>{detailsOpen ? '›' : '‹'}</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            className={`mode-switch-btn ${uiMode === 'pro' ? 'pro-active' : ''}`}
+            onClick={toggleUiMode}
+            title="Switch between clean Standard mode and full Pro developer mode"
+          >
+            <span className="mode-label">Mode:</span>
+            <strong>{uiMode === 'standard' ? 'Standard' : 'Pro'}</strong>
+          </button>
         </div>
       </header>
 
-      {/* Main 3-Column Studio Dock */}
-      <div className="workspace-grid">
-        {/* LEFT DOCK: Structure Selector + Operations + Trace Queue */}
+      {/* Main Studio Workspace */}
+      <div className={`workspace-grid ${showRightSidebar ? 'with-right' : 'no-right'}`}>
+        {/* LEFT COLUMN: 3-Step Guide (Only current step expanded) */}
         <aside className="left-panel">
-          <section className="dock-panel">
-            <div className="dock-header">
-              <span>SCENE COLLECTION</span>
-              <span className="dock-meta">3 Primitives</span>
-            </div>
-            <div className="dock-body">
-              <div className="collection-list">
-                <button
-                  type="button"
-                  className={`collection-row ${previewScene === 'array' ? 'selected' : ''}`}
-                  onClick={() => setPreviewScene('array')}
-                >
-                  <span className="col-name">Contiguous Array (1D / Aux)</span>
-                  <span className="col-tag">{workingArray.length} cells</span>
-                </button>
+          <div className="step-guide-container">
+            {/* STEP 1: Pick a structure */}
+            <section
+              className={`guide-step-card ${guideStep === 1 ? 'expanded' : 'collapsed'}`}
+            >
+              <button
+                type="button"
+                className="guide-step-header"
+                onClick={() => setGuideStep(1)}
+              >
+                <span className="guide-step-num">1</span>
+                <span className="guide-step-title">Pick a structure</span>
+                <span className="guide-step-summary">{structureName}</span>
+              </button>
 
-                <button
-                  type="button"
-                  className={`collection-row ${previewScene === 'linked-list' ? 'selected' : ''}`}
-                  onClick={() => setPreviewScene('linked-list')}
-                >
-                  <span className="col-name">Linked List (Node* Heap)</span>
-                  <span className="col-tag">4 nodes</span>
-                </button>
+              {guideStep === 1 && (
+                <div className="guide-step-body">
+                  <div className="structure-cards-grid">
+                    <button
+                      type="button"
+                      className={`structure-big-card ${previewScene === 'array' ? 'selected' : ''}`}
+                      onClick={() => {
+                        setPreviewScene('array');
+                        setGuideStep(2);
+                      }}
+                    >
+                      <span className="struct-icon">▤</span>
+                      <div className="struct-text">
+                        <strong>Array</strong>
+                        <span>Row of numbered boxes</span>
+                      </div>
+                    </button>
 
-                <button
-                  type="button"
-                  className={`collection-row ${previewScene === 'bst' ? 'selected' : ''}`}
-                  onClick={() => setPreviewScene('bst')}
-                >
-                  <span className="col-name">Binary Search / AVL Tree</span>
-                  <span className="col-tag">7 nodes</span>
-                </button>
-              </div>
-            </div>
-          </section>
+                    <button
+                      type="button"
+                      className={`structure-big-card ${previewScene === 'linked-list' ? 'selected' : ''}`}
+                      onClick={() => {
+                        setPreviewScene('linked-list');
+                        setGuideStep(2);
+                      }}
+                    >
+                      <span className="struct-icon">⊶⊷</span>
+                      <div className="struct-text">
+                        <strong>Linked List</strong>
+                        <span>Chain of connected nodes</span>
+                      </div>
+                    </button>
 
-          <section className="dock-panel">
-            <div className="dock-header">
-              <span>ARRAY BUFFER INPUT</span>
-              <span className="dock-meta">int32[]</span>
-            </div>
-            <div className="dock-body">
-              <div className="input-row">
-                <input
-                  type="text"
-                  className="studio-input"
-                  value={arrayInputText}
-                  onChange={(e) => setArrayInputText(e.target.value)}
-                  aria-label="Custom Array Values"
-                  placeholder="42, 17, 68, 29, 84, 12"
-                />
-                <button
-                  type="button"
-                  className="studio-btn primary"
-                  onClick={handleApplyCustomArray}
-                >
-                  Apply
-                </button>
-              </div>
-              <div className="preset-bar">
-                <button
-                  type="button"
-                  className="preset-btn"
-                  onClick={() => {
-                    const rnd = Array.from({ length: 6 }, () =>
-                      Math.floor(Math.random() * 85) + 10,
+                    <button
+                      type="button"
+                      className={`structure-big-card ${previewScene === 'bst' ? 'selected' : ''}`}
+                      onClick={() => {
+                        setPreviewScene('bst');
+                        setGuideStep(2);
+                      }}
+                    >
+                      <span className="struct-icon">branch</span>
+                      <div className="struct-text">
+                        <strong>Tree</strong>
+                        <span>Branching hierarchy</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* STEP 2: Pick what to do */}
+            <section
+              className={`guide-step-card ${guideStep === 2 ? 'expanded' : 'collapsed'}`}
+            >
+              <button
+                type="button"
+                className="guide-step-header"
+                onClick={() => setGuideStep(2)}
+              >
+                <span className="guide-step-num">2</span>
+                <span className="guide-step-title">Pick what to do</span>
+                <span className="guide-step-summary">{currentActionOption.label}</span>
+              </button>
+
+              {guideStep === 2 && (
+                <div className="guide-step-body">
+                  {ACTION_GROUPS.map((groupName) => {
+                    const items = GUIDE_ACTIONS.filter((a) => a.group === groupName);
+                    return (
+                      <div key={groupName} className="action-group-block">
+                        <div className="action-group-heading">{groupName}</div>
+                        <div className="action-group-list">
+                          {items.map((item) => (
+                            <button
+                              key={item.id}
+                              type="button"
+                              className={`action-choice-btn ${activeOperation === item.id ? 'active' : ''}`}
+                              onClick={() => {
+                                runOperationNow(item.id, paramIndex, paramValue);
+                                if (item.needsNumber || item.needsPosition) {
+                                  setGuideStep(3);
+                                }
+                              }}
+                            >
+                              <span className="action-choice-name">{item.label}</span>
+                              {uiMode === 'pro' && (
+                                <span className="action-choice-sub">{item.subtitle}</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     );
-                    setArrayInputText(rnd.join(', '));
-                    setCustomArray(rnd);
-                  }}
-                >
-                  Randomize
-                </button>
-                <button
-                  type="button"
-                  className="preset-btn"
-                  onClick={() => {
-                    const rev = [90, 75, 60, 45, 30, 15];
-                    setArrayInputText(rev.join(', '));
-                    setCustomArray(rev);
-                  }}
-                >
-                  Descending
-                </button>
-                <button
-                  type="button"
-                  className="preset-btn"
-                  onClick={() => {
-                    const dup = [35, 15, 35, 70, 15, 50];
-                    setArrayInputText(dup.join(', '));
-                    setCustomArray(dup);
-                  }}
-                >
-                  Duplicates
-                </button>
-              </div>
-            </div>
-          </section>
+                  })}
+                </div>
+              )}
+            </section>
 
-          <section className="dock-panel">
-            <div className="dock-header">
-              <span>SORTING KERNELS</span>
-              <label className="inline-check">
-                <input
-                  type="checkbox"
-                  checked={autoPlayOnRun}
-                  onChange={toggleAutoPlayOnRun}
-                />
-                <span>Auto-Run</span>
-              </label>
-            </div>
-            <div className="dock-body">
-              <div className="op-table">
-                {SORTING_BUTTONS.map((btn) => (
-                  <div key={btn.id} className="op-row">
+            {/* STEP 3: Your numbers */}
+            <section
+              className={`guide-step-card ${guideStep === 3 ? 'expanded' : 'collapsed'}`}
+            >
+              <button
+                type="button"
+                className="guide-step-header"
+                onClick={() => setGuideStep(3)}
+              >
+                <span className="guide-step-num">3</span>
+                <span className="guide-step-title">Your numbers</span>
+                <span className="guide-step-summary">
+                  {workingArray.slice(0, 4).join(', ')}
+                  {workingArray.length > 4 ? '…' : ''}
+                </span>
+              </button>
+
+              {guideStep === 3 && (
+                <div className="guide-step-body">
+                  <label className="field-block">
+                    <span className="field-label">Starting numbers (comma-separated)</span>
+                    <input
+                      type="text"
+                      className="studio-input large"
+                      value={arrayInputText}
+                      onChange={(e) => setArrayInputText(e.target.value)}
+                      aria-label="Your numbers"
+                      placeholder="42, 17, 68, 29, 84, 12"
+                    />
+                  </label>
+
+                  {currentActionOption.needsPosition && (
+                    <label className="field-block">
+                      <span className="field-label">
+                        {currentActionOption.positionLabel ?? 'Position'}
+                      </span>
+                      <input
+                        type="number"
+                        className="studio-input large"
+                        value={paramIndex}
+                        min={0}
+                        max={20}
+                        onChange={(e) => setParamIndex(Number(e.target.value))}
+                      />
+                    </label>
+                  )}
+
+                  {currentActionOption.needsNumber && (
+                    <label className="field-block">
+                      <span className="field-label">
+                        {currentActionOption.numberLabel ?? 'Number'}
+                      </span>
+                      <input
+                        type="number"
+                        className="studio-input large"
+                        value={paramValue}
+                        onChange={(e) => setParamValue(Number(e.target.value))}
+                      />
+                    </label>
+                  )}
+
+                  <div className="step3-btn-row">
                     <button
                       type="button"
-                      className={`op-exec-btn ${activeOperation === btn.id ? 'active' : ''}`}
-                      onClick={() => runOperationNow(btn.id, paramIndex, paramValue)}
+                      className="studio-btn primary large"
+                      onClick={handleApplyAndRun}
                     >
-                      <IconPlay />
-                      <span className="op-label">{btn.label}</span>
-                      <code className="op-complexity">{btn.badge}</code>
+                      Apply &amp; Run
                     </button>
                     <button
                       type="button"
-                      className="op-append-btn"
-                      title={`Queue ${btn.label}`}
-                      onClick={() => queueOperation(btn.id, paramIndex, paramValue)}
+                      className="studio-btn surprise-btn large"
+                      onClick={handleSurpriseMe}
                     >
-                      <IconPlus />
-                      <span>Queue</span>
+                      Surprise me
                     </button>
                   </div>
-                ))}
-              </div>
-            </div>
-          </section>
 
-          <section className="dock-panel">
-            <div className="dock-header">
-              <span>ARRAY OPERATIONS</span>
-              <span className="dock-meta">Section 4.1</span>
-            </div>
-            <div className="dock-body">
-              <div className="param-grid">
-                <div className="param-field">
-                  <label htmlFor="param-idx">Index / Shift (k)</label>
-                  <input
-                    id="param-idx"
-                    type="number"
-                    className="studio-input mono"
-                    value={paramIndex}
-                    min={0}
-                    max={20}
-                    onChange={(e) => setParamIndex(Number(e.target.value))}
-                  />
-                </div>
-                <div className="param-field">
-                  <label htmlFor="param-val">Value / Key</label>
-                  <input
-                    id="param-val"
-                    type="number"
-                    className="studio-input mono"
-                    value={paramValue}
-                    onChange={(e) => setParamValue(Number(e.target.value))}
-                  />
-                </div>
-              </div>
-
-              <div className="op-table">
-                {ARRAY_OP_BUTTONS.map((btn) => (
-                  <div key={btn.id} className="op-row">
+                  {uiMode === 'pro' && (
                     <button
                       type="button"
-                      className={`op-exec-btn ${activeOperation === btn.id ? 'active' : ''}`}
-                      onClick={() => runOperationNow(btn.id, paramIndex, paramValue)}
-                    >
-                      <IconPlay />
-                      <span className="op-label">{btn.label}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="op-append-btn"
-                      title={`Queue ${btn.label}`}
-                      onClick={() => queueOperation(btn.id, paramIndex, paramValue)}
+                      className="studio-btn full-width"
+                      onClick={() =>
+                        queueOperation(activeOperation, paramIndex, paramValue)
+                      }
                     >
                       <IconPlus />
-                      <span>Queue</span>
+                      <span>Add to playlist</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </section>
+          </div>
+
+          {/* PRO MODE ONLY: Developer Panels on Left (Scene Collection, Auto-Run, Trace Queue) */}
+          {uiMode === 'pro' && (
+            <>
+              <section className="dock-panel">
+                <div className="dock-header">
+                  <span>SCENE COLLECTION</span>
+                  <label className="inline-check">
+                    <input
+                      type="checkbox"
+                      checked={autoPlayOnRun}
+                      onChange={toggleAutoPlayOnRun}
+                    />
+                    <span>Auto-Run</span>
+                  </label>
+                </div>
+                <div className="dock-body">
+                  <div className="collection-list">
+                    <button
+                      type="button"
+                      className={`collection-row ${previewScene === 'array' ? 'selected' : ''}`}
+                      onClick={() => setPreviewScene('array')}
+                    >
+                      <span className="col-name">Contiguous Array (1D / Aux)</span>
+                      <span className="col-tag">{workingArray.length} cells</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`collection-row ${previewScene === 'linked-list' ? 'selected' : ''}`}
+                      onClick={() => setPreviewScene('linked-list')}
+                    >
+                      <span className="col-name">Linked List (Node* Heap)</span>
+                      <span className="col-tag">4 nodes</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`collection-row ${previewScene === 'bst' ? 'selected' : ''}`}
+                      onClick={() => setPreviewScene('bst')}
+                    >
+                      <span className="col-name">Binary Search / AVL Tree</span>
+                      <span className="col-tag">7 nodes</span>
                     </button>
                   </div>
-                ))}
-              </div>
-            </div>
-          </section>
+                </div>
+              </section>
 
-          <section className="dock-panel">
-            <div className="dock-header">
-              <span>TRACE OPERATION QUEUE</span>
-              <span className="dock-meta">{operationHistory.length} Ops</span>
-            </div>
-            <div className="dock-body">
-              <ul className="outliner-tree">
-                {operationHistory.map((item, idx) => {
-                  const isCurrentOp =
-                    currentStep >= item.startStep && currentStep <= item.endStep;
-                  return (
-                    <li key={item.uid}>
-                      <button
-                        type="button"
-                        className={`tree-row ${isCurrentOp ? 'active' : ''}`}
-                        onClick={() => seekToStep(item.startStep)}
-                      >
-                        <span className="tree-idx">{idx + 1}.</span>
-                        <span className="tree-label">{item.label}</span>
-                        <code className="tree-range">
-                          [{item.startStep}..{item.endStep}]
-                        </code>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </section>
+              <section className="dock-panel">
+                <div className="dock-header">
+                  <span>TRACE OPERATION QUEUE</span>
+                  <span className="dock-meta">{operationHistory.length} Ops</span>
+                </div>
+                <div className="dock-body">
+                  <ul className="outliner-tree">
+                    {operationHistory.map((item, idx) => {
+                      const isCurrentOp =
+                        currentStep >= item.startStep && currentStep <= item.endStep;
+                      return (
+                        <li key={item.uid}>
+                          <button
+                            type="button"
+                            className={`tree-row ${isCurrentOp ? 'active' : ''}`}
+                            onClick={() => seekToStep(item.startStep)}
+                          >
+                            <span className="tree-idx">{idx + 1}.</span>
+                            <span className="tree-label">{item.label}</span>
+                            <code className="tree-range">
+                              [{item.startStep}..{item.endStep}]
+                            </code>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </section>
+            </>
+          )}
         </aside>
 
-        {/* CENTRE PANEL: 3D Viewport */}
+        {/* CENTRE PANEL: 3D Stage + Plain-English Caption Bar */}
         <main className="centre-viewport">
           <BlenderViewport />
         </main>
 
-        {/* RIGHT DOCK: Outliner + Property Sheet + Source Trace */}
-        <aside className="right-panel">
-          <section className="dock-panel">
-            <div className="dock-header">
-              <span>OUTLINER</span>
-              <span className="dock-meta">{Object.keys(sceneObjects).length} Objects</span>
-            </div>
-            <div className="dock-body">
-              <ul className="outliner-tree compact">
-                {Object.values(sceneObjects).map((obj) => (
-                  <li key={obj.id}>
-                    <button
-                      type="button"
-                      className={`tree-row ${selectedId === obj.id ? 'active' : ''}`}
-                      onClick={() => selectObject(obj.id)}
-                    >
-                      <span className="tree-label">
-                        {obj.label} = <strong>{String(obj.value)}</strong>
-                      </span>
-                      <code className="tree-range">{obj.memoryAddress}</code>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </section>
-
-          <section className="dock-panel">
-            <div className="dock-header">
-              <span>OBJECT PROPERTIES</span>
-              <span className="dock-meta">Memory Inspector</span>
-            </div>
-            <div className="dock-body">
-              {selectedObj ? (
-                <div className="prop-sheet">
-                  <div className="prop-grid">
-                    <span className="prop-label">Identifier</span>
-                    <code className="prop-val">{selectedObj.id}</code>
-
-                    <span className="prop-label">Primitive Type</span>
-                    <code className="prop-val">{selectedObj.kind}</code>
-
-                    <span className="prop-label">Hex Address</span>
-                    <code className="prop-val accent">{selectedObj.memoryAddress}</code>
-
-                    <span className="prop-label">World Transform</span>
-                    <code className="prop-val">
-                      X:{selectedObj.position[0].toFixed(1)} Y:
-                      {selectedObj.position[1].toFixed(1)} Z:
-                      {selectedObj.position[2].toFixed(1)}
-                    </code>
+        {/* RIGHT PANEL: Details Drawer (Standard Mode when open) or Full Developer Inspector (Pro Mode) */}
+        {showRightSidebar && (
+          <aside className="right-panel" aria-label="Details and Code Inspector">
+            {uiMode === 'pro' && (
+              <>
+                <section className="dock-panel">
+                  <div className="dock-header">
+                    <span>OUTLINER</span>
+                    <span className="dock-meta">
+                      {Object.keys(sceneObjects).length} Objects
+                    </span>
                   </div>
+                  <div className="dock-body">
+                    <ul className="outliner-tree compact">
+                      {Object.values(sceneObjects).map((obj) => (
+                        <li key={obj.id}>
+                          <button
+                            type="button"
+                            className={`tree-row ${selectedId === obj.id ? 'active' : ''}`}
+                            onClick={() => selectObject(obj.id)}
+                          >
+                            <span className="tree-label">
+                              {obj.label} = <strong>{String(obj.value)}</strong>
+                            </span>
+                            <code className="tree-range">{obj.memoryAddress}</code>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </section>
 
-                  <div className="prop-divider">STRUCT / CELL FIELDS</div>
-                  <div className="prop-grid">
-                    {Object.entries(selectedObj.fields).map(([fieldKey, fieldVal]) => (
-                      <div key={fieldKey} className="prop-pair">
-                        <span className="prop-label">{fieldKey}</span>
-                        <code className="prop-val">{String(fieldVal)}</code>
+                <section className="dock-panel">
+                  <div className="dock-header">
+                    <span>OBJECT PROPERTIES</span>
+                    <span className="dock-meta">Memory Inspector</span>
+                  </div>
+                  <div className="dock-body">
+                    {selectedObj ? (
+                      <div className="prop-sheet">
+                        <div className="prop-grid">
+                          <span className="prop-label">Identifier</span>
+                          <code className="prop-val">{selectedObj.id}</code>
+
+                          <span className="prop-label">Primitive Type</span>
+                          <code className="prop-val">{selectedObj.kind}</code>
+
+                          <span className="prop-label">Hex Address</span>
+                          <code className="prop-val accent">
+                            {selectedObj.memoryAddress}
+                          </code>
+
+                          <span className="prop-label">World Transform</span>
+                          <code className="prop-val">
+                            X:{selectedObj.position[0].toFixed(1)} Y:
+                            {selectedObj.position[1].toFixed(1)} Z:
+                            {selectedObj.position[2].toFixed(1)}
+                          </code>
+                        </div>
+
+                        <div className="prop-divider">STRUCT / CELL FIELDS</div>
+                        <div className="prop-grid">
+                          {Object.entries(selectedObj.fields).map(
+                            ([fieldKey, fieldVal]) => (
+                              <div key={fieldKey} className="prop-pair">
+                                <span className="prop-label">{fieldKey}</span>
+                                <code className="prop-val">{String(fieldVal)}</code>
+                              </div>
+                            ),
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          className="studio-btn full-width"
+                          onClick={() => triggerCameraPreset('focus')}
+                        >
+                          <IconTarget />
+                          <span>Frame Selected in Viewport (Numpad .)</span>
+                        </button>
                       </div>
-                    ))}
+                    ) : (
+                      <div className="empty-state">
+                        Select a mesh in the 3D Viewport or Outliner to inspect its
+                        simulated memory cell and transform.
+                      </div>
+                    )}
                   </div>
+                </section>
 
-                  <button
-                    type="button"
-                    className="studio-btn full-width"
-                    onClick={() => triggerCameraPreset('focus')}
-                  >
-                    <IconTarget />
-                    <span>Frame Selected in Viewport (Numpad .)</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="empty-state">
-                  Select a mesh in the 3D Viewport or Outliner to inspect its simulated
-                  memory cell and transform.
+                {currentSnapshot.callStack.length > 0 && (
+                  <section className="dock-panel">
+                    <div className="dock-header">
+                      <span>CALL STACK FRAMES</span>
+                      <span className="dock-meta">
+                        Depth {currentSnapshot.callStack.length}
+                      </span>
+                    </div>
+                    <div className="dock-body">
+                      <ul className="outliner-tree compact">
+                        {[...currentSnapshot.callStack].reverse().map((frame, idx) => (
+                          <li
+                            key={`${frame.fn}-${frame.depth}-${idx}`}
+                            className="tree-row"
+                          >
+                            <code className="tree-label">
+                              {frame.fn}({frame.args.join(', ')})
+                            </code>
+                            <code className="tree-range">frame #{frame.depth}</code>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </section>
+                )}
+              </>
+            )}
+
+            <section className="dock-panel code-dock">
+              <div className="dock-header">
+                <span>{uiMode === 'standard' ? 'CODE DETAILS' : 'SOURCE TRACE'}</span>
+                <span className="dock-meta">{displayedCodeMeta.title}</span>
+              </div>
+
+              {/* Plain-English sentence explaining the highlighted code line */}
+              <div className="code-line-explanation">
+                <span className="code-exp-badge">Line {currentSnapshot.activeLine ?? 1}</span>
+                <p>{plainCodeExplanation}</p>
+              </div>
+
+              {uiMode === 'pro' && (
+                <div className="complexity-strip">
+                  <span>
+                    Time: <strong>{displayedCodeMeta.timeComplexity}</strong>
+                  </span>
+                  <span>
+                    Space: <strong>{displayedCodeMeta.spaceComplexity}</strong>
+                  </span>
                 </div>
               )}
-            </div>
-          </section>
 
-          {currentSnapshot.callStack.length > 0 && (
-            <section className="dock-panel">
-              <div className="dock-header">
-                <span>CALL STACK FRAMES</span>
-                <span className="dock-meta">Depth {currentSnapshot.callStack.length}</span>
-              </div>
-              <div className="dock-body">
-                <ul className="outliner-tree compact">
-                  {[...currentSnapshot.callStack].reverse().map((frame, idx) => (
-                    <li key={`${frame.fn}-${frame.depth}-${idx}`} className="tree-row">
-                      <code className="tree-label">
-                        {frame.fn}({frame.args.join(', ')})
-                      </code>
-                      <code className="tree-range">frame #{frame.depth}</code>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <pre className="code-viewer" aria-label="Algorithm Source Code">
+                {displayedCodeMeta.code.map((line, idx) => {
+                  const lineNum = idx + 1;
+                  const isHighlighted = currentSnapshot.activeLine === lineNum;
+                  return (
+                    <div
+                      key={lineNum}
+                      className={`code-line ${isHighlighted ? 'highlighted' : ''}`}
+                    >
+                      <span className="line-number">{lineNum}</span>
+                      <span className="line-text">{line || ' '}</span>
+                    </div>
+                  );
+                })}
+              </pre>
             </section>
-          )}
-
-          <section className="dock-panel code-dock">
-            <div className="dock-header">
-              <span>SOURCE TRACE</span>
-              <span className="dock-meta">{displayedCodeMeta.title}</span>
-            </div>
-            <div className="complexity-strip">
-              <span>
-                Time: <strong>{displayedCodeMeta.timeComplexity}</strong>
-              </span>
-              <span>
-                Space: <strong>{displayedCodeMeta.spaceComplexity}</strong>
-              </span>
-            </div>
-            <pre className="code-viewer" aria-label="Algorithm Source Code">
-              {displayedCodeMeta.code.map((line, idx) => {
-                const lineNum = idx + 1;
-                const isHighlighted = currentSnapshot.activeLine === lineNum;
-                return (
-                  <div
-                    key={lineNum}
-                    className={`code-line ${isHighlighted ? 'highlighted' : ''}`}
-                  >
-                    <span className="line-number">{lineNum}</span>
-                    <span className="line-text">{line || ' '}</span>
-                  </div>
-                );
-              })}
-            </pre>
-          </section>
-        </aside>
+          </aside>
+        )}
       </div>
 
-      {/* Bottom Timeline & Transport Bar */}
+      {/* STEP 6: One Clean Playback Bar */}
       <footer className="bottom-transport-bar">
         <div className="transport-cluster">
           <button
             type="button"
             className="transport-btn"
             onClick={restart}
-            title="Restart Timeline (R)"
+            title="Restart from beginning (R)"
+            aria-label="Restart"
           >
             <IconRestart />
           </button>
@@ -612,15 +865,16 @@ export function App() {
             className="transport-btn"
             onClick={stepBackward}
             disabled={currentStep <= 0}
-            title="Step Backward (Left Arrow)"
+            title="Previous step (Left Arrow)"
+            aria-label="Previous step"
           >
             <IconStepBack />
           </button>
           <button
             type="button"
-            className={`transport-btn primary ${isPlaying ? 'playing' : ''}`}
+            className={`transport-btn primary-play ${isPlaying ? 'playing' : ''}`}
             onClick={togglePlay}
-            title="Play / Pause (Spacebar)"
+            title="Play or Pause (Spacebar)"
           >
             {isPlaying ? <IconPause /> : <IconPlay />}
             <span>{isPlaying ? 'Pause' : 'Play'}</span>
@@ -630,7 +884,8 @@ export function App() {
             className="transport-btn"
             onClick={stepForward}
             disabled={currentStep >= totalSteps}
-            title="Step Forward (Right Arrow)"
+            title="Next step (Right Arrow)"
+            aria-label="Next step"
           >
             <IconStepForward />
           </button>
@@ -639,20 +894,14 @@ export function App() {
             className="transport-btn"
             onClick={skipToEnd}
             disabled={currentStep >= totalSteps}
-            title="Skip to End"
+            title="Skip to end"
+            aria-label="Skip to end"
           >
             <IconSkipEnd />
           </button>
         </div>
 
         <div className="scrubber-cluster">
-          <div className="frame-counter">
-            <span className="fc-label">FRAME</span>
-            <code className="fc-val">
-              {String(currentStep).padStart(3, '0')} /{' '}
-              {String(totalSteps).padStart(3, '0')}
-            </code>
-          </div>
           <input
             type="range"
             min={0}
@@ -660,14 +909,17 @@ export function App() {
             value={currentStep}
             onChange={(e) => seekToStep(Number(e.target.value))}
             className="timeline-scrubber"
-            aria-label="Timeline Scrubber"
+            aria-label="Step Scrubber"
           />
+          <span className="step-count-label">
+            Step <strong>{currentStep}</strong> of <strong>{totalSteps}</strong>
+          </span>
         </div>
 
-        <div className="rate-cluster">
-          <label htmlFor="speed-range" className="fc-label">
-            RATE <code>{playbackSpeed.toFixed(2)}x</code>
-          </label>
+        <div className="rate-cluster" title={`Playback speed: ${playbackSpeed}x`}>
+          <span className="speed-icon" aria-hidden="true">
+            <IconTurtle />
+          </span>
           <input
             id="speed-range"
             type="range"
@@ -677,7 +929,11 @@ export function App() {
             value={playbackSpeed}
             onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
             className="rate-slider"
+            aria-label="Playback Speed"
           />
+          <span className="speed-icon" aria-hidden="true">
+            <IconRabbit />
+          </span>
         </div>
       </footer>
     </div>

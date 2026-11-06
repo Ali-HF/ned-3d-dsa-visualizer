@@ -106,7 +106,7 @@ export const ARRAY_ALGORITHM_METADATA: Record<ArrayOperationId, AlgorithmMetadat
   },
   'quick-sort': {
     id: 'quick-sort',
-    title: 'Quick Sort (Lomuto Partition)',
+    title: 'Quick Sort',
     category: 'sorting',
     timeComplexity: 'O(n log n) avg, O(n²) worst',
     spaceComplexity: 'O(log n) recursion stack',
@@ -132,7 +132,7 @@ export const ARRAY_ALGORITHM_METADATA: Record<ArrayOperationId, AlgorithmMetadat
   },
   'insert-at': {
     id: 'insert-at',
-    title: 'Array Insert at Index',
+    title: 'Insert a Number',
     category: 'operation',
     timeComplexity: 'O(n) shift right',
     spaceComplexity: 'O(1)',
@@ -148,7 +148,7 @@ export const ARRAY_ALGORITHM_METADATA: Record<ArrayOperationId, AlgorithmMetadat
   },
   'delete-at': {
     id: 'delete-at',
-    title: 'Array Delete at Index',
+    title: 'Remove a Number',
     category: 'operation',
     timeComplexity: 'O(n) shift left',
     spaceComplexity: 'O(1)',
@@ -163,7 +163,7 @@ export const ARRAY_ALGORITHM_METADATA: Record<ArrayOperationId, AlgorithmMetadat
   },
   'update-at': {
     id: 'update-at',
-    title: 'Array Update at Index',
+    title: 'Change a Number',
     category: 'operation',
     timeComplexity: 'O(1) direct index',
     spaceComplexity: 'O(1)',
@@ -209,7 +209,7 @@ export const ARRAY_ALGORITHM_METADATA: Record<ArrayOperationId, AlgorithmMetadat
   },
   reverse: {
     id: 'reverse',
-    title: 'Reverse Array (Two Pointers)',
+    title: 'Reverse Order',
     category: 'operation',
     timeComplexity: 'O(n)',
     spaceComplexity: 'O(1) in-place',
@@ -225,7 +225,7 @@ export const ARRAY_ALGORITHM_METADATA: Record<ArrayOperationId, AlgorithmMetadat
   },
   rotate: {
     id: 'rotate',
-    title: 'Rotate Array Left by k',
+    title: 'Shift Left',
     category: 'operation',
     timeComplexity: 'O(n)',
     spaceComplexity: 'O(1)',
@@ -258,58 +258,87 @@ export function bubbleSortTrace(
   const arr = [...input];
   const events: TraceEvent[] = [];
   if (emitInit) {
-    emitArrayInit(events, 'arr', arr, `Initialized array of ${arr.length} elements for Bubble Sort`);
+    emitArrayInit(
+      events,
+      'arr',
+      arr,
+      `Ready to sort ${arr.length} numbers with Bubble Sort: ${arr.join(', ')}.`,
+    );
   }
 
   const n = arr.length;
+  const totalPasses = Math.max(1, n - 1);
+
   for (let i = 0; i < n - 1; i++) {
     let swapped = false;
     events.push({ t: 'line', line: 2 });
-    events.push({ t: 'note', text: `Pass ${i + 1}: bubbling largest unsorted value toward index ${n - 1 - i}` });
+    events.push({
+      t: 'note',
+      text: `Starting pass ${i + 1} of ${totalPasses} to move the largest remaining number to the right.`,
+    });
 
     for (let j = 0; j < n - i - 1; j++) {
+      const leftVal = arr[j];
+      const rightVal = arr[j + 1];
       events.push({ t: 'line', line: 5 });
+      events.push({
+        t: 'note',
+        text:
+          leftVal > rightVal
+            ? `Comparing ${leftVal} and ${rightVal}. ${leftVal} is bigger, so they swap places.`
+            : `Comparing ${leftVal} and ${rightVal}. ${leftVal} is already smaller or equal, so they stay put.`,
+      });
       events.push({
         t: 'compare',
         a: { id: 'arr', index: j },
         b: { id: 'arr', index: j + 1 },
       });
-      events.push({
-        t: 'note',
-        text: `Compare arr[${j}] (${arr[j]}) and arr[${j + 1}] (${arr[j + 1]}): ${
-          arr[j] > arr[j + 1] ? `${arr[j]} > ${arr[j + 1]} → swap` : `${arr[j]} ≤ ${arr[j + 1]} → keep order`
-        }`,
-      });
 
-      if (arr[j] > arr[j + 1]) {
-        const tmp = arr[j];
-        arr[j] = arr[j + 1];
-        arr[j + 1] = tmp;
+      if (leftVal > rightVal) {
+        arr[j] = rightVal;
+        arr[j + 1] = leftVal;
         swapped = true;
         events.push({ t: 'line', line: 6 });
+        events.push({
+          t: 'note',
+          text: `Swapping ${leftVal} and ${rightVal} so ${rightVal} moves to position ${j + 1} and ${leftVal} moves to position ${j + 2}.`,
+        });
         events.push({
           t: 'swap',
           a: { id: 'arr', index: j },
           b: { id: 'arr', index: j + 1 },
         });
-        events.push({
-          t: 'note',
-          text: `Swapped arr[${j}] and arr[${j + 1}] (${arr[j]} ⇄ ${arr[j + 1]})`,
-        });
       }
     }
-    events.push({ t: 'visit', id: `arr[${n - 1 - i}]` });
+
+    const settledIdx = n - 1 - i;
+    events.push({
+      t: 'note',
+      text: `Pass ${i + 1} of ${totalPasses} is done. ${arr[settledIdx]} is now in its final place at position ${settledIdx + 1}.`,
+    });
+    events.push({ t: 'visit', id: `arr[${settledIdx}]` });
+
     if (!swapped) {
       events.push({ t: 'line', line: 10 });
-      events.push({ t: 'note', text: 'No swaps in this pass — array is already sorted!' });
+      events.push({
+        t: 'note',
+        text: 'No swaps were needed on this pass, so all remaining numbers are already in order.',
+      });
       break;
     }
   }
 
   for (let i = 0; i < n; i++) {
+    events.push({
+      t: 'note',
+      text: `Confirming ${arr[i]} is in its final sorted spot at position ${i + 1}.`,
+    });
     events.push({ t: 'visit', id: `arr[${i}]` });
   }
-  events.push({ t: 'note', text: `Bubble Sort complete: [${arr.join(', ')}]` });
+  events.push({
+    t: 'note',
+    text: `Sorting complete! The numbers in order are ${arr.join(', ')}.`,
+  });
   events.push({ t: 'done' });
 
   return {
@@ -326,55 +355,81 @@ export function selectionSortTrace(
   const arr = [...input];
   const events: TraceEvent[] = [];
   if (emitInit) {
-    emitArrayInit(events, 'arr', arr, `Initialized array of ${arr.length} elements for Selection Sort`);
+    emitArrayInit(
+      events,
+      'arr',
+      arr,
+      `Ready to sort ${arr.length} numbers with Selection Sort: ${arr.join(', ')}.`,
+    );
   }
 
   const n = arr.length;
+  const totalPasses = Math.max(1, n - 1);
+
   for (let i = 0; i < n - 1; i++) {
     let minIdx = i;
     events.push({ t: 'line', line: 3 });
-    events.push({ t: 'note', text: `Pass ${i + 1}: assume minimum is arr[${i}] = ${arr[i]}` });
+    events.push({
+      t: 'note',
+      text: `Pass ${i + 1} of ${totalPasses}: starting with ${arr[i]} at position ${i + 1} as the smallest number seen so far.`,
+    });
 
     for (let j = i + 1; j < n; j++) {
       events.push({ t: 'line', line: 5 });
+      const candidate = arr[j];
+      const currentMin = arr[minIdx];
+      if (candidate < currentMin) {
+        minIdx = j;
+        events.push({
+          t: 'note',
+          text: `Comparing ${candidate} with current smallest ${currentMin}. ${candidate} is smaller, so ${candidate} becomes the new smallest.`,
+        });
+      } else {
+        events.push({
+          t: 'note',
+          text: `Comparing ${candidate} with current smallest ${currentMin}. ${currentMin} is still smaller.`,
+        });
+      }
       events.push({
         t: 'compare',
         a: { id: 'arr', index: j },
         b: { id: 'arr', index: minIdx },
       });
-      if (arr[j] < arr[minIdx]) {
-        minIdx = j;
-        events.push({
-          t: 'note',
-          text: `New minimum found: arr[${j}] = ${arr[j]}`,
-        });
-      } else {
-        events.push({
-          t: 'note',
-          text: `arr[${j}] (${arr[j]}) ≥ current min arr[${minIdx}] (${arr[minIdx]})`,
-        });
-      }
     }
 
     if (minIdx !== i) {
-      const tmp = arr[i];
-      arr[i] = arr[minIdx];
-      arr[minIdx] = tmp;
+      const firstVal = arr[i];
+      const smallestVal = arr[minIdx];
+      arr[i] = smallestVal;
+      arr[minIdx] = firstVal;
       events.push({ t: 'line', line: 7 });
+      events.push({
+        t: 'note',
+        text: `Swapping ${smallestVal} into position ${i + 1} and moving ${firstVal} to position ${minIdx + 1}.`,
+      });
       events.push({
         t: 'swap',
         a: { id: 'arr', index: i },
         b: { id: 'arr', index: minIdx },
       });
-      events.push({
-        t: 'note',
-        text: `Swapped minimum ${arr[i]} into sorted position arr[${i}]`,
-      });
     }
+    events.push({
+      t: 'note',
+      text: `Pass ${i + 1} of ${totalPasses} is done. ${arr[i]} is now locked in its final place at position ${i + 1}.`,
+    });
     events.push({ t: 'visit', id: `arr[${i}]` });
   }
-  if (n > 0) events.push({ t: 'visit', id: `arr[${n - 1}]` });
-  events.push({ t: 'note', text: `Selection Sort complete: [${arr.join(', ')}]` });
+  if (n > 0) {
+    events.push({
+      t: 'note',
+      text: `${arr[n - 1]} at position ${n} is now in its final place.`,
+    });
+    events.push({ t: 'visit', id: `arr[${n - 1}]` });
+  }
+  events.push({
+    t: 'note',
+    text: `Sorting complete! The numbers in order are ${arr.join(', ')}.`,
+  });
   events.push({ t: 'done' });
 
   return {
@@ -391,34 +446,56 @@ export function insertionSortTrace(
   const arr = [...input];
   const events: TraceEvent[] = [];
   if (emitInit) {
-    emitArrayInit(events, 'arr', arr, `Initialized array of ${arr.length} elements for Insertion Sort`);
+    emitArrayInit(
+      events,
+      'arr',
+      arr,
+      `Ready to sort ${arr.length} numbers with Insertion Sort: ${arr.join(', ')}.`,
+    );
   }
 
   const n = arr.length;
-  if (n > 0) events.push({ t: 'visit', id: `arr[0]` });
+  if (n > 0) {
+    events.push({
+      t: 'note',
+      text: `Starting with the first number, ${arr[0]}, as our sorted group on the left.`,
+    });
+    events.push({ t: 'visit', id: 'arr[0]' });
+  }
 
   for (let i = 1; i < n; i++) {
     let j = i;
     events.push({ t: 'line', line: 2 });
-    events.push({ t: 'note', text: `Inserting arr[${i}] = ${arr[i]} into sorted prefix [0..${i - 1}]` });
+    events.push({
+      t: 'note',
+      text: `Picking up ${arr[i]} from position ${i + 1} to slide it into its proper place on the left.`,
+    });
 
     while (j > 0) {
+      const leftVal = arr[j - 1];
+      const currVal = arr[j];
       events.push({ t: 'line', line: 4 });
+      events.push({
+        t: 'note',
+        text:
+          leftVal > currVal
+            ? `Comparing ${leftVal} and ${currVal}. ${leftVal} is bigger, so they swap places.`
+            : `Comparing ${leftVal} and ${currVal}. ${leftVal} is smaller or equal, so ${currVal} stops here.`,
+      });
       events.push({
         t: 'compare',
         a: { id: 'arr', index: j - 1 },
         b: { id: 'arr', index: j },
       });
 
-      if (arr[j - 1] > arr[j]) {
+      if (leftVal > currVal) {
+        arr[j - 1] = currVal;
+        arr[j] = leftVal;
+        events.push({ t: 'line', line: 5 });
         events.push({
           t: 'note',
-          text: `${arr[j - 1]} > ${arr[j]} → shift left by swapping arr[${j - 1}] and arr[${j}]`,
+          text: `Swapping ${leftVal} and ${currVal} so ${currVal} moves left to position ${j}.`,
         });
-        const tmp = arr[j - 1];
-        arr[j - 1] = arr[j];
-        arr[j] = tmp;
-        events.push({ t: 'line', line: 5 });
         events.push({
           t: 'swap',
           a: { id: 'arr', index: j - 1 },
@@ -426,17 +503,20 @@ export function insertionSortTrace(
         });
         j--;
       } else {
-        events.push({
-          t: 'note',
-          text: `${arr[j - 1]} ≤ ${arr[j]} → element is in sorted position at index ${j}`,
-        });
         break;
       }
     }
+    events.push({
+      t: 'note',
+      text: `The first ${i + 1} numbers (${arr.slice(0, i + 1).join(', ')}) are now in order.`,
+    });
     events.push({ t: 'visit', id: `arr[${i}]` });
   }
 
-  events.push({ t: 'note', text: `Insertion Sort complete: [${arr.join(', ')}]` });
+  events.push({
+    t: 'note',
+    text: `Sorting complete! The numbers in order are ${arr.join(', ')}.`,
+  });
   events.push({ t: 'done' });
 
   return {
@@ -453,7 +533,12 @@ export function mergeSortTrace(
   const arr = [...input];
   const events: TraceEvent[] = [];
   if (emitInit) {
-    emitArrayInit(events, 'arr', arr, `Initialized array of ${arr.length} elements for Merge Sort`);
+    emitArrayInit(
+      events,
+      'arr',
+      arr,
+      `Ready to sort ${arr.length} numbers with Merge Sort: ${arr.join(', ')}.`,
+    );
   }
 
   const n = arr.length;
@@ -472,7 +557,10 @@ export function mergeSortTrace(
 
     const mid = Math.floor(l + (r - l) / 2);
     events.push({ t: 'line', line: 3 });
-    events.push({ t: 'note', text: `Split range [${l}..${r}] at mid=${mid}` });
+    events.push({
+      t: 'note',
+      text: `Splitting positions ${l + 1} to ${r + 1} into two halves at position ${mid + 1}.`,
+    });
 
     events.push({ t: 'line', line: 4 });
     sort(l, mid, depth + 1);
@@ -481,11 +569,18 @@ export function mergeSortTrace(
     sort(mid + 1, r, depth + 1);
 
     events.push({ t: 'line', line: 7 });
-    events.push({ t: 'note', text: `Merging sorted subarrays [${l}..${mid}] and [${mid + 1}..${r}]` });
+    events.push({
+      t: 'note',
+      text: `Merging the two sorted halves back together into positions ${l + 1} to ${r + 1}.`,
+    });
 
     const auxSlice: number[] = [];
     for (let k = l; k <= r; k++) {
       auxSlice[k] = arr[k];
+      events.push({
+        t: 'note',
+        text: `Copying ${arr[k]} into the helper row at position ${k + 1}.`,
+      });
       events.push({ t: 'set', target: { id: 'aux', index: k }, value: arr[k] });
     }
 
@@ -494,15 +589,28 @@ export function mergeSortTrace(
     for (let k = l; k <= r; k++) {
       if (i > mid) {
         arr[k] = auxSlice[j];
+        events.push({
+          t: 'note',
+          text: `Placing remaining number ${auxSlice[j]} from the right half into position ${k + 1}.`,
+        });
         events.push({ t: 'set', target: { id: 'arr', index: k }, value: auxSlice[j] });
-        events.push({ t: 'note', text: `Copy remaining right half aux[${j}]=${auxSlice[j]} → arr[${k}]` });
         j++;
       } else if (j > r) {
         arr[k] = auxSlice[i];
+        events.push({
+          t: 'note',
+          text: `Placing remaining number ${auxSlice[i]} from the left half into position ${k + 1}.`,
+        });
         events.push({ t: 'set', target: { id: 'arr', index: k }, value: auxSlice[i] });
-        events.push({ t: 'note', text: `Copy remaining left half aux[${i}]=${auxSlice[i]} → arr[${k}]` });
         i++;
       } else {
+        events.push({
+          t: 'note',
+          text:
+            auxSlice[i] <= auxSlice[j]
+              ? `Comparing ${auxSlice[i]} and ${auxSlice[j]}. ${auxSlice[i]} is smaller or equal, so it goes next.`
+              : `Comparing ${auxSlice[i]} and ${auxSlice[j]}. ${auxSlice[j]} is smaller, so it goes next.`,
+        });
         events.push({
           t: 'compare',
           a: { id: 'aux', index: i },
@@ -510,19 +618,19 @@ export function mergeSortTrace(
         });
         if (auxSlice[i] <= auxSlice[j]) {
           arr[k] = auxSlice[i];
-          events.push({ t: 'set', target: { id: 'arr', index: k }, value: auxSlice[i] });
           events.push({
             t: 'note',
-            text: `${auxSlice[i]} ≤ ${auxSlice[j]} → write ${auxSlice[i]} to arr[${k}]`,
+            text: `Writing ${auxSlice[i]} into position ${k + 1}.`,
           });
+          events.push({ t: 'set', target: { id: 'arr', index: k }, value: auxSlice[i] });
           i++;
         } else {
           arr[k] = auxSlice[j];
-          events.push({ t: 'set', target: { id: 'arr', index: k }, value: auxSlice[j] });
           events.push({
             t: 'note',
-            text: `${auxSlice[j]} < ${auxSlice[i]} → write ${auxSlice[j]} to arr[${k}]`,
+            text: `Writing ${auxSlice[j]} into position ${k + 1}.`,
           });
+          events.push({ t: 'set', target: { id: 'arr', index: k }, value: auxSlice[j] });
           j++;
         }
       }
@@ -536,7 +644,10 @@ export function mergeSortTrace(
     sort(0, n - 1, 0);
   }
   events.push({ t: 'remove', id: 'aux' });
-  events.push({ t: 'note', text: `Merge Sort complete: [${arr.join(', ')}]` });
+  events.push({
+    t: 'note',
+    text: `Sorting complete! The numbers in order are ${arr.join(', ')}.`,
+  });
   events.push({ t: 'done' });
 
   return {
@@ -553,7 +664,12 @@ export function quickSortTrace(
   const arr = [...input];
   const events: TraceEvent[] = [];
   if (emitInit) {
-    emitArrayInit(events, 'arr', arr, `Initialized array of ${arr.length} elements for Quick Sort`);
+    emitArrayInit(
+      events,
+      'arr',
+      arr,
+      `Ready to sort ${arr.length} numbers with Quick Sort: ${arr.join(', ')}.`,
+    );
   }
 
   function partition(low: number, high: number, depth: number): number {
@@ -561,57 +677,68 @@ export function quickSortTrace(
     const pivot = arr[high];
     let i = low - 1;
     events.push({ t: 'line', line: 2 });
-    events.push({ t: 'note', text: `Partition [${low}..${high}] choosing pivot arr[${high}] = ${pivot}` });
+    events.push({
+      t: 'note',
+      text: `Choosing ${pivot} (at position ${high + 1}) as the pivot to split smaller and larger numbers.`,
+    });
 
     for (let j = low; j < high; j++) {
+      const currentVal = arr[j];
       events.push({ t: 'line', line: 4 });
+      events.push({
+        t: 'note',
+        text:
+          currentVal <= pivot
+            ? `Comparing ${currentVal} with pivot ${pivot}. ${currentVal} is smaller or equal, so it moves to the left side.`
+            : `Comparing ${currentVal} with pivot ${pivot}. ${currentVal} is bigger, so it stays on the right side.`,
+      });
       events.push({
         t: 'compare',
         a: { id: 'arr', index: j },
         b: { id: 'arr', index: high },
       });
-      if (arr[j] <= pivot) {
+      if (currentVal <= pivot) {
         i++;
         if (i !== j) {
-          const tmp = arr[i];
-          arr[i] = arr[j];
-          arr[j] = tmp;
+          const leftVal = arr[i];
+          const rightVal = arr[j];
+          arr[i] = rightVal;
+          arr[j] = leftVal;
           events.push({ t: 'line', line: 5 });
+          events.push({
+            t: 'note',
+            text: `Swapping ${leftVal} and ${rightVal} so ${rightVal} joins the smaller numbers on the left.`,
+          });
           events.push({
             t: 'swap',
             a: { id: 'arr', index: i },
             b: { id: 'arr', index: j },
           });
         }
-        events.push({
-          t: 'note',
-          text: `arr[${j}] (${arr[i]}) ≤ pivot (${pivot}) → placed in ≤-partition at index ${i}`,
-        });
-      } else {
-        events.push({
-          t: 'note',
-          text: `arr[${j}] (${arr[j]}) > pivot (${pivot}) → stays in >-partition`,
-        });
       }
     }
 
     const pivotFinal = i + 1;
     if (pivotFinal !== high) {
-      const tmp = arr[pivotFinal];
+      const displaced = arr[pivotFinal];
       arr[pivotFinal] = arr[high];
-      arr[high] = tmp;
+      arr[high] = displaced;
       events.push({ t: 'line', line: 8 });
+      events.push({
+        t: 'note',
+        text: `Swapping pivot ${pivot} with ${displaced} so ${pivot} lands in its final place at position ${pivotFinal + 1}.`,
+      });
       events.push({
         t: 'swap',
         a: { id: 'arr', index: pivotFinal },
         b: { id: 'arr', index: high },
       });
     }
-    events.push({ t: 'visit', id: `arr[${pivotFinal}]` });
     events.push({
       t: 'note',
-      text: `Pivot ${pivot} locked into its final sorted index ${pivotFinal}`,
+      text: `${pivot} is now locked in its final place at position ${pivotFinal + 1}.`,
     });
+    events.push({ t: 'visit', id: `arr[${pivotFinal}]` });
     events.push({ t: 'return', fn: 'partition', value: pivotFinal });
     return pivotFinal;
   }
@@ -626,6 +753,10 @@ export function quickSortTrace(
       events.push({ t: 'line', line: 15 });
       sort(p + 1, high, depth + 1);
     } else if (low === high && low >= 0 && low < arr.length) {
+      events.push({
+        t: 'note',
+        text: `${arr[low]} is a single number at position ${low + 1}, so it is already in its final place.`,
+      });
       events.push({ t: 'visit', id: `arr[${low}]` });
     }
     events.push({ t: 'return', fn: 'quickSort' });
@@ -634,7 +765,10 @@ export function quickSortTrace(
   if (arr.length > 0) {
     sort(0, arr.length - 1, 0);
   }
-  events.push({ t: 'note', text: `Quick Sort complete: [${arr.join(', ')}]` });
+  events.push({
+    t: 'note',
+    text: `Sorting complete! The numbers in order are ${arr.join(', ')}.`,
+  });
   events.push({ t: 'done' });
 
   return {
@@ -655,27 +789,41 @@ export function arrayInsertAtTrace(
   const events: TraceEvent[] = [];
 
   if (emitInit) {
-    emitArrayInit(events, 'arr', arr, `Starting insert of ${value} at index ${index}`);
+    emitArrayInit(
+      events,
+      'arr',
+      arr,
+      `Preparing to insert ${value} at position ${index + 1}.`,
+    );
   }
 
   const oldLen = arr.length;
   arr.push(0);
-  events.push({ t: 'set', target: { id: 'arr', index: oldLen }, value: 0 });
   events.push({ t: 'line', line: 2 });
-  events.push({ t: 'note', text: `Allocated slot at end (index ${oldLen}); shifting elements right` });
+  events.push({
+    t: 'note',
+    text: `Adding a new empty slot at the end (position ${oldLen + 1}) so numbers can shift right.`,
+  });
+  events.push({ t: 'set', target: { id: 'arr', index: oldLen }, value: 0 });
 
   for (let i = oldLen; i > index; i--) {
     arr[i] = arr[i - 1];
     events.push({ t: 'line', line: 3 });
+    events.push({
+      t: 'note',
+      text: `Moving ${arr[i]} one step right from position ${i} to position ${i + 1}.`,
+    });
     events.push({ t: 'set', target: { id: 'arr', index: i }, value: arr[i] });
-    events.push({ t: 'note', text: `Shift arr[${i - 1}] (${arr[i]}) → arr[${i}]` });
   }
 
   arr[index] = value;
   events.push({ t: 'line', line: 5 });
+  events.push({
+    t: 'note',
+    text: `Placed ${value} into position ${index + 1}.`,
+  });
   events.push({ t: 'set', target: { id: 'arr', index }, value });
   events.push({ t: 'visit', id: `arr[${index}]` });
-  events.push({ t: 'note', text: `Inserted value ${value} at arr[${index}]` });
   events.push({ t: 'done' });
 
   return {
@@ -694,11 +842,16 @@ export function arrayDeleteAtTrace(
   const events: TraceEvent[] = [];
 
   if (emitInit) {
-    emitArrayInit(events, 'arr', arr, `Starting delete at index ${rawIndex}`);
+    emitArrayInit(
+      events,
+      'arr',
+      arr,
+      `Preparing to remove the number at position ${rawIndex + 1}.`,
+    );
   }
 
   if (arr.length === 0) {
-    events.push({ t: 'note', text: 'Array is already empty — nothing to delete' });
+    events.push({ t: 'note', text: 'The list is already empty, so there is nothing to remove.' });
     events.push({ t: 'done' });
     return { events, finalArray: arr, meta: ARRAY_ALGORITHM_METADATA['delete-at'] };
   }
@@ -706,21 +859,30 @@ export function arrayDeleteAtTrace(
   const index = Math.max(0, Math.min(arr.length - 1, Math.floor(rawIndex)));
   const removedVal = arr[index];
   events.push({ t: 'line', line: 2 });
+  events.push({
+    t: 'note',
+    text: `Selecting ${removedVal} at position ${index + 1} for removal.`,
+  });
   events.push({ t: 'visit', id: `arr[${index}]` });
-  events.push({ t: 'note', text: `Target for deletion: arr[${index}] = ${removedVal}` });
 
   for (let i = index; i < arr.length - 1; i++) {
     arr[i] = arr[i + 1];
     events.push({ t: 'line', line: 3 });
+    events.push({
+      t: 'note',
+      text: `Moving ${arr[i]} one step left into position ${i + 1} to fill the gap.`,
+    });
     events.push({ t: 'set', target: { id: 'arr', index: i }, value: arr[i] });
-    events.push({ t: 'note', text: `Shift left: arr[${i + 1}] (${arr[i]}) → arr[${i}]` });
   }
 
   const lastIdx = arr.length - 1;
   arr.pop();
   events.push({ t: 'line', line: 5 });
+  events.push({
+    t: 'note',
+    text: `Removed ${removedVal}. There are now ${arr.length} numbers left.`,
+  });
   events.push({ t: 'remove', id: `arr[${lastIdx}]` });
-  events.push({ t: 'note', text: `Deleted ${removedVal} from index ${index}; new length is ${arr.length}` });
   events.push({ t: 'done' });
 
   return {
@@ -740,11 +902,16 @@ export function arrayUpdateAtTrace(
   const events: TraceEvent[] = [];
 
   if (emitInit) {
-    emitArrayInit(events, 'arr', arr, `Updating index ${rawIndex} to ${newValue}`);
+    emitArrayInit(
+      events,
+      'arr',
+      arr,
+      `Preparing to change the number at position ${rawIndex + 1} to ${newValue}.`,
+    );
   }
 
   if (arr.length === 0) {
-    events.push({ t: 'note', text: 'Array is empty' });
+    events.push({ t: 'note', text: 'The list is empty.' });
     events.push({ t: 'done' });
     return { events, finalArray: arr, meta: ARRAY_ALGORITHM_METADATA['update-at'] };
   }
@@ -753,9 +920,12 @@ export function arrayUpdateAtTrace(
   const oldVal = arr[index];
   arr[index] = newValue;
   events.push({ t: 'line', line: 2 });
+  events.push({
+    t: 'note',
+    text: `Changed position ${index + 1} from ${oldVal} to ${newValue}.`,
+  });
   events.push({ t: 'set', target: { id: 'arr', index }, value: newValue });
   events.push({ t: 'visit', id: `arr[${index}]` });
-  events.push({ t: 'note', text: `Updated arr[${index}] from ${oldVal} → ${newValue}` });
   events.push({ t: 'done' });
 
   return {
@@ -774,11 +944,20 @@ export function arrayLinearSearchTrace(
   const events: TraceEvent[] = [];
 
   if (emitInit) {
-    emitArrayInit(events, 'arr', arr, `Linear Search for target = ${target}`);
+    emitArrayInit(
+      events,
+      'arr',
+      arr,
+      `Searching for ${target} one by one from left to right.`,
+    );
   }
 
   for (let i = 0; i < arr.length; i++) {
     events.push({ t: 'line', line: 2 });
+    events.push({
+      t: 'note',
+      text: `Checking position ${i + 1}: the number here is ${arr[i]}.`,
+    });
     events.push({ t: 'visit', id: `arr[${i}]` });
     events.push({
       t: 'compare',
@@ -787,18 +966,24 @@ export function arrayLinearSearchTrace(
     });
     if (arr[i] === target) {
       events.push({ t: 'line', line: 3 });
-      events.push({ t: 'note', text: `Found target ${target} at index ${i}!` });
+      events.push({
+        t: 'note',
+        text: `Found ${target} at position ${i + 1} (Found target ${target} at index ${i})!`,
+      });
       events.push({ t: 'done' });
       return { events, finalArray: arr, meta: ARRAY_ALGORITHM_METADATA['linear-search'] };
     }
     events.push({
       t: 'note',
-      text: `arr[${i}] = ${arr[i]} ≠ ${target} → advance to index ${i + 1}`,
+      text: `${arr[i]} is not ${target}, so we move to position ${i + 2}.`,
     });
   }
 
   events.push({ t: 'line', line: 5 });
-  events.push({ t: 'note', text: `Target ${target} not found in array (returned -1)` });
+  events.push({
+    t: 'note',
+    text: `Checked every number, and ${target} was not found.`,
+  });
   events.push({ t: 'done' });
   return { events, finalArray: arr, meta: ARRAY_ALGORITHM_METADATA['linear-search'] };
 }
@@ -808,7 +993,6 @@ export function arrayBinarySearchTrace(
   target: number,
   emitInit: boolean = true,
 ): ArrayTraceResult {
-  // Binary search requires a sorted array; sort copy if unsorted so search works cleanly
   const arr = [...input].sort((a, b) => a - b);
   const events: TraceEvent[] = [];
 
@@ -817,10 +1001,9 @@ export function arrayBinarySearchTrace(
       events,
       'arr',
       arr,
-      `Binary Search for target = ${target} on sorted array [${arr.join(', ')}]`,
+      `Searching for ${target} using Binary Search on sorted numbers: ${arr.join(', ')}.`,
     );
   } else {
-    // Ensure trace array matches sorted values if chained
     for (let i = 0; i < arr.length; i++) {
       events.push({ t: 'set', target: { id: 'arr', index: i }, value: arr[i] });
     }
@@ -833,6 +1016,10 @@ export function arrayBinarySearchTrace(
   while (low <= high) {
     const mid = low + Math.floor((high - low) / 2);
     events.push({ t: 'line', line: 4 });
+    events.push({
+      t: 'note',
+      text: `Checking the middle of positions ${low + 1} to ${high + 1}: position ${mid + 1} has ${arr[mid]}.`,
+    });
     events.push({ t: 'visit', id: `arr[${mid}]` });
     events.push({
       t: 'compare',
@@ -844,7 +1031,7 @@ export function arrayBinarySearchTrace(
       events.push({ t: 'line', line: 5 });
       events.push({
         t: 'note',
-        text: `arr[mid=${mid}] == ${target} → Target found at index ${mid}!`,
+        text: `Found ${target} at position ${mid + 1} (Target found at index ${mid})!`,
       });
       events.push({ t: 'done' });
       return { events, finalArray: arr, meta: ARRAY_ALGORITHM_METADATA['binary-search'] };
@@ -854,21 +1041,24 @@ export function arrayBinarySearchTrace(
       events.push({ t: 'line', line: 6 });
       events.push({
         t: 'note',
-        text: `arr[mid=${mid}] (${arr[mid]}) < ${target} → search right half [${mid + 1}..${high}]`,
+        text: `${arr[mid]} is smaller than ${target}, so we narrow our search to the right half (positions ${mid + 2} to ${high + 1}).`,
       });
       low = mid + 1;
     } else {
       events.push({ t: 'line', line: 7 });
       events.push({
         t: 'note',
-        text: `arr[mid=${mid}] (${arr[mid]}) > ${target} → search left half [${low}..${mid - 1}]`,
+        text: `${arr[mid]} is bigger than ${target}, so we narrow our search to the left half (positions ${low + 1} to ${mid}).`,
       });
       high = mid - 1;
     }
   }
 
   events.push({ t: 'line', line: 9 });
-  events.push({ t: 'note', text: `Target ${target} not found in array (returned -1)` });
+  events.push({
+    t: 'note',
+    text: `Search finished: ${target} is not in the list.`,
+  });
   events.push({ t: 'done' });
   return { events, finalArray: arr, meta: ARRAY_ALGORITHM_METADATA['binary-search'] };
 }
@@ -881,7 +1071,12 @@ export function arrayReverseTrace(
   const events: TraceEvent[] = [];
 
   if (emitInit) {
-    emitArrayInit(events, 'arr', arr, `Reversing array of ${arr.length} elements in-place`);
+    emitArrayInit(
+      events,
+      'arr',
+      arr,
+      `Reversing the order of ${arr.length} numbers by swapping ends toward the middle.`,
+    );
   }
 
   let left = 0;
@@ -889,10 +1084,25 @@ export function arrayReverseTrace(
   events.push({ t: 'line', line: 2 });
 
   while (left < right) {
+    const leftVal = arr[left];
+    const rightVal = arr[right];
     events.push({ t: 'line', line: 4 });
-    const tmp = arr[left];
-    arr[left] = arr[right];
-    arr[right] = tmp;
+    events.push({
+      t: 'note',
+      text: `Comparing outer positions ${left + 1} (${leftVal}) and ${right + 1} (${rightVal}) before swapping them.`,
+    });
+    events.push({
+      t: 'compare',
+      a: { id: 'arr', index: left },
+      b: { id: 'arr', index: right },
+    });
+
+    arr[left] = rightVal;
+    arr[right] = leftVal;
+    events.push({
+      t: 'note',
+      text: `Swapping ${leftVal} and ${rightVal} between positions ${left + 1} and ${right + 1}.`,
+    });
     events.push({
       t: 'swap',
       a: { id: 'arr', index: left },
@@ -900,15 +1110,14 @@ export function arrayReverseTrace(
     });
     events.push({ t: 'visit', id: `arr[${left}]` });
     events.push({ t: 'visit', id: `arr[${right}]` });
-    events.push({
-      t: 'note',
-      text: `Swapped arr[${left}] and arr[${right}] (${arr[left]} ⇄ ${arr[right]})`,
-    });
     left++;
     right--;
   }
 
-  events.push({ t: 'note', text: `Array reversed: [${arr.join(', ')}]` });
+  events.push({
+    t: 'note',
+    text: `Reverse complete! The new order is ${arr.join(', ')}.`,
+  });
   events.push({ t: 'done' });
   return { events, finalArray: arr, meta: ARRAY_ALGORITHM_METADATA['reverse'] };
 }
@@ -922,7 +1131,12 @@ export function arrayRotateTrace(
   const events: TraceEvent[] = [];
 
   if (emitInit) {
-    emitArrayInit(events, 'arr', arr, `Rotating array left by ${steps} position(s)`);
+    emitArrayInit(
+      events,
+      'arr',
+      arr,
+      `Shifting all numbers left by ${steps} step(s), wrapping the front around to the end.`,
+    );
   }
 
   const n = arr.length;
@@ -935,20 +1149,33 @@ export function arrayRotateTrace(
   for (let rot = 0; rot < k; rot++) {
     const first = arr[0];
     events.push({ t: 'line', line: 2 });
-    events.push({ t: 'note', text: `Rotation ${rot + 1}/${k}: save first element ${first}` });
+    events.push({
+      t: 'note',
+      text: `Shift ${rot + 1} of ${k}: saving the first number (${first}) so it can wrap around to the end.`,
+    });
     for (let i = 0; i < n - 1; i++) {
       arr[i] = arr[i + 1];
       events.push({ t: 'line', line: 4 });
+      events.push({
+        t: 'note',
+        text: `Moving ${arr[i]} one step left into position ${i + 1}.`,
+      });
       events.push({ t: 'set', target: { id: 'arr', index: i }, value: arr[i] });
     }
     arr[n - 1] = first;
     events.push({ t: 'line', line: 6 });
+    events.push({
+      t: 'note',
+      text: `Placing ${first} at the end (position ${n}).`,
+    });
     events.push({ t: 'set', target: { id: 'arr', index: n - 1 }, value: first });
     events.push({ t: 'visit', id: `arr[${n - 1}]` });
-    events.push({ t: 'note', text: `Placed ${first} at tail arr[${n - 1}]` });
   }
 
-  events.push({ t: 'note', text: `Rotation complete: [${arr.join(', ')}]` });
+  events.push({
+    t: 'note',
+    text: `Shift complete! The new order is ${arr.join(', ')}.`,
+  });
   events.push({ t: 'done' });
   return { events, finalArray: arr, meta: ARRAY_ALGORITHM_METADATA['rotate'] };
 }
@@ -987,4 +1214,3 @@ export function runArrayOperation(
       return arrayRotateTrace(input, paramIndex || 1, emitInit);
   }
 }
-

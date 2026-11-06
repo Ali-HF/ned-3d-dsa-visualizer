@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { Suspense, useMemo } from 'react';
 import { Line, Text } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -9,11 +9,6 @@ interface DirectedEdge3DProps {
   highlighted?: boolean;
 }
 
-/**
- * Renders a 3D pointer arrow between two nodes (e.g. next, left, right).
- * Uses drei <Line> for the shaft, a cone mesh for the arrowhead, and
- * drei <Text> for safe 3D text labels (never raw HTML).
- */
 export function DirectedEdge3D({
   from,
   to,
@@ -27,7 +22,6 @@ export function DirectedEdge3D({
     const len = dir.length();
     dir.normalize();
 
-    // Offset start and end slightly so arrow sits cleanly outside node radius (0.55)
     const nodeRadius = 0.58;
     const actualStart = start.clone().addScaledVector(dir, Math.min(nodeRadius, len * 0.25));
     const actualEnd = end.clone().addScaledVector(dir, -Math.min(nodeRadius + 0.15, len * 0.3));
@@ -59,17 +53,18 @@ export function DirectedEdge3D({
         <meshStandardMaterial color={color} roughness={0.35} metalness={0.2} />
       </mesh>
       {label && (
-        <Text
-          position={midPoint}
-          fontSize={0.24}
-          color={highlighted ? '#ffd180' : '#9ecbff'}
-          anchorX="center"
-          anchorY="middle"
-        >
-          {label}
-        </Text>
+        <Suspense fallback={null}>
+          <Text
+            position={midPoint}
+            fontSize={0.24}
+            color={highlighted ? '#ffd180' : '#9ecbff'}
+            anchorX="center"
+            anchorY="middle"
+          >
+            {label}
+          </Text>
+        </Suspense>
       )}
     </group>
   );
 }
-

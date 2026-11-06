@@ -1,6 +1,13 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Edges, Grid, GizmoHelper, GizmoViewport, Line, Text } from '@react-three/drei';
+import {
+  Edges,
+  Grid,
+  GizmoHelper,
+  GizmoViewport,
+  Html,
+  Line,
+} from '@react-three/drei';
 import * as THREE from 'three';
 import { useViewportStore } from '../../state/useViewportStore';
 import type { CameraPreset, SceneObjectInfo, TraceStateSnapshot } from '../../types/trace';
@@ -8,10 +15,9 @@ import { CameraController } from './CameraController';
 import { DirectedEdge3D } from './DirectedEdge3D';
 import { formatRefLabel } from '../../engine/traceEngine';
 import {
+  IconChevronDown,
   IconCube,
   IconGrid,
-  IconPause,
-  IconPlay,
   IconSolid,
   IconTarget,
   IconWireframe,
@@ -21,7 +27,9 @@ interface NodeMeshProps {
   obj: SceneObjectInfo;
   selected: boolean;
   wireframe: boolean;
+  uiMode: 'standard' | 'pro';
   snapshot: TraceStateSnapshot;
+  hasActiveHighlight: boolean;
   onSelect: (id: string) => void;
 }
 
@@ -29,7 +37,9 @@ function SceneObjectMesh({
   obj,
   selected,
   wireframe,
+  uiMode,
   snapshot,
+  hasActiveHighlight,
   onSelect,
 }: NodeMeshProps) {
   const groupRef = useRef<THREE.Group>(null);
@@ -59,46 +69,56 @@ function SceneObjectMesh({
 
   const isActiveVisit = snapshot.activeVisitId === obj.id;
   const visitOrderIndex = snapshot.visitedOrder.indexOf(obj.id);
+  const isDoneItem = snapshot.isDone || visitOrderIndex >= 0;
 
-  // Precision CAD / Studio material palette (colour-blind safe + distinct tags)
+  const isInvolvedInCurrentStep =
+    isCompared || isSwapped || isSpawned || isActiveVisit;
+
+  // Dim non-involved bars when an active comparison/swap/write/visit is happening
+  const isDimmed = hasActiveHighlight && !isInvolvedInCurrentStep;
+
   let fillColor =
     obj.kind === 'array-cell'
       ? '#3d6cb9'
       : obj.kind === 'list-node'
         ? '#2e8b6e'
         : '#6c5ce7';
-  let statusBadge = '';
+  let statusIcon = '';
 
   if (isSwapped) {
-    fillColor = '#d6458b';
-    statusBadge = 'SWP';
+    fillColor = '#9b51e0'; // Purple for swapping
+    statusIcon = '⇄';
   } else if (isCompared) {
-    fillColor = '#d99026';
-    statusBadge = 'CMP';
+    fillColor = '#eab308'; // Yellow for comparing
+    statusIcon = '?';
   } else if (isSpawned) {
-    fillColor = '#2ea063';
-    statusBadge = 'WRT';
-  } else if (isActiveVisit) {
-    fillColor = '#2899b8';
-    statusBadge = 'VIS';
-  } else if (visitOrderIndex >= 0) {
-    fillColor = '#2b5b84';
+    fillColor = '#0ea5e9'; // Bright sky/teal for writing
+    statusIcon = '✎';
+  } else if (isActiveVisit || isDoneItem) {
+    fillColor = '#22c55e'; // Green for done / visited
+    statusIcon = '✓';
+  } else if (isDimmed) {
+    fillColor = '#252b36';
   }
 
   const outlineColor = selected
     ? '#ff8c1a'
     : isSwapped
-      ? '#ff7eb6'
+      ? '#d8b4fe'
       : isCompared
-        ? '#ffca57'
-        : '#1f2329';
+        ? '#fef08a'
+        : isDoneItem
+          ? '#86efac'
+          : '#1f2329';
+
+  const cellIndex =
+    typeof obj.fields.index === 'number' ? obj.fields.index + 1 : 1;
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
     const step = Math.min(1, delta * 14);
 
     if (isArrayCell) {
-      // Array cell group stays anchored at ground X/Z; bar height interpolates smoothly
       const targetGroupPos = new THREE.Vector3(obj.position[0], 0, obj.position[2]);
       if (isSwapped) {
         targetGroupPos.z += 0.28;
@@ -117,7 +137,7 @@ function SceneObjectMesh({
         capMeshRef.current.position.y = barMeshRef.current.scale.y + 0.08;
       }
       if (valueTextRef.current && barMeshRef.current) {
-        valueTextRef.current.position.y = barMeshRef.current.scale.y + 0.42;
+        valueTextRef.current.position.y = barMeshRef.current.scale.y + 0.45;
       }
     } else {
       const targetNodePos = new THREE.Vector3(...obj.position);
@@ -139,7 +159,7 @@ function SceneObjectMesh({
     >
       {isArrayCell ? (
         <>
-          {/* Machined memory slot plinth on the ground grid */}
+          {/* Base pedestal */}
           <mesh position={[0, 0.03, 0]} receiveShadow>
             <boxGeometry args={[1.36, 0.06, 1.36]} />
             <meshStandardMaterial
@@ -150,7 +170,20 @@ function SceneObjectMesh({
             <Edges color={selected ? '#ff8c1a' : '#323844'} />
           </mesh>
 
-          {/* Animated vertical value bar */}
+          {/* Yellow Ring for Comparing or Purple Ring for Swapping */}
+          {(isCompared || isSwapped || isDoneItem) && (
+            <mesh position={[0, 0.075, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+              <ringGeometry args={[0.72, 0.88, 32]} />
+              <meshBasicMaterial
+                color={
+                  isSwapped ? '#c084fc' : isCompared ? '#fde047' : '#4ade80'
+                }
+                side={THREE.DoubleSide}
+              />
+            </mesh>
+          )}
+
+          {/* Main Bar */}
           <mesh
             ref={barMeshRef}
             position={[0, targetHeight / 2 + 0.06, 0]}
@@ -161,73 +194,76 @@ function SceneObjectMesh({
             <boxGeometry args={[1.08, 1, 1.08]} />
             <meshStandardMaterial
               color={fillColor}
-              roughness={0.35}
-              metalness={0.18}
+              roughness={isDimmed ? 0.75 : 0.32}
+              metalness={isDimmed ? 0.08 : 0.18}
+              transparent={isDimmed}
+              opacity={isDimmed ? 0.45 : 1}
               wireframe={wireframe}
             />
             <Edges color={outlineColor} />
           </mesh>
 
-          {/* Metallic top cap plate */}
+          {/* Top Cap */}
           <mesh ref={capMeshRef} position={[0, targetHeight + 0.08, 0]}>
             <boxGeometry args={[1.1, 0.04, 1.1]} />
             <meshStandardMaterial
-              color={selected ? '#ff9f38' : '#7b93b8'}
+              color={
+                selected
+                  ? '#ff9f38'
+                  : isSwapped
+                    ? '#e9d5ff'
+                    : isCompared
+                      ? '#fef08a'
+                      : isDoneItem
+                        ? '#86efac'
+                        : '#7b93b8'
+              }
               roughness={0.25}
               metalness={0.55}
             />
           </mesh>
 
-          {/* Value & status callout */}
-          <group ref={valueTextRef} position={[0, targetHeight + 0.42, 0]}>
-            <Text
-              position={[0, 0, 0]}
-              fontSize={0.31}
-              color={selected ? '#ffa64d' : '#e6edf3'}
-              anchorX="center"
-              anchorY="middle"
-            >
-              {String(obj.value)}
-            </Text>
-
-            {(visitOrderIndex >= 0 || statusBadge) && (
-              <Text
-                position={[0, 0.34, 0]}
-                fontSize={0.18}
-                color={isSwapped ? '#ff99c8' : isCompared ? '#ffd166' : '#72d6ef'}
-                anchorX="center"
-                anchorY="middle"
-              >
-                {statusBadge
-                  ? visitOrderIndex >= 0
-                    ? `[${statusBadge} #${visitOrderIndex + 1}]`
-                    : `[${statusBadge}]`
-                  : `#${visitOrderIndex + 1}`}
-              </Text>
-            )}
+          {/* Value + Icon Badge always facing camera */}
+          <group ref={valueTextRef} position={[0, targetHeight + 0.45, 0]}>
+            <Html center distanceFactor={15} zIndexRange={[5, 0]}>
+              <div className={`stage-bar-label ${isDimmed ? 'dimmed' : ''}`}>
+                {statusIcon && (
+                  <span
+                    className={`stage-bar-icon ${
+                      isSwapped
+                        ? 'swapping'
+                        : isCompared
+                          ? 'comparing'
+                          : isSpawned
+                            ? 'writing'
+                            : 'done'
+                    }`}
+                  >
+                    {statusIcon}
+                  </span>
+                )}
+                <span className="stage-bar-val">{String(obj.value)}</span>
+              </div>
+            </Html>
           </group>
 
-          {/* Ground plane index & memory address stamp */}
-          <Text
-            position={[0, 0.08, 0.86]}
-            rotation={[-Math.PI / 4, 0, 0]}
-            fontSize={0.19}
-            color={selected ? '#ffa64d' : '#a8b3c2'}
-            anchorX="center"
-            anchorY="middle"
+          {/* Small position number underneath in Standard Mode; full arr[i] + hex in Pro Mode */}
+          <Html
+            position={[0, 0.08, 0.92]}
+            center
+            distanceFactor={15}
+            zIndexRange={[4, 0]}
           >
-            {obj.label}
-          </Text>
-          <Text
-            position={[0, 0.05, 1.12]}
-            rotation={[-Math.PI / 2, 0, 0]}
-            fontSize={0.15}
-            color="#667182"
-            anchorX="center"
-            anchorY="middle"
-          >
-            {obj.memoryAddress}
-          </Text>
+            {uiMode === 'standard' ? (
+              <span className={`stage-pos-num ${isDimmed ? 'dimmed' : ''}`}>
+                {cellIndex}
+              </span>
+            ) : (
+              <span className="stage-pro-addr">
+                {obj.label} <small>{obj.memoryAddress}</small>
+              </span>
+            )}
+          </Html>
         </>
       ) : (
         <>
@@ -248,35 +284,30 @@ function SceneObjectMesh({
             </mesh>
           )}
 
-          <Text
-            position={[0, 0.8, 0]}
-            fontSize={0.28}
-            color={selected ? '#ffa64d' : '#e6edf3'}
-            anchorX="center"
-            anchorY="middle"
-          >
-            {String(obj.value)}
-          </Text>
+          <Html position={[0, 0.82, 0]} center distanceFactor={15} zIndexRange={[5, 0]}>
+            <div className="stage-bar-label">
+              <span className="stage-bar-val">{String(obj.value)}</span>
+            </div>
+          </Html>
 
-          <Text
-            position={[0, -0.78, 0.35]}
-            fontSize={0.18}
-            color="#7d8590"
-            anchorX="center"
-            anchorY="middle"
-          >
-            {`${obj.label} [${obj.memoryAddress}]`}
-          </Text>
+          {uiMode === 'pro' && (
+            <Html
+              position={[0, -0.78, 0.35]}
+              center
+              distanceFactor={15}
+              zIndexRange={[4, 0]}
+            >
+              <span className="stage-pro-addr">
+                {obj.label} <small>{obj.memoryAddress}</small>
+              </span>
+            </Html>
+          )}
         </>
       )}
     </group>
   );
 }
 
-/**
- * 3D spline arc connecting two elements currently being compared (`compare`)
- * or swapped (`swap`).
- */
 function InteractionArc3D({
   fromObj,
   toObj,
@@ -289,48 +320,39 @@ function InteractionArc3D({
   const { points, midPoint } = useMemo(() => {
     const start = new THREE.Vector3(
       fromObj.position[0],
-      fromObj.position[1] * 2 + 0.85,
+      fromObj.position[1] * 2 + 0.9,
       fromObj.position[2],
     );
     const end = new THREE.Vector3(
       toObj.position[0],
-      toObj.position[1] * 2 + 0.85,
+      toObj.position[1] * 2 + 0.9,
       toObj.position[2],
     );
     const mid = start.clone().lerp(end, 0.5);
-    mid.y = Math.max(start.y, end.y) + (mode === 'swap' ? 1.2 : 0.8);
+    mid.y = Math.max(start.y, end.y) + (mode === 'swap' ? 1.25 : 0.85);
 
     const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
     const pts = curve.getPoints(28).map((p) => [p.x, p.y, p.z] as [number, number, number]);
     return {
       points: pts,
-      midPoint: [mid.x, mid.y + 0.22, mid.z] as [number, number, number],
+      midPoint: [mid.x, mid.y + 0.25, mid.z] as [number, number, number],
     };
   }, [fromObj, toObj, mode]);
 
-  const color = mode === 'swap' ? '#d6458b' : '#d99026';
+  const color = mode === 'swap' ? '#a855f7' : '#eab308';
 
   return (
     <group>
-      <Line points={points} color={color} lineWidth={2.5} />
-      <Text
-        position={midPoint}
-        fontSize={0.22}
-        color={mode === 'swap' ? '#ff99c8' : '#ffd166'}
-        anchorX="center"
-        anchorY="middle"
-      >
-        {mode === 'swap'
-          ? `SWP [${fromObj.value} <-> ${toObj.value}]`
-          : `CMP [${fromObj.value} : ${toObj.value}]`}
-      </Text>
+      <Line points={points} color={color} lineWidth={3} />
+      <Html position={midPoint} center distanceFactor={15} zIndexRange={[6, 0]}>
+        <span className={`stage-arc-pill ${mode}`}>
+          {mode === 'swap' ? '⇄ Swapping' : '? Comparing'}
+        </span>
+      </Html>
     </group>
   );
 }
 
-/**
- * Blender-style world X (red) and Z (blue) origin lines on the ground plane.
- */
 function WorldOriginAxes() {
   return (
     <group position={[0, 0.006, 0]}>
@@ -360,9 +382,17 @@ function SceneContents() {
   const selectObject = useViewportStore((s) => s.selectObject);
   const showGrid = useViewportStore((s) => s.showGrid);
   const wireframe = useViewportStore((s) => s.wireframe);
+  const uiMode = useViewportStore((s) => s.uiMode);
   const currentSnapshot = useViewportStore((s) => s.currentSnapshot);
 
   const objectList = Object.values(sceneObjects);
+
+  const hasActiveHighlight = Boolean(
+    currentSnapshot.comparedRefs !== null ||
+      currentSnapshot.swappedRefs !== null ||
+      currentSnapshot.spawnedRef !== null ||
+      currentSnapshot.activeVisitId !== null,
+  );
 
   const comparePair = useMemo(() => {
     if (!currentSnapshot.comparedRefs) return null;
@@ -381,7 +411,7 @@ function SceneContents() {
   return (
     <>
       <color attach="background" args={['#1d1f23']} />
-      <ambientLight intensity={0.72} />
+      <ambientLight intensity={0.76} />
       <directionalLight position={[12, 20, 14]} intensity={1.1} castShadow />
       <directionalLight position={[-12, 10, -10]} intensity={0.35} />
 
@@ -402,11 +432,10 @@ function SceneContents() {
             fadeStrength={1.2}
             infiniteGrid
           />
-          <WorldOriginAxes />
+          {uiMode === 'pro' && <WorldOriginAxes />}
         </>
       )}
 
-      {/* Render pointer arrows (edges) between nodes */}
       {objectList.map((obj) =>
         obj.linksTo.map((link) => {
           const target = sceneObjects[link.targetId];
@@ -424,7 +453,6 @@ function SceneContents() {
         }),
       )}
 
-      {/* 3D Comparison Beam & Swap Arc */}
       {comparePair && (
         <InteractionArc3D fromObj={comparePair.a} toObj={comparePair.b} mode="compare" />
       )}
@@ -432,20 +460,23 @@ function SceneContents() {
         <InteractionArc3D fromObj={swapPair.a} toObj={swapPair.b} mode="swap" />
       )}
 
-      {/* Render clickable 3D objects */}
       {objectList.map((obj) => (
         <SceneObjectMesh
           key={obj.id}
           obj={obj}
           selected={selectedId === obj.id}
           wireframe={wireframe}
+          uiMode={uiMode}
           snapshot={currentSnapshot}
+          hasActiveHighlight={hasActiveHighlight}
           onSelect={(id) => selectObject(id)}
         />
       ))}
 
-      {/* Blender XYZ Axis Gizmo */}
-      <GizmoHelper alignment="top-right" margin={[62, 62]}>
+      <GizmoHelper
+        alignment="bottom-right"
+        margin={uiMode === 'standard' ? [48, 48] : [62, 62]}
+      >
         <GizmoViewport
           axisColors={['#d94040', '#56b849', '#3b78d8']}
           labelColor="#111317"
@@ -464,6 +495,9 @@ const CAMERA_PRESETS: { id: CameraPreset; label: string; shortcut: string }[] = 
 ];
 
 export function BlenderViewport() {
+  const uiMode = useViewportStore((s) => s.uiMode);
+  const previewScene = useViewportStore((s) => s.previewScene);
+  const activeMetadata = useViewportStore((s) => s.activeMetadata);
   const cameraPreset = useViewportStore((s) => s.cameraPreset);
   const triggerCameraPreset = useViewportStore((s) => s.triggerCameraPreset);
   const selectObject = useViewportStore((s) => s.selectObject);
@@ -475,151 +509,249 @@ export function BlenderViewport() {
   const toggleAutoFollowCamera = useViewportStore((s) => s.toggleAutoFollowCamera);
   const sceneObjects = useViewportStore((s) => s.sceneObjects);
   const selectedId = useViewportStore((s) => s.selectedId);
-  const isPlaying = useViewportStore((s) => s.isPlaying);
-  const togglePlay = useViewportStore((s) => s.togglePlay);
   const currentSnapshot = useViewportStore((s) => s.currentSnapshot);
+
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
+  const [colorsPopoverOpen, setColorsPopoverOpen] = useState(false);
+
+  const currentArrayValues = currentSnapshot.arrays.arr?.values ?? [];
+  const showSortedResultLine =
+    previewScene === 'array' &&
+    activeMetadata.category === 'sorting' &&
+    currentSnapshot.isDone &&
+    currentArrayValues.length > 0;
 
   return (
     <div className="viewport-container">
-      {/* Docked Blender 4.2 Viewport Header Toolbar */}
-      <div className="viewport-header-bar">
-        <div className="vh-left">
-          <span className="vh-context-label">
-            <IconCube />
-            <span>Object Mode</span>
-          </span>
+      {/* Pro Mode Only: Full CAD Viewport Header Toolbar */}
+      {uiMode === 'pro' && (
+        <div className="viewport-header-bar">
+          <div className="vh-left">
+            <span className="vh-context-label">
+              <IconCube />
+              <span>Object Mode</span>
+            </span>
 
-          <div className="vh-segmented">
-            <button
-              type="button"
-              className={`vh-seg-btn ${showGrid ? 'active' : ''}`}
-              onClick={toggleGrid}
-              title="Toggle Floor Grid"
-            >
-              <IconGrid />
-              <span>Floor</span>
-            </button>
-            <button
-              type="button"
-              className={`vh-seg-btn ${!wireframe ? 'active' : ''}`}
-              onClick={() => {
-                if (wireframe) toggleWireframe();
-              }}
-              title="Solid Studio Shading"
-            >
-              <IconSolid />
-              <span>Solid</span>
-            </button>
-            <button
-              type="button"
-              className={`vh-seg-btn ${wireframe ? 'active' : ''}`}
-              onClick={() => {
-                if (!wireframe) toggleWireframe();
-              }}
-              title="Wireframe Overlay"
-            >
-              <IconWireframe />
-              <span>Wire</span>
-            </button>
-          </div>
-
-          <button
-            type="button"
-            className={`vh-toggle-btn ${autoFollowCamera ? 'active' : ''}`}
-            onClick={toggleAutoFollowCamera}
-            title="Track Active Element (Automatically disengages on manual orbit)"
-          >
-            <IconTarget />
-            <span>Track Active</span>
-          </button>
-        </div>
-
-        <div className="vh-right" role="toolbar" aria-label="Camera Presets">
-          <div className="vh-segmented">
-            {CAMERA_PRESETS.map((preset) => (
+            <div className="vh-segmented">
               <button
-                key={preset.id}
                 type="button"
-                className={`vh-seg-btn ${cameraPreset === preset.id ? 'active' : ''}`}
-                onClick={() => triggerCameraPreset(preset.id)}
-                title={`Camera View: ${preset.label} (Numpad ${preset.shortcut})`}
+                className={`vh-seg-btn ${showGrid ? 'active' : ''}`}
+                onClick={toggleGrid}
+                title="Toggle Floor Grid"
               >
-                <span>{preset.label}</span>
-                <kbd>{preset.shortcut}</kbd>
+                <IconGrid />
+                <span>Floor</span>
               </button>
-            ))}
+              <button
+                type="button"
+                className={`vh-seg-btn ${!wireframe ? 'active' : ''}`}
+                onClick={() => {
+                  if (wireframe) toggleWireframe();
+                }}
+                title="Solid Studio Shading"
+              >
+                <IconSolid />
+                <span>Solid</span>
+              </button>
+              <button
+                type="button"
+                className={`vh-seg-btn ${wireframe ? 'active' : ''}`}
+                onClick={() => {
+                  if (!wireframe) toggleWireframe();
+                }}
+                title="Wireframe Overlay"
+              >
+                <IconWireframe />
+                <span>Wire</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className={`vh-toggle-btn ${autoFollowCamera ? 'active' : ''}`}
+              onClick={toggleAutoFollowCamera}
+              title="Track Active Element (Automatically disengages on manual orbit)"
+            >
+              <IconTarget />
+              <span>Track Active</span>
+            </button>
           </div>
-        </div>
-      </div>
 
-      {/* Top-Left Viewport Telemetry & State Legend Overlay */}
-      <div className="viewport-telemetry-overlay" aria-label="Viewport Overlay Info">
-        <div className="vt-row">
-          <span className="vt-key">Camera:</span>
-          <span className="vt-val">{cameraPreset.toUpperCase()}</span>
-          <span className="vt-sep">|</span>
-          <span className="vt-key">Objects:</span>
-          <span className="vt-val">{Object.keys(sceneObjects).length}</span>
-          <span className="vt-sep">|</span>
-          <span className="vt-key">Active:</span>
-          <span className="vt-val accent">{selectedId ?? 'None'}</span>
-        </div>
-        <div className="vt-legend">
-          <span className="legend-item">
-            <i className="legend-swatch cmp" /> CMP
-          </span>
-          <span className="legend-item">
-            <i className="legend-swatch swp" /> SWP
-          </span>
-          <span className="legend-item">
-            <i className="legend-swatch set" /> WRT
-          </span>
-          <span className="legend-item">
-            <i className="legend-swatch vis" /> VIS
-          </span>
-        </div>
-      </div>
-
-      {/* Visited Order Output Strip */}
-      {currentSnapshot.visitedOrder.length > 0 && (
-        <div className="viewport-visited-strip">
-          <span className="visited-strip-label">TRAVERSAL OUTPUT</span>
-          <div className="visited-strip-items">
-            {currentSnapshot.visitedOrder.map((id, i) => (
-              <span key={id} className="visited-chip">
-                <small>{i + 1}</small> {id}
-              </span>
-            ))}
+          <div className="vh-right" role="toolbar" aria-label="Camera Presets">
+            <div className="vh-segmented">
+              {CAMERA_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className={`vh-seg-btn ${cameraPreset === preset.id ? 'active' : ''}`}
+                  onClick={() => triggerCameraPreset(preset.id)}
+                  title={`Camera View: ${preset.label} (Numpad ${preset.shortcut})`}
+                >
+                  <span>{preset.label}</span>
+                  <kbd>{preset.shortcut}</kbd>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Docked Bottom-Center Viewport Transport & Narration HUD */}
-      <div className="viewport-hud-dock">
-        <button
-          type="button"
-          className={`hud-play-btn ${isPlaying ? 'playing' : ''}`}
-          onClick={togglePlay}
-          title="Play / Pause Trace Execution (Spacebar)"
-        >
-          {isPlaying ? <IconPause /> : <IconPlay />}
-          <span>{isPlaying ? 'PAUSE' : 'PLAY'}</span>
-        </button>
+      {/* 3D Canvas Stage */}
+      <div className="viewport-canvas-stage">
+        {/* Step 4: Clean floating stage controls (View menu + What do the colours mean? popover) */}
+        <div className="stage-floating-controls">
+          <div className="stage-popover-anchor">
+            <button
+              type="button"
+              className="stage-pill-btn"
+              onClick={() => {
+                setColorsPopoverOpen((v) => !v);
+                setViewMenuOpen(false);
+              }}
+            >
+              <span className="pill-q-mark">?</span>
+              <span>What do the colours mean?</span>
+            </button>
 
-        <div className="hud-step-readout" role="status" aria-live="polite">
-          <span className="hud-step-index">STEP {currentSnapshot.stepIndex}</span>
-          <span className="hud-narration-text">{currentSnapshot.narration}</span>
+            {colorsPopoverOpen && (
+              <div className="stage-popover-card" role="dialog" aria-label="Colour Legend">
+                <div className="legend-popover-row">
+                  <span className="legend-badge comparing">?</span>
+                  <div>
+                    <strong>Comparing</strong>
+                    <p>Yellow ring &amp; question mark — checking two numbers</p>
+                  </div>
+                </div>
+                <div className="legend-popover-row">
+                  <span className="legend-badge swapping">⇄</span>
+                  <div>
+                    <strong>Swapping</strong>
+                    <p>Purple &amp; arrows — trading places</p>
+                  </div>
+                </div>
+                <div className="legend-popover-row">
+                  <span className="legend-badge writing">✎</span>
+                  <div>
+                    <strong>Writing</strong>
+                    <p>Blue &amp; pencil — saving a number into a slot</p>
+                  </div>
+                </div>
+                <div className="legend-popover-row">
+                  <span className="legend-badge done">✓</span>
+                  <div>
+                    <strong>Done</strong>
+                    <p>Green &amp; check mark — locked in its final place</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="stage-popover-anchor">
+            <button
+              type="button"
+              className="stage-pill-btn"
+              onClick={() => {
+                setViewMenuOpen((v) => !v);
+                setColorsPopoverOpen(false);
+              }}
+            >
+              <span>View</span>
+              <IconChevronDown />
+            </button>
+
+            {viewMenuOpen && (
+              <div className="stage-dropdown-menu" role="menu" aria-label="View Menu">
+                <button
+                  type="button"
+                  className="stage-menu-item"
+                  onClick={() => {
+                    triggerCameraPreset('isometric');
+                    setViewMenuOpen(false);
+                  }}
+                >
+                  Reset view
+                </button>
+                <button
+                  type="button"
+                  className="stage-menu-item"
+                  onClick={() => {
+                    triggerCameraPreset('top');
+                    setViewMenuOpen(false);
+                  }}
+                >
+                  Top view
+                </button>
+                <button
+                  type="button"
+                  className="stage-menu-item"
+                  onClick={() => {
+                    triggerCameraPreset('front');
+                    setViewMenuOpen(false);
+                  }}
+                >
+                  Side view
+                </button>
+                <div className="stage-menu-divider" />
+                <button
+                  type="button"
+                  className="stage-menu-item"
+                  onClick={() => {
+                    toggleAutoFollowCamera();
+                    setViewMenuOpen(false);
+                  }}
+                >
+                  <span>Follow the action</span>
+                  <strong className={autoFollowCamera ? 'state-on' : 'state-off'}>
+                    {autoFollowCamera ? 'On' : 'Off'}
+                  </strong>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Pro Mode Only: Camera / Objects / Active Status Line */}
+        {uiMode === 'pro' && (
+          <div className="viewport-telemetry-overlay" aria-label="Viewport Overlay Info">
+            <div className="vt-row">
+              <span className="vt-key">Camera:</span>
+              <span className="vt-val">{cameraPreset.toUpperCase()}</span>
+              <span className="vt-sep">|</span>
+              <span className="vt-key">Objects:</span>
+              <span className="vt-val">{Object.keys(sceneObjects).length}</span>
+              <span className="vt-sep">|</span>
+              <span className="vt-key">Active:</span>
+              <span className="vt-val accent">{selectedId ?? 'None'}</span>
+            </div>
+          </div>
+        )}
+
+        <Canvas
+          shadows
+          gl={{ preserveDrawingBuffer: true }}
+          camera={{ position: [9, 7.5, 11], fov: 42, near: 0.1, far: 200 }}
+          onPointerMissed={() => {
+            selectObject(null);
+            setViewMenuOpen(false);
+            setColorsPopoverOpen(false);
+          }}
+        >
+          <SceneContents />
+        </Canvas>
       </div>
 
-      {/* Three.js Canvas */}
-      <Canvas
-        shadows
-        camera={{ position: [9, 7.5, 11], fov: 42, near: 0.1, far: 200 }}
-        onPointerMissed={() => selectObject(null)}
-      >
-        <SceneContents />
-      </Canvas>
+      {/* STEP 1 + STEP 5: Plain-English Caption Bar (19px) + Final Sorted Result Line */}
+      <div className="stage-caption-bar" role="status" aria-live="polite">
+        <div className="stage-caption-content">
+          <p className="stage-caption-sentence">{currentSnapshot.narration}</p>
+          {showSortedResultLine && (
+            <p className="stage-caption-result">
+              Sorted: <strong>{currentArrayValues.join(', ')}</strong>
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

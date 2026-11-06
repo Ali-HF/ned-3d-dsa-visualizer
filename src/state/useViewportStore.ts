@@ -23,6 +23,10 @@ export interface QueuedOperationEntry {
 }
 
 interface ViewportState {
+  /** UI complexity mode: 'standard' (clean, plain-English) vs 'pro' (full developer inspector) */
+  uiMode: 'standard' | 'pro';
+  /** Whether the right-side Details/Code drawer is open in Standard mode */
+  detailsOpen: boolean;
   /** Active mode in the top-left switcher (Library vs Upload) */
   appMode: 'library' | 'upload';
   /** Which structure is displayed in the viewport */
@@ -54,6 +58,10 @@ interface ViewportState {
   autoFollowCamera: boolean;
   operationHistory: QueuedOperationEntry[];
 
+  setUiMode: (mode: 'standard' | 'pro') => void;
+  toggleUiMode: () => void;
+  setDetailsOpen: (open: boolean) => void;
+  toggleDetailsOpen: () => void;
   setAppMode: (mode: 'library' | 'upload') => void;
   setPreviewScene: (scene: PreviewSceneKind) => void;
   selectObject: (id: string | null) => void;
@@ -291,12 +299,14 @@ function formatOperationLabel(
 const INITIAL_ARRAY = [42, 17, 68, 29, 84, 12];
 const initialTraceResult = runArrayOperation('bubble-sort', INITIAL_ARRAY, 0, 42, true);
 const initialTimeline = new TraceTimeline(initialTraceResult.events);
-// Advance past initial array creation events so the 3D bars are immediately visible at load
-const initialStartStep = Math.min(INITIAL_ARRAY.length + 2, initialTimeline.totalSteps);
+// Start at the first comparison step so the stage and plain-English caption bar immediately show the action
+const initialStartStep = Math.min(INITIAL_ARRAY.length + 7, initialTimeline.totalSteps);
 const initialSnapshot = initialTimeline.getSnapshotAt(initialStartStep);
 const initialArrayObjects = buildArraySceneObjectsFromSnapshot(initialSnapshot);
 
 export const useViewportStore = create<ViewportState>((set, get) => ({
+  uiMode: 'standard',
+  detailsOpen: false,
   appMode: 'library',
   previewScene: 'array',
   selectedId: 'arr[0]',
@@ -326,6 +336,12 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       endStep: initialTimeline.totalSteps,
     },
   ],
+
+  setUiMode: (mode) => set({ uiMode: mode }),
+  toggleUiMode: () =>
+    set((s) => ({ uiMode: s.uiMode === 'standard' ? 'pro' : 'standard' })),
+  setDetailsOpen: (open) => set({ detailsOpen: open }),
+  toggleDetailsOpen: () => set((s) => ({ detailsOpen: !s.detailsOpen })),
 
   setAppMode: (mode) => set({ appMode: mode }),
 
