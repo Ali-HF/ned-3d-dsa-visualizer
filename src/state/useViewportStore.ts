@@ -513,10 +513,8 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
     const state = get();
     set({ isPlaying: false });
     const firstNoteIdx = state.timeline.events.findIndex((e) => e.t === 'note');
-    const firstHistoryStart =
-      state.operationHistory[0]?.startStep ??
-      (firstNoteIdx >= 0 ? firstNoteIdx + 1 : 0);
-    state.seekToStep(firstHistoryStart);
+    const firstStep = firstNoteIdx >= 0 ? firstNoteIdx + 1 : 0;
+    state.seekToStep(firstStep);
   },
 
   skipToEnd: () => {
