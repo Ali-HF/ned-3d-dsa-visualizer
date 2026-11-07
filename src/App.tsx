@@ -196,6 +196,7 @@ export function App() {
   const runOperationNow = useViewportStore((s) => s.runOperationNow);
   const runStructureOperationNow = useViewportStore((s) => s.runStructureOperationNow);
   const selectAndRunCorpusFile = useViewportStore((s) => s.selectAndRunCorpusFile);
+  const runCustomCodeNow = useViewportStore((s) => s.runCustomCodeNow);
 
   const [structPickerOpen, setStructPickerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<StitchCategoryTab>('Sort');
@@ -678,12 +679,31 @@ export function App() {
               </section>
             </div>
           ) : (
-            /* RUN MY CODE TAB: C++ Corpus Selector & Editor */
+            /* RUN MY CODE TAB: C++ Corpus Selector, Upload & Live Editor */
             <div className="st-cards-scroll">
               <section className="st-card">
                 <div className="st-card-header">
                   <span className="st-step-circle active-blue">C++</span>
-                  <span className="st-card-title">cpp_corpus/ Files</span>
+                  <span className="st-card-title">cpp_corpus/ &amp; Upload</span>
+                  <label className="st-edit-link" style={{ cursor: 'pointer' }}>
+                    Upload ⬆
+                    <input
+                      type="file"
+                      accept=".cpp,.cc,.h,.hpp,.js,.ts"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          const text = String(reader.result ?? '');
+                          setCustomCodeText(text);
+                          runCustomCodeNow(text, file.name);
+                        };
+                        reader.readAsText(file);
+                      }}
+                    />
+                  </label>
                 </div>
                 <select
                   className="st-corpus-select"
@@ -710,7 +730,7 @@ export function App() {
                 <button
                   type="button"
                   className="st-corpus-run-btn"
-                  onClick={() => selectAndRunCorpusFile(selectedCorpusFile)}
+                  onClick={() => runCustomCodeNow(customCodeText)}
                 >
                   <IconPlay />
                   <span>Visualize on 3D Stage</span>

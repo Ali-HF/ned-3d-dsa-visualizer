@@ -21,6 +21,7 @@ import {
   CORPUS_FILE_CATALOG,
   getCorpusCodeLines,
 } from '../corpus/cppCorpusRegistry';
+import { executeCustomCodeTrace } from '../engine/codeRunner';
 
 export interface QueuedOperationEntry {
   uid: string;
@@ -127,6 +128,7 @@ interface ViewportState {
   runOperationNow: (op: ArrayOperationId, paramIndex?: number, paramValue?: number) => void;
   runStructureOperationNow: (op: StructureOperationId, paramValue?: number) => void;
   selectAndRunCorpusFile: (relativePath: string) => void;
+  runCustomCodeNow: (sourceCode: string, fileName?: string) => void;
   queueOperation: (op: ArrayOperationId, paramIndex?: number, paramValue?: number) => void;
   clearOperationQueue: () => void;
 }
@@ -664,6 +666,34 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
         code: lines,
       },
     }));
+  },
+
+  runCustomCodeNow: (sourceCode, fileName) => {
+    const state = get();
+    const res = executeCustomCodeTrace(
+      sourceCode,
+      state.workingArray,
+      state.selectedCorpusFile,
+      fileName,
+    );
+    const timeline = new TraceTimeline(res.events);
+    const firstNoteIdx = res.events.findIndex((e) => e.t === 'note');
+    const startStep = firstNoteIdx >= 0 ? firstNoteIdx + 1 : 1;
+    const snapshot = timeline.getSnapshotAt(startStep);
+    const objs = buildSceneObjectsForScene(res.scene, snapshot);
+
+    set({
+      previewScene: res.scene,
+      activeMetadata: res.meta,
+      workingArray: res.extractedArray,
+      timeline,
+      currentStep: startStep,
+      totalSteps: timeline.totalSteps,
+      currentSnapshot: snapshot,
+      sceneObjects: toObjectMap(objs),
+      selectedId: objs[0]?.id ?? null,
+      isPlaying: state.autoPlayOnRun,
+    });
   },
 
   queueOperation: (op, paramIndex = 0, paramValue = 42) => {
