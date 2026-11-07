@@ -610,6 +610,20 @@ export function BlenderViewport() {
               </span>
             </div>
           )}
+
+          {currentSnapshot.callStack.length > 0 && (
+            <div className="stitch-hud-pill callstack" role="status">
+              <span className="hud-scene-name">
+                CALL_STACK [{currentSnapshot.callStack.length}]:
+              </span>
+              <span>
+                {currentSnapshot.callStack
+                  .slice(-3)
+                  .map((f) => `${f.fn}(${f.args.join(',')})`)
+                  .join(' → ')}
+              </span>
+            </div>
+          )}
         </div>
 
         <Canvas

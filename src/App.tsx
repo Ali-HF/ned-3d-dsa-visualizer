@@ -808,6 +808,28 @@ export function App() {
               </div>
             )}
 
+            {currentSnapshot.callStack.length > 0 && (
+              <div className="st-drawer-section">
+                <div className="st-drawer-header">
+                  <span>CALL STACK FRAMES</span>
+                  <code>depth: {currentSnapshot.callStack.length}</code>
+                </div>
+                <div className="st-algo-list">
+                  {[...currentSnapshot.callStack].reverse().map((frame, i) => (
+                    <div
+                      key={`${frame.fn}-${frame.depth}-${i}`}
+                      className={`st-algo-row ${i === 0 ? 'active' : ''}`}
+                    >
+                      <span className="st-algo-name">
+                        {frame.fn}({frame.args.join(', ')})
+                      </span>
+                      <code className="st-algo-badge">d={frame.depth}</code>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="st-drawer-section code-flex">
               <div className="st-drawer-header">
                 <span>C++ SOURCE TRACE</span>
