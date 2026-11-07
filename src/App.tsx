@@ -408,8 +408,8 @@ export function App() {
           <div className="st-seg-group" role="group" aria-label="UI Mode">
             <button
               type="button"
-              className="st-seg-item"
-              onClick={() => setUiMode('standard')}
+              className={`st-seg-item ${uiMode === 'kids' ? 'active' : ''}`}
+              onClick={() => setUiMode('kids')}
             >
               Kids
             </button>

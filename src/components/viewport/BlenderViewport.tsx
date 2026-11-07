@@ -22,6 +22,7 @@ interface NodeMeshProps {
   wireframe: boolean;
   snapshot: TraceStateSnapshot;
   isPrimaryActive: boolean;
+  uiMode: 'kids' | 'standard' | 'pro';
   onSelect: (id: string) => void;
 }
 
@@ -31,8 +32,10 @@ function SceneObjectMesh({
   wireframe,
   snapshot,
   isPrimaryActive,
+  uiMode,
   onSelect,
 }: NodeMeshProps) {
+  const isKids = uiMode === 'kids';
   const groupRef = useRef<THREE.Group>(null);
   const barMeshRef = useRef<THREE.Mesh>(null);
   const valueTextRef = useRef<THREE.Group>(null);
@@ -169,21 +172,25 @@ function SceneObjectMesh({
               <Html center distanceFactor={14} zIndexRange={[5, 0]}>
                 <div className={`stitch-val-badge ${isActiveBar ? 'active' : ''}`}>
                   {isActiveBar && <span className="stitch-val-dot" />}
-                  <span>VAL: {String(obj.value)}</span>
+                  <span>
+                    {isKids ? String(obj.value) : `VAL: ${String(obj.value)}`}
+                  </span>
                 </div>
               </Html>
             )}
           </group>
 
           {/* Internal bottom height label + Under-bar A[i] & Hex Address */}
-          <Html
-            position={[0, 0.18, 0.5]}
-            center
-            distanceFactor={14}
-            zIndexRange={[4, 0]}
-          >
-            <span className="stitch-bar-height">h:{heightMm}mm</span>
-          </Html>
+          {!isKids && (
+            <Html
+              position={[0, 0.18, 0.5]}
+              center
+              distanceFactor={14}
+              zIndexRange={[4, 0]}
+            >
+              <span className="stitch-bar-height">h:{heightMm}mm</span>
+            </Html>
+          )}
 
           <Html
             position={[0, -0.35, 0.35]}
@@ -193,9 +200,9 @@ function SceneObjectMesh({
           >
             <div className="stitch-under-bar">
               <span className={`stitch-idx-box ${isActiveBar ? 'active' : ''}`}>
-                A[{cellIndex}]
+                {isKids ? `#${cellIndex + 1}` : `A[${cellIndex}]`}
               </span>
-              <span className="stitch-hex-addr">{hexAddr}</span>
+              {!isKids && <span className="stitch-hex-addr">{hexAddr}</span>}
             </div>
           </Html>
         </>
@@ -231,7 +238,9 @@ function SceneObjectMesh({
           <Html position={[0, 0.85, 0]} center distanceFactor={14} zIndexRange={[5, 0]}>
             <div className={`stitch-val-badge ${isActiveBar ? 'active' : ''}`}>
               {isActiveBar && <span className="stitch-val-dot" />}
-              <span>VAL: {String(obj.value)}</span>
+              <span>
+                {isKids ? String(obj.value) : `VAL: ${String(obj.value)}`}
+              </span>
             </div>
           </Html>
 
@@ -249,7 +258,9 @@ function SceneObjectMesh({
               >
                 {obj.id}
               </span>
-              <span className="stitch-hex-addr">{obj.memoryAddress}</span>
+              {!isKids && (
+                <span className="stitch-hex-addr">{obj.memoryAddress}</span>
+              )}
             </div>
           </Html>
         </>
@@ -273,7 +284,9 @@ function SceneObjectMesh({
           <Html position={[0, 0.85, 0]} center distanceFactor={14} zIndexRange={[5, 0]}>
             <div className={`stitch-val-badge ${isActiveBar ? 'active' : ''}`}>
               {isActiveBar && <span className="stitch-val-dot" />}
-              <span>VAL: {String(obj.value)}</span>
+              <span>
+                {isKids ? String(obj.value) : `VAL: ${String(obj.value)}`}
+              </span>
             </div>
           </Html>
 
@@ -291,7 +304,9 @@ function SceneObjectMesh({
               >
                 {obj.id}
               </span>
-              <span className="stitch-hex-addr">{obj.memoryAddress}</span>
+              {!isKids && (
+                <span className="stitch-hex-addr">{obj.memoryAddress}</span>
+              )}
             </div>
           </Html>
         </>
@@ -427,6 +442,7 @@ function SceneContents() {
   const showGrid = useViewportStore((s) => s.showGrid);
   const wireframe = useViewportStore((s) => s.wireframe);
   const currentSnapshot = useViewportStore((s) => s.currentSnapshot);
+  const uiMode = useViewportStore((s) => s.uiMode);
 
   const objectList = Object.values(sceneObjects);
 
@@ -530,6 +546,7 @@ function SceneContents() {
           wireframe={wireframe}
           snapshot={currentSnapshot}
           isPrimaryActive={obj.id === primaryActiveId}
+          uiMode={uiMode}
           onSelect={(id) => selectObject(id)}
         />
       ))}
@@ -545,12 +562,14 @@ function SceneContents() {
 }
 
 export function BlenderViewport() {
+  const uiMode = useViewportStore((s) => s.uiMode);
   const previewScene = useViewportStore((s) => s.previewScene);
   const activeMetadata = useViewportStore((s) => s.activeMetadata);
   const selectObject = useViewportStore((s) => s.selectObject);
   const currentStep = useViewportStore((s) => s.currentStep);
   const currentSnapshot = useViewportStore((s) => s.currentSnapshot);
 
+  const isKids = uiMode === 'kids';
   const sceneFileName = `${activeMetadata.title.replace(/[^a-zA-Z0-9]/g, '')}.scene`;
   const stepPadded = String(currentStep).padStart(3, '0');
 
@@ -568,23 +587,29 @@ export function BlenderViewport() {
         {/* Top-Left Stitch Viewport HUD Pills */}
         <div className="stitch-top-hud">
           <div className="stitch-hud-pill">
-            <span className="hud-cam-mode">User Perspective</span>
-            <span className="hud-scene-name">{sceneFileName}</span>
+            <span className="hud-cam-mode">
+              {isKids ? '3D Stage' : 'User Perspective'}
+            </span>
+            <span className="hud-scene-name">
+              {isKids ? activeMetadata.title : sceneFileName}
+            </span>
           </div>
 
-          <div className="stitch-hud-pill telemetry">
-            <span>
-              SHADING: <strong>SOLID_STUDIO</strong>
-            </span>
-            <span className="hud-sep">|</span>
-            <span>
-              FOV: <strong className="cyan">45.0mm</strong>
-            </span>
-            <span className="hud-sep">|</span>
-            <span>
-              FPS: <strong className="green">60.0</strong>
-            </span>
-          </div>
+          {!isKids && (
+            <div className="stitch-hud-pill telemetry">
+              <span>
+                SHADING: <strong>SOLID_STUDIO</strong>
+              </span>
+              <span className="hud-sep">|</span>
+              <span>
+                FOV: <strong className="cyan">45.0mm</strong>
+              </span>
+              <span className="hud-sep">|</span>
+              <span>
+                FPS: <strong className="green">60.0</strong>
+              </span>
+            </div>
+          )}
         </div>
 
         <Canvas
@@ -599,25 +624,33 @@ export function BlenderViewport() {
         {/* Bottom-Center Floating [DBG] Console & Plain-English Caption Bar */}
         <div className="stitch-bottom-hud" role="status" aria-live="polite">
           <div className="stitch-dbg-console">
-            <span className="dbg-tag">[DBG]</span>
-            <span className="dbg-chevron">&gt;</span>
-            <span className="dbg-step">EXEC_STEP:{stepPadded}</span>
-            <span className="dbg-sep">|</span>
+            {!isKids && (
+              <>
+                <span className="dbg-tag">[DBG]</span>
+                <span className="dbg-chevron">&gt;</span>
+                <span className="dbg-step">EXEC_STEP:{stepPadded}</span>
+                <span className="dbg-sep">|</span>
+              </>
+            )}
             <span className="dbg-narration">{currentSnapshot.narration}</span>
             {showSortedResultLine && (
               <span className="dbg-sorted">
                 [Sorted: {currentArrayValues.join(', ')}]
               </span>
             )}
-            <span className="dbg-metric">
-              Δt: <strong>0.42ms</strong>
-            </span>
-            <span className="dbg-metric">
-              CYCLES: <strong>{currentStep + 6}</strong>
-            </span>
-            <span className="dbg-live">
-              <i className="live-dot" /> LIVE_SIM
-            </span>
+            {!isKids && (
+              <>
+                <span className="dbg-metric">
+                  Δt: <strong>0.42ms</strong>
+                </span>
+                <span className="dbg-metric">
+                  CYCLES: <strong>{currentStep + 6}</strong>
+                </span>
+                <span className="dbg-live">
+                  <i className="live-dot" /> LIVE_SIM
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>

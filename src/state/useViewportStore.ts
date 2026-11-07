@@ -59,8 +59,8 @@ const DEFAULT_STRUCTURE_OP: Record<
 };
 
 interface ViewportState {
-  /** UI complexity mode: 'standard' (clean, plain-English) vs 'pro' (full developer inspector) */
-  uiMode: 'standard' | 'pro';
+  /** UI complexity mode: 'kids' (friendly), 'standard' (CAD HUD), or 'pro' (full developer inspector) */
+  uiMode: 'kids' | 'standard' | 'pro';
   /** Whether the right-side Details/Code drawer is open in Standard mode */
   detailsOpen: boolean;
   /** Active mode in the top-left switcher (Library vs Upload) */
@@ -96,7 +96,7 @@ interface ViewportState {
   autoFollowCamera: boolean;
   operationHistory: QueuedOperationEntry[];
 
-  setUiMode: (mode: 'standard' | 'pro') => void;
+  setUiMode: (mode: 'kids' | 'standard' | 'pro') => void;
   toggleUiMode: () => void;
   setDetailsOpen: (open: boolean) => void;
   toggleDetailsOpen: () => void;
