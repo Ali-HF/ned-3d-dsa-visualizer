@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import {
+  Billboard,
   Edges,
   Grid,
   GizmoHelper,
@@ -37,6 +38,7 @@ function SceneObjectMesh({
   const valueTextRef = useRef<THREE.Group>(null);
 
   const isArrayCell = obj.kind === 'array-cell';
+  const isCircularNode = obj.kind === 'tree-node' || obj.kind === 'graph-node';
   const numericVal = typeof obj.value === 'number' ? obj.value : 20;
   const targetHeight = isArrayCell
     ? Math.max(0.65, Math.min(4.8, Math.abs(numericVal) / 18))
@@ -194,6 +196,60 @@ function SceneObjectMesh({
                 A[{cellIndex}]
               </span>
               <span className="stitch-hex-addr">{hexAddr}</span>
+            </div>
+          </Html>
+        </>
+      ) : isCircularNode ? (
+        <>
+          <mesh castShadow receiveShadow>
+            <sphereGeometry args={[0.58, 32, 32]} />
+            <meshStandardMaterial
+              color={fillColor}
+              roughness={0.48}
+              metalness={0.06}
+              wireframe={wireframe}
+            />
+          </mesh>
+
+          {/* Blender Circular Contour / Active Selection Ring around Sphere */}
+          <Billboard>
+            <mesh>
+              <ringGeometry
+                args={[
+                  0.58,
+                  isActiveBar || selected ? 0.635 : 0.605,
+                  48,
+                ]}
+              />
+              <meshBasicMaterial
+                color={edgeColor}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
+          </Billboard>
+
+          <Html position={[0, 0.85, 0]} center distanceFactor={14} zIndexRange={[5, 0]}>
+            <div className={`stitch-val-badge ${isActiveBar ? 'active' : ''}`}>
+              {isActiveBar && <span className="stitch-val-dot" />}
+              <span>VAL: {String(obj.value)}</span>
+            </div>
+          </Html>
+
+          <Html
+            position={[0, -0.78, 0.2]}
+            center
+            distanceFactor={14}
+            zIndexRange={[4, 0]}
+          >
+            <div className="stitch-under-bar">
+              <span
+                className={`stitch-idx-box ${
+                  isActiveBar || visitOrderIndex >= 0 ? 'active' : ''
+                }`}
+              >
+                {obj.id}
+              </span>
+              <span className="stitch-hex-addr">{obj.memoryAddress}</span>
             </div>
           </Html>
         </>

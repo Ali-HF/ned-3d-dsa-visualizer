@@ -1,5 +1,5 @@
 import { Suspense, useMemo } from 'react';
-import { Line, Text } from '@react-three/drei';
+import { Billboard, Line, Text } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface DirectedEdge3DProps {
@@ -54,15 +54,16 @@ export function DirectedEdge3D({
       </mesh>
       {label && (
         <Suspense fallback={null}>
-          <Text
-            position={midPoint}
-            fontSize={0.24}
-            color={highlighted ? '#ffd180' : '#9ecbff'}
-            anchorX="center"
-            anchorY="middle"
-          >
-            {label}
-          </Text>
+          <Billboard position={midPoint}>
+            <Text
+              fontSize={0.24}
+              color={highlighted ? '#ffd180' : '#9ecbff'}
+              anchorX="center"
+              anchorY="middle"
+            >
+              {label}
+            </Text>
+          </Billboard>
         </Suspense>
       )}
     </group>
