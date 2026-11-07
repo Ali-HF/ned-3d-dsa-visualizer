@@ -479,27 +479,41 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
   },
 ];
 
-function emitBaseLinkedList(events: TraceEvent[]) {
+function emitBaseLinkedList(events: TraceEvent[], customValues?: number[]) {
+  const vals =
+    customValues && customValues.length >= 4
+      ? customValues.slice(0, 4)
+      : [10, 25, 40, 55];
   events.push(
-    { t: 'create', id: 'node-head', kind: 'node', value: 10 },
-    { t: 'create', id: 'node-2', kind: 'node', value: 25 },
-    { t: 'create', id: 'node-3', kind: 'node', value: 40 },
-    { t: 'create', id: 'node-tail', kind: 'node', value: 55 },
+    { t: 'create', id: 'node-head', kind: 'node', value: vals[0] },
+    { t: 'create', id: 'node-2', kind: 'node', value: vals[1] },
+    { t: 'create', id: 'node-3', kind: 'node', value: vals[2] },
+    { t: 'create', id: 'node-tail', kind: 'node', value: vals[3] },
     { t: 'link', from: 'node-head', to: 'node-2', label: 'next' },
     { t: 'link', from: 'node-2', to: 'node-3', label: 'next' },
     { t: 'link', from: 'node-3', to: 'node-tail', label: 'next' },
   );
+  return vals;
 }
 
-function emitBaseBst(events: TraceEvent[]) {
+function emitBaseBst(events: TraceEvent[], customValues?: number[]) {
+  let sorted = [20, 30, 40, 50, 60, 70, 85];
+  if (customValues && customValues.length >= 3) {
+    const padded = [...customValues];
+    while (padded.length < 7) {
+      padded.push((padded[padded.length - 1] ?? 50) + 12);
+    }
+    sorted = padded.slice(0, 7).sort((a, b) => a - b);
+  }
+  const [v20, v30, v40, v50, v60, v70, v85] = sorted;
   events.push(
-    { t: 'create', id: 'bst-50', kind: 'node', value: 50 },
-    { t: 'create', id: 'bst-30', kind: 'node', value: 30 },
-    { t: 'create', id: 'bst-70', kind: 'node', value: 70 },
-    { t: 'create', id: 'bst-20', kind: 'node', value: 20 },
-    { t: 'create', id: 'bst-40', kind: 'node', value: 40 },
-    { t: 'create', id: 'bst-60', kind: 'node', value: 60 },
-    { t: 'create', id: 'bst-85', kind: 'node', value: 85 },
+    { t: 'create', id: 'bst-50', kind: 'node', value: v50 },
+    { t: 'create', id: 'bst-30', kind: 'node', value: v30 },
+    { t: 'create', id: 'bst-70', kind: 'node', value: v70 },
+    { t: 'create', id: 'bst-20', kind: 'node', value: v20 },
+    { t: 'create', id: 'bst-40', kind: 'node', value: v40 },
+    { t: 'create', id: 'bst-60', kind: 'node', value: v60 },
+    { t: 'create', id: 'bst-85', kind: 'node', value: v85 },
     { t: 'link', from: 'bst-50', to: 'bst-30', label: 'left' },
     { t: 'link', from: 'bst-50', to: 'bst-70', label: 'right' },
     { t: 'link', from: 'bst-30', to: 'bst-20', label: 'left' },
@@ -507,6 +521,7 @@ function emitBaseBst(events: TraceEvent[]) {
     { t: 'link', from: 'bst-70', to: 'bst-60', label: 'left' },
     { t: 'link', from: 'bst-70', to: 'bst-85', label: 'right' },
   );
+  return sorted;
 }
 
 function emitBaseGraph(events: TraceEvent[]) {
@@ -531,10 +546,12 @@ function emitBaseGraph(events: TraceEvent[]) {
 export function runStructureOperation(
   opId: StructureOperationId,
   paramValue = 35,
+  customValues?: number[],
 ): {
   events: TraceEvent[];
   meta: AlgorithmMetadata;
   scene: Exclude<PreviewSceneKind, 'array'>;
+  updatedValues?: number[];
 } {
   const def =
     STRUCTURE_OP_CATALOG.find((d) => d.id === opId) ?? STRUCTURE_OP_CATALOG[0];
@@ -552,18 +569,20 @@ export function runStructureOperation(
   };
 
   const events: TraceEvent[] = [];
+  let updatedValues: number[] | undefined;
 
   switch (opId) {
     // ==========================================
     // LINKED LIST OPERATIONS
     // ==========================================
     case 'sll-insert-head': {
-      emitBaseLinkedList(events);
+      const vals = emitBaseLinkedList(events, customValues);
       const val = paramValue || 5;
+      updatedValues = [val, ...vals.slice(0, 3)];
       events.push(
         {
           t: 'note',
-          text: `Starting with Linked List: 10 → 25 → 40 → 55. We will add ${val} at the front.`,
+          text: `Starting with Linked List: ${vals.join(' → ')}. We will add ${val} at the front.`,
         },
         { t: 'line', line: 17 },
         { t: 'create', id: 'node-new', kind: 'node', value: val },
@@ -575,7 +594,7 @@ export function runStructureOperation(
         { t: 'link', from: 'node-new', to: 'node-head', label: 'next' },
         {
           t: 'note',
-          text: `Pointed the new node (${val}) to the old head (10).`,
+          text: `Pointed the new node (${val}) to the old head (${vals[0]}).`,
         },
         { t: 'line', line: 19 },
         { t: 'visit', id: 'node-new' },
@@ -589,24 +608,25 @@ export function runStructureOperation(
     }
 
     case 'sll-insert-tail': {
-      emitBaseLinkedList(events);
+      const vals = emitBaseLinkedList(events, customValues);
       const val = paramValue || 70;
+      updatedValues = [...vals.slice(1), val];
       events.push(
         {
           t: 'note',
-          text: `Starting at head (10). Walking to the end of the list to add ${val}.`,
+          text: `Starting at head (${vals[0]}). Walking to the end of the list to add ${val}.`,
         },
         { t: 'line', line: 27 },
         { t: 'visit', id: 'node-head' },
-        { t: 'note', text: 'Checking node 10 — it has a next arrow, so move forward.' },
+        { t: 'note', text: `Checking node ${vals[0]} — it has a next arrow, so move forward.` },
         { t: 'visit', id: 'node-2' },
-        { t: 'note', text: 'Checking node 25 — it has a next arrow, so move forward.' },
+        { t: 'note', text: `Checking node ${vals[1]} — it has a next arrow, so move forward.` },
         { t: 'visit', id: 'node-3' },
-        { t: 'note', text: 'Checking node 40 — moving to the last node 55.' },
+        { t: 'note', text: `Checking node ${vals[2]} — moving to the last node ${vals[3]}.` },
         { t: 'visit', id: 'node-tail' },
         {
           t: 'note',
-          text: `Reached the tail node (55). Creating new node ${val} and linking it at the end.`,
+          text: `Reached the tail node (${vals[3]}). Creating new node ${val} and linking it at the end.`,
         },
         { t: 'line', line: 29 },
         { t: 'create', id: 'node-new-tail', kind: 'node', value: val },
@@ -622,32 +642,32 @@ export function runStructureOperation(
     }
 
     case 'sll-delete-val': {
-      emitBaseLinkedList(events);
+      const vals = emitBaseLinkedList(events, customValues);
       events.push(
         {
           t: 'note',
-          text: 'Walking along the Linked List to remove node 40.',
+          text: `Walking along the Linked List (${vals.join(' → ')}) to remove node ${vals[2]}.`,
         },
         { t: 'line', line: 51 },
         { t: 'visit', id: 'node-head' },
-        { t: 'note', text: 'At head (10). Next node is 25, not 40 — step forward.' },
+        { t: 'note', text: `At head (${vals[0]}). Next node is ${vals[1]}, not ${vals[2]} — step forward.` },
         { t: 'visit', id: 'node-2' },
         {
           t: 'note',
-          text: 'At node 25. Its next node is 40 — found the node to remove!',
+          text: `At node ${vals[1]}. Its next node is ${vals[2]} — found the node to remove!`,
         },
         { t: 'line', line: 55 },
         { t: 'unlink', from: 'node-2', to: 'node-3' },
         { t: 'link', from: 'node-2', to: 'node-tail', label: 'next' },
         {
           t: 'note',
-          text: 'Bypassed 40 by linking 25 directly to 55.',
+          text: `Bypassed ${vals[2]} by linking ${vals[1]} directly to ${vals[3]}.`,
         },
         { t: 'line', line: 56 },
         { t: 'remove', id: 'node-3' },
         {
           t: 'note',
-          text: 'Deleted node 40 from memory. List is now 10 → 25 → 55.',
+          text: `Deleted node ${vals[2]} from memory. List is now ${vals[0]} → ${vals[1]} → ${vals[3]}.`,
         },
         { t: 'done' },
       );
@@ -655,22 +675,22 @@ export function runStructureOperation(
     }
 
     case 'sll-search': {
-      emitBaseLinkedList(events);
+      const vals = emitBaseLinkedList(events, customValues);
       events.push(
         {
           t: 'note',
-          text: 'Searching the Linked List from head to tail for 40.',
+          text: `Searching the Linked List (${vals.join(' → ')}) from head to tail for ${vals[2]}.`,
         },
         { t: 'line', line: 62 },
         { t: 'visit', id: 'node-head' },
-        { t: 'note', text: 'Checking position 1: value is 10 (not 40). Follow next arrow.' },
+        { t: 'note', text: `Checking position 1: value is ${vals[0]} (not ${vals[2]}). Follow next arrow.` },
         { t: 'visit', id: 'node-2' },
-        { t: 'note', text: 'Checking position 2: value is 25 (not 40). Follow next arrow.' },
+        { t: 'note', text: `Checking position 2: value is ${vals[1]} (not ${vals[2]}). Follow next arrow.` },
         { t: 'visit', id: 'node-3' },
         { t: 'line', line: 64 },
         {
           t: 'note',
-          text: 'Found 40 at node #3!',
+          text: `Found ${vals[2]} at node #3!`,
         },
         { t: 'done' },
       );
@@ -678,7 +698,8 @@ export function runStructureOperation(
     }
 
     case 'sll-reverse': {
-      emitBaseLinkedList(events);
+      const vals = emitBaseLinkedList(events, customValues);
+      updatedValues = [...vals].reverse();
       events.push(
         {
           t: 'note',
@@ -689,27 +710,27 @@ export function runStructureOperation(
         { t: 'unlink', from: 'node-head', to: 'node-2' },
         {
           t: 'note',
-          text: 'Detached 10 from 25 so 10 now points to nothing (it becomes the new tail).',
+          text: `Detached ${vals[0]} from ${vals[1]} so ${vals[0]} now points to nothing (it becomes the new tail).`,
         },
         { t: 'visit', id: 'node-2' },
         { t: 'unlink', from: 'node-2', to: 'node-3' },
         { t: 'link', from: 'node-2', to: 'node-head', label: 'next' },
         {
           t: 'note',
-          text: 'Flipped arrow so 25 now points back to 10.',
+          text: `Flipped arrow so ${vals[1]} now points back to ${vals[0]}.`,
         },
         { t: 'visit', id: 'node-3' },
         { t: 'unlink', from: 'node-3', to: 'node-tail' },
         { t: 'link', from: 'node-3', to: 'node-2', label: 'next' },
         {
           t: 'note',
-          text: 'Flipped arrow so 40 now points back to 25.',
+          text: `Flipped arrow so ${vals[2]} now points back to ${vals[1]}.`,
         },
         { t: 'visit', id: 'node-tail' },
         { t: 'link', from: 'node-tail', to: 'node-3', label: 'next' },
         {
           t: 'note',
-          text: 'Flipped arrow so 55 points to 40. Done! Reversed list: 55 → 40 → 25 → 10.',
+          text: `Flipped arrow so ${vals[3]} points to ${vals[2]}. Done! Reversed list: ${updatedValues.join(' → ')}.`,
         },
         { t: 'done' },
       );
@@ -717,7 +738,7 @@ export function runStructureOperation(
     }
 
     case 'sll-find-middle': {
-      emitBaseLinkedList(events);
+      emitBaseLinkedList(events, customValues);
       events.push(
         {
           t: 'note',
@@ -725,16 +746,16 @@ export function runStructureOperation(
         },
         { t: 'line', line: 34 },
         { t: 'compare', a: { id: 'node-head' }, b: { id: 'node-head' } },
-        { t: 'note', text: 'Both Slow and Fast start at head (10).' },
+        { t: 'note', text: 'Both Slow and Fast start at head.' },
         { t: 'compare', a: { id: 'node-2' }, b: { id: 'node-3' } },
         {
           t: 'note',
-          text: 'Slow moves 1 step to 25, while Fast jumps 2 steps to 40.',
+          text: 'Slow moves 1 step forward, while Fast jumps 2 steps ahead.',
         },
         { t: 'visit', id: 'node-3' },
         {
           t: 'note',
-          text: 'Fast reaches the end, so Slow lands right on the middle node (40)!',
+          text: 'Fast reaches the end, so Slow lands right on the middle node!',
         },
         { t: 'done' },
       );
@@ -742,7 +763,7 @@ export function runStructureOperation(
     }
 
     case 'dll-traversal': {
-      emitBaseLinkedList(events);
+      emitBaseLinkedList(events, customValues);
       events.push(
         { t: 'link', from: 'node-2', to: 'node-head', label: 'prev' },
         { t: 'link', from: 'node-3', to: 'node-2', label: 'prev' },
@@ -752,15 +773,15 @@ export function runStructureOperation(
           text: 'Doubly Linked List: every node has both a forward (next) and backward (prev) arrow.',
         },
         { t: 'visit', id: 'node-head' },
-        { t: 'note', text: 'Forward walk: visiting 10 → moving next to 25.' },
+        { t: 'note', text: 'Forward walk: visiting head → moving next.' },
         { t: 'visit', id: 'node-2' },
-        { t: 'note', text: 'Forward walk: visiting 25 → moving next to 40.' },
+        { t: 'note', text: 'Forward walk: visiting node #2 → moving next.' },
         { t: 'visit', id: 'node-3' },
-        { t: 'note', text: 'Forward walk: visiting 40 → moving next to 55.' },
+        { t: 'note', text: 'Forward walk: visiting node #3 → moving next.' },
         { t: 'visit', id: 'node-tail' },
         {
           t: 'note',
-          text: 'Reached tail (55). Because each node also has a prev arrow, we can walk backward too!',
+          text: 'Reached tail. Because each node also has a prev arrow, we can walk backward too!',
         },
         { t: 'done' },
       );
@@ -768,28 +789,28 @@ export function runStructureOperation(
     }
 
     case 'cll-cycle': {
-      emitBaseLinkedList(events);
+      emitBaseLinkedList(events, customValues);
       events.push(
         { t: 'link', from: 'node-tail', to: 'node-2', label: 'loop' },
         {
           t: 'note',
-          text: 'Tail node (55) loops back to 25! Running Tortoise & Hare cycle detection.',
+          text: 'Tail node loops back to node #2! Running Tortoise & Hare cycle detection.',
         },
         { t: 'compare', a: { id: 'node-2' }, b: { id: 'node-3' } },
         {
           t: 'note',
-          text: 'Tortoise steps to 25 while Hare jumps ahead to 40.',
+          text: 'Tortoise steps 1 node while Hare jumps 2 nodes ahead.',
         },
         { t: 'compare', a: { id: 'node-3' }, b: { id: 'node-2' } },
         {
           t: 'note',
-          text: 'Hare follows the loop arrow from 55 back to 25!',
+          text: 'Hare follows the loop arrow from tail back to node #2!',
         },
         { t: 'compare', a: { id: 'node-tail' }, b: { id: 'node-tail' } },
         { t: 'visit', id: 'node-tail' },
         {
           t: 'note',
-          text: 'Tortoise and Hare meet at node 55 — cycle confirmed!',
+          text: 'Tortoise and Hare meet inside the loop — cycle confirmed!',
         },
         { t: 'done' },
       );
@@ -800,16 +821,21 @@ export function runStructureOperation(
     // STACK & RECURSION OPERATIONS (Week 4)
     // ==========================================
     case 'stack-push': {
+      const stkVals =
+        customValues && customValues.length >= 3
+          ? customValues.slice(0, 3)
+          : [15, 30, 45];
       const val = paramValue || 50;
+      updatedValues = [...stkVals, val];
       events.push(
-        { t: 'create', id: 'stk-0', kind: 'node', value: 15 },
-        { t: 'create', id: 'stk-1', kind: 'node', value: 30 },
-        { t: 'create', id: 'stk-2', kind: 'node', value: 45 },
+        { t: 'create', id: 'stk-0', kind: 'node', value: stkVals[0] },
+        { t: 'create', id: 'stk-1', kind: 'node', value: stkVals[1] },
+        { t: 'create', id: 'stk-2', kind: 'node', value: stkVals[2] },
         { t: 'link', from: 'stk-1', to: 'stk-0', label: 'below' },
         { t: 'link', from: 'stk-2', to: 'stk-1', label: 'below' },
         {
           t: 'note',
-          text: `Stack currently has 15, 30, and 45 on top. Pushing ${val} onto the top of the stack.`,
+          text: `Stack currently has ${stkVals[0]}, ${stkVals[1]}, and ${stkVals[2]} on top. Pushing ${val} onto the top of the stack.`,
         },
         { t: 'line', line: 17 },
         { t: 'create', id: 'stk-3', kind: 'node', value: val },
@@ -825,27 +851,32 @@ export function runStructureOperation(
     }
 
     case 'stack-pop': {
+      const stkVals =
+        customValues && customValues.length >= 4
+          ? customValues.slice(0, 4)
+          : [15, 30, 45, 60];
+      updatedValues = stkVals.slice(0, 3);
       events.push(
-        { t: 'create', id: 'stk-0', kind: 'node', value: 15 },
-        { t: 'create', id: 'stk-1', kind: 'node', value: 30 },
-        { t: 'create', id: 'stk-2', kind: 'node', value: 45 },
-        { t: 'create', id: 'stk-3', kind: 'node', value: 60 },
+        { t: 'create', id: 'stk-0', kind: 'node', value: stkVals[0] },
+        { t: 'create', id: 'stk-1', kind: 'node', value: stkVals[1] },
+        { t: 'create', id: 'stk-2', kind: 'node', value: stkVals[2] },
+        { t: 'create', id: 'stk-3', kind: 'node', value: stkVals[3] },
         { t: 'link', from: 'stk-1', to: 'stk-0', label: 'below' },
         { t: 'link', from: 'stk-2', to: 'stk-1', label: 'below' },
         { t: 'link', from: 'stk-3', to: 'stk-2', label: 'below' },
         {
           t: 'note',
-          text: 'The top of the stack is 60. Pop removes the top item first (LIFO).',
+          text: `The top of the stack is ${stkVals[3]}. Pop removes the top item first (LIFO).`,
         },
         { t: 'line', line: 21 },
         { t: 'visit', id: 'stk-3' },
-        { t: 'note', text: 'Inspecting top element 60 before popping it off.' },
+        { t: 'note', text: `Inspecting top element ${stkVals[3]} before popping it off.` },
         { t: 'unlink', from: 'stk-3', to: 'stk-2' },
         { t: 'remove', id: 'stk-3' },
         { t: 'visit', id: 'stk-2' },
         {
           t: 'note',
-          text: 'Popped 60! Now 45 becomes the new TOP of the stack.',
+          text: `Popped ${stkVals[3]}! Now ${stkVals[2]} becomes the new TOP of the stack.`,
         },
         { t: 'done' },
       );
@@ -853,10 +884,14 @@ export function runStructureOperation(
     }
 
     case 'stack-peek': {
+      const stkVals =
+        customValues && customValues.length >= 3
+          ? customValues.slice(0, 3)
+          : [15, 30, 45];
       events.push(
-        { t: 'create', id: 'stk-0', kind: 'node', value: 15 },
-        { t: 'create', id: 'stk-1', kind: 'node', value: 30 },
-        { t: 'create', id: 'stk-2', kind: 'node', value: 45 },
+        { t: 'create', id: 'stk-0', kind: 'node', value: stkVals[0] },
+        { t: 'create', id: 'stk-1', kind: 'node', value: stkVals[1] },
+        { t: 'create', id: 'stk-2', kind: 'node', value: stkVals[2] },
         { t: 'link', from: 'stk-1', to: 'stk-0', label: 'below' },
         { t: 'link', from: 'stk-2', to: 'stk-1', label: 'below' },
         {
@@ -867,7 +902,7 @@ export function runStructureOperation(
         { t: 'visit', id: 'stk-2' },
         {
           t: 'note',
-          text: 'Top of stack is 45! The stack remains unchanged.',
+          text: `Top of stack is ${stkVals[2]}! The stack remains unchanged.`,
         },
         { t: 'done' },
       );
@@ -984,16 +1019,21 @@ export function runStructureOperation(
     // QUEUE & DEQUE OPERATIONS (Week 5)
     // ==========================================
     case 'queue-enqueue': {
+      const qVals =
+        customValues && customValues.length >= 3
+          ? customValues.slice(0, 3)
+          : [10, 20, 30];
       const val = paramValue || 50;
+      updatedValues = [...qVals, val];
       events.push(
-        { t: 'create', id: 'q-0', kind: 'node', value: 10 },
-        { t: 'create', id: 'q-1', kind: 'node', value: 20 },
-        { t: 'create', id: 'q-2', kind: 'node', value: 30 },
+        { t: 'create', id: 'q-0', kind: 'node', value: qVals[0] },
+        { t: 'create', id: 'q-1', kind: 'node', value: qVals[1] },
+        { t: 'create', id: 'q-2', kind: 'node', value: qVals[2] },
         { t: 'link', from: 'q-0', to: 'q-1', label: 'next' },
         { t: 'link', from: 'q-1', to: 'q-2', label: 'next' },
         {
           t: 'note',
-          text: `Queue has 10 at the FRONT and 30 at the BACK. Adding ${val} to the back of the line.`,
+          text: `Queue has ${qVals[0]} at the FRONT and ${qVals[2]} at the BACK. Adding ${val} to the back of the line.`,
         },
         { t: 'line', line: 19 },
         { t: 'create', id: 'q-3', kind: 'node', value: val },
@@ -1009,27 +1049,32 @@ export function runStructureOperation(
     }
 
     case 'queue-dequeue': {
+      const qVals =
+        customValues && customValues.length >= 4
+          ? customValues.slice(0, 4)
+          : [10, 20, 30, 40];
+      updatedValues = qVals.slice(1);
       events.push(
-        { t: 'create', id: 'q-0', kind: 'node', value: 10 },
-        { t: 'create', id: 'q-1', kind: 'node', value: 20 },
-        { t: 'create', id: 'q-2', kind: 'node', value: 30 },
-        { t: 'create', id: 'q-3', kind: 'node', value: 40 },
+        { t: 'create', id: 'q-0', kind: 'node', value: qVals[0] },
+        { t: 'create', id: 'q-1', kind: 'node', value: qVals[1] },
+        { t: 'create', id: 'q-2', kind: 'node', value: qVals[2] },
+        { t: 'create', id: 'q-3', kind: 'node', value: qVals[3] },
         { t: 'link', from: 'q-0', to: 'q-1', label: 'next' },
         { t: 'link', from: 'q-1', to: 'q-2', label: 'next' },
         { t: 'link', from: 'q-2', to: 'q-3', label: 'next' },
         {
           t: 'note',
-          text: '10 is at the FRONT of the queue and has been waiting longest.',
+          text: `${qVals[0]} is at the FRONT of the queue and has been waiting longest.`,
         },
         { t: 'line', line: 27 },
         { t: 'visit', id: 'q-0' },
-        { t: 'note', text: 'Serving 10 at the front of the queue.' },
+        { t: 'note', text: `Serving ${qVals[0]} at the front of the queue.` },
         { t: 'unlink', from: 'q-0', to: 'q-1' },
         { t: 'remove', id: 'q-0' },
         { t: 'visit', id: 'q-1' },
         {
           t: 'note',
-          text: '10 has left the queue! Now 20 is at the FRONT of the line.',
+          text: `${qVals[0]} has left the queue! Now ${qVals[1]} is at the FRONT of the line.`,
         },
         { t: 'done' },
       );
@@ -1094,8 +1139,9 @@ export function runStructureOperation(
     // BINARY TREE, BST & AVL OPERATIONS (Weeks 9, 11, 12)
     // ==========================================
     case 'bst-insert': {
-      emitBaseBst(events);
+      const sorted = emitBaseBst(events, customValues);
       const val = paramValue || 45;
+      updatedValues = [...sorted.slice(0, 6), val];
       events.push(
         {
           t: 'note',
@@ -1105,24 +1151,24 @@ export function runStructureOperation(
         { t: 'visit', id: 'bst-50' },
         {
           t: 'note',
-          text: `Comparing ${val} with root 50: ${val} is smaller than 50, so go LEFT to 30.`,
+          text: `Comparing ${val} with root ${sorted[3]}: ${val} is smaller, so go LEFT to ${sorted[1]}.`,
         },
         { t: 'visit', id: 'bst-30' },
         {
           t: 'note',
-          text: `Comparing ${val} with 30: ${val} is bigger than 30, so go RIGHT to 40.`,
+          text: `Comparing ${val} with ${sorted[1]}: ${val} is bigger, so go RIGHT to ${sorted[2]}.`,
         },
         { t: 'visit', id: 'bst-40' },
         {
           t: 'note',
-          text: `Comparing ${val} with 40: ${val} is bigger than 40, and 40's right child is empty!`,
+          text: `Comparing ${val} with ${sorted[2]}: ${sorted[2]}'s child slot is open!`,
         },
         { t: 'create', id: 'bst-new', kind: 'node', value: val },
         { t: 'link', from: 'bst-40', to: 'bst-new', label: 'right' },
         { t: 'visit', id: 'bst-new' },
         {
           t: 'note',
-          text: `Placed ${val} as the right child of 40!`,
+          text: `Placed ${val} as the right child of ${sorted[2]}!`,
         },
         { t: 'done' },
       );
@@ -1130,27 +1176,27 @@ export function runStructureOperation(
     }
 
     case 'bst-search': {
-      emitBaseBst(events);
+      const sorted = emitBaseBst(events, customValues);
       events.push(
         {
           t: 'note',
-          text: 'Searching for 60 in the Binary Search Tree starting at root 50.',
+          text: `Searching for ${sorted[4]} in the Binary Search Tree starting at root ${sorted[3]}.`,
         },
         { t: 'line', line: 26 },
         { t: 'visit', id: 'bst-50' },
         {
           t: 'note',
-          text: '60 is bigger than root 50, so we ignore the entire left half and go RIGHT to 70.',
+          text: `${sorted[4]} is bigger than root ${sorted[3]}, so we ignore the entire left half and go RIGHT to ${sorted[5]}.`,
         },
         { t: 'visit', id: 'bst-70' },
         {
           t: 'note',
-          text: '60 is smaller than 70, so we go LEFT.',
+          text: `${sorted[4]} is smaller than ${sorted[5]}, so we go LEFT.`,
         },
         { t: 'visit', id: 'bst-60' },
         {
           t: 'note',
-          text: 'Found 60! Binary Search Tree found it in just 3 steps instead of checking all 7 nodes.',
+          text: `Found ${sorted[4]}! Binary Search Tree found it in just 3 steps instead of checking all 7 nodes.`,
         },
         { t: 'done' },
       );
@@ -1158,25 +1204,25 @@ export function runStructureOperation(
     }
 
     case 'bst-delete': {
-      emitBaseBst(events);
+      const sorted = emitBaseBst(events, customValues);
       events.push(
         {
           t: 'note',
-          text: 'Deleting node 30 (which has two children: 20 and 40) from the BST.',
+          text: `Deleting node ${sorted[1]} (which has two children: ${sorted[0]} and ${sorted[2]}) from the BST.`,
         },
         { t: 'visit', id: 'bst-50' },
         { t: 'visit', id: 'bst-30' },
         {
           t: 'note',
-          text: 'Found node 30. Since it has two children, we replace it with its in-order successor (40).',
+          text: `Found node ${sorted[1]}. Since it has two children, we replace it with its in-order successor (${sorted[2]}).`,
         },
         { t: 'compare', a: { id: 'bst-30' }, b: { id: 'bst-40' } },
-        { t: 'set', target: { id: 'bst-30' }, value: 40 },
+        { t: 'set', target: { id: 'bst-30' }, value: sorted[2] },
         { t: 'unlink', from: 'bst-30', to: 'bst-40' },
         { t: 'remove', id: 'bst-40' },
         {
           t: 'note',
-          text: 'Copied 40 into the node and removed the old leaf 40. The BST remains valid!',
+          text: `Copied ${sorted[2]} into the node and removed the old leaf. The BST remains valid!`,
         },
         { t: 'done' },
       );
@@ -1184,15 +1230,15 @@ export function runStructureOperation(
     }
 
     case 'tree-inorder': {
-      emitBaseBst(events);
+      const sorted = emitBaseBst(events, customValues);
       const order: [string, number, string][] = [
-        ['bst-20', 20, 'Leftmost leaf 20 first.'],
-        ['bst-30', 30, 'Then parent 30.'],
-        ['bst-40', 40, 'Then right child 40.'],
-        ['bst-50', 50, 'Now the main root 50.'],
-        ['bst-60', 60, 'Left child of right subtree: 60.'],
-        ['bst-70', 70, 'Parent of right subtree: 70.'],
-        ['bst-85', 85, 'Rightmost leaf 85.'],
+        ['bst-20', sorted[0], `Leftmost leaf ${sorted[0]} first.`],
+        ['bst-30', sorted[1], `Then parent ${sorted[1]}.`],
+        ['bst-40', sorted[2], `Then right child ${sorted[2]}.`],
+        ['bst-50', sorted[3], `Now the main root ${sorted[3]}.`],
+        ['bst-60', sorted[4], `Left child of right subtree: ${sorted[4]}.`],
+        ['bst-70', sorted[5], `Parent of right subtree: ${sorted[5]}.`],
+        ['bst-85', sorted[6], `Rightmost leaf ${sorted[6]}.`],
       ];
       events.push({
         t: 'note',
@@ -1207,7 +1253,7 @@ export function runStructureOperation(
       events.push(
         {
           t: 'note',
-          text: 'Inorder Traversal complete! Sorted output: 20, 30, 40, 50, 60, 70, 85.',
+          text: `Inorder Traversal complete! Sorted output: ${sorted.join(', ')}.`,
         },
         { t: 'done' },
       );
@@ -1215,15 +1261,15 @@ export function runStructureOperation(
     }
 
     case 'tree-preorder': {
-      emitBaseBst(events);
+      const sorted = emitBaseBst(events, customValues);
       const order: [string, number][] = [
-        ['bst-50', 50],
-        ['bst-30', 30],
-        ['bst-20', 20],
-        ['bst-40', 40],
-        ['bst-70', 70],
-        ['bst-60', 60],
-        ['bst-85', 85],
+        ['bst-50', sorted[3]],
+        ['bst-30', sorted[1]],
+        ['bst-20', sorted[0]],
+        ['bst-40', sorted[2]],
+        ['bst-70', sorted[5]],
+        ['bst-60', sorted[4]],
+        ['bst-85', sorted[6]],
       ];
       events.push({
         t: 'note',
@@ -1238,7 +1284,7 @@ export function runStructureOperation(
       events.push(
         {
           t: 'note',
-          text: 'Preorder Traversal complete: 50, 30, 20, 40, 70, 60, 85.',
+          text: `Preorder Traversal complete: ${order.map((o) => o[1]).join(', ')}.`,
         },
         { t: 'done' },
       );
@@ -1246,15 +1292,15 @@ export function runStructureOperation(
     }
 
     case 'tree-postorder': {
-      emitBaseBst(events);
+      const sorted = emitBaseBst(events, customValues);
       const order: [string, number][] = [
-        ['bst-20', 20],
-        ['bst-40', 40],
-        ['bst-30', 30],
-        ['bst-60', 60],
-        ['bst-85', 85],
-        ['bst-70', 70],
-        ['bst-50', 50],
+        ['bst-20', sorted[0]],
+        ['bst-40', sorted[2]],
+        ['bst-30', sorted[1]],
+        ['bst-60', sorted[4]],
+        ['bst-85', sorted[6]],
+        ['bst-70', sorted[5]],
+        ['bst-50', sorted[3]],
       ];
       events.push({
         t: 'note',
@@ -1269,7 +1315,7 @@ export function runStructureOperation(
       events.push(
         {
           t: 'note',
-          text: 'Postorder Traversal complete: 20, 40, 30, 60, 85, 70, 50.',
+          text: `Postorder Traversal complete: ${order.map((o) => o[1]).join(', ')}.`,
         },
         { t: 'done' },
       );
@@ -1277,15 +1323,15 @@ export function runStructureOperation(
     }
 
     case 'tree-levelorder': {
-      emitBaseBst(events);
+      const sorted = emitBaseBst(events, customValues);
       const order: [string, number, number][] = [
-        ['bst-50', 50, 1],
-        ['bst-30', 30, 2],
-        ['bst-70', 70, 2],
-        ['bst-20', 20, 3],
-        ['bst-40', 40, 3],
-        ['bst-60', 60, 3],
-        ['bst-85', 85, 3],
+        ['bst-50', sorted[3], 1],
+        ['bst-30', sorted[1], 2],
+        ['bst-70', sorted[5], 2],
+        ['bst-20', sorted[0], 3],
+        ['bst-40', sorted[2], 3],
+        ['bst-60', sorted[4], 3],
+        ['bst-85', sorted[6], 3],
       ];
       events.push({
         t: 'note',
@@ -1300,7 +1346,7 @@ export function runStructureOperation(
       events.push(
         {
           t: 'note',
-          text: 'Level-Order Traversal complete: 50, 30, 70, 20, 40, 60, 85.',
+          text: `Level-Order Traversal complete: ${order.map((o) => o[1]).join(', ')}.`,
         },
         { t: 'done' },
       );
@@ -1610,5 +1656,6 @@ export function runStructureOperation(
     events,
     meta,
     scene: def.scene,
+    updatedValues,
   };
 }

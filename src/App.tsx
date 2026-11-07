@@ -322,11 +322,11 @@ export function App() {
 
   const handleRandomizeNumbers = () => {
     const rndVal = Math.floor(Math.random() * 80) + 12;
+    const rnd = Array.from({ length: 6 }, () => Math.floor(Math.random() * 85) + 10);
     setParamValue(rndVal);
+    setArrayInputText(rnd.join(', '));
+    setCustomArray(rnd);
     if (previewScene === 'array') {
-      const rnd = Array.from({ length: 6 }, () => Math.floor(Math.random() * 85) + 10);
-      setArrayInputText(rnd.join(', '));
-      setCustomArray(rnd);
       runOperationNow(activeOperation, paramIndex, rndVal);
     } else {
       runStructureOperationNow(activeStructureOp, rndVal);

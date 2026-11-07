@@ -614,7 +614,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
 
   runStructureOperationNow: (op, paramValue = 40) => {
     const state = get();
-    const result = runStructureOperation(op, paramValue);
+    const result = runStructureOperation(op, paramValue, state.workingArray);
     const timeline = new TraceTimeline(result.events);
     const firstNoteIdx = result.events.findIndex((e) => e.t === 'note');
     const startStep = firstNoteIdx >= 0 ? firstNoteIdx + 1 : 1;
@@ -625,6 +625,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       previewScene: result.scene,
       activeStructureOp: op,
       activeMetadata: result.meta,
+      workingArray: result.updatedValues ?? state.workingArray,
       timeline,
       currentStep: startStep,
       totalSteps: timeline.totalSteps,
