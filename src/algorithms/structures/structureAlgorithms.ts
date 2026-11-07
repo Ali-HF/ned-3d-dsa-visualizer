@@ -1419,14 +1419,22 @@ export function runStructureOperation(
           text: `Placed ${val} under 80. Now we Bubble Up (siftUp) while ${val} is bigger than its parent!`,
         },
         { t: 'compare', a: { id: 'bst-60' }, b: { id: 'bst-70' } },
+        {
+          t: 'note',
+          text: `Comparing ${val} with its parent 80.`,
+        },
         { t: 'swap', a: { id: 'bst-60' }, b: { id: 'bst-70' } },
         {
           t: 'note',
           text: `${val} is bigger than 80, so they swap places!`,
         },
         { t: 'compare', a: { id: 'bst-70' }, b: { id: 'bst-50' } },
-        { t: 'swap', a: { id: 'bst-70' }, b: { id: 'bst-50' } },
+        {
+          t: 'note',
+          text: `Comparing ${val} with the root 90.`,
+        },
         { t: 'visit', id: 'bst-50' },
+        { t: 'swap', a: { id: 'bst-70' }, b: { id: 'bst-50' } },
         {
           t: 'note',
           text: `${val} is bigger than 90, so they swap! ${val} is now the new maximum at the root of the Heap.`,
@@ -1457,13 +1465,13 @@ export function runStructureOperation(
         { t: 'set', target: { id: 'bst-50' }, value: 50 },
         { t: 'unlink', from: 'bst-30', to: 'bst-40' },
         { t: 'remove', id: 'bst-40' },
+        { t: 'compare', a: { id: 'bst-50' }, b: { id: 'bst-70' } },
         {
           t: 'note',
           text: 'Moved 50 to the root. Now Bubble Down (siftDown): compare 50 with its larger child 85.',
         },
-        { t: 'compare', a: { id: 'bst-50' }, b: { id: 'bst-70' } },
-        { t: 'swap', a: { id: 'bst-50' }, b: { id: 'bst-70' } },
         { t: 'visit', id: 'bst-50' },
+        { t: 'swap', a: { id: 'bst-50' }, b: { id: 'bst-70' } },
         {
           t: 'note',
           text: '85 is bigger than 50, so they swap! 85 is now at the root and the Max-Heap property is restored.',

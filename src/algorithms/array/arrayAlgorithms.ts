@@ -251,6 +251,45 @@ function emitArrayInit(events: TraceEvent[], id: string, values: number[], noteT
   }
 }
 
+const ACTION_EVENT_TYPES = new Set(['compare', 'swap', 'set', 'visit', 'remove']);
+
+/**
+ * Ensures that each step's `{ t: 'note' }` is emitted immediately AFTER its
+ * associated action events (`compare`, `swap`, `set`, `visit`, `remove`), and
+ * that `swap` / `compare` is the final action before `note` so `traceEngine`
+ * preserves `swappedRefs` and `comparedRefs` when the player stops at `note`.
+ */
+function syncNotesAfterActions(events: TraceEvent[]): TraceEvent[] {
+  const out = [...events];
+  let i = 0;
+  while (i < out.length) {
+    if (out[i].t === 'note') {
+      let end = i + 1;
+      while (end < out.length && ACTION_EVENT_TYPES.has(out[end].t)) {
+        end++;
+      }
+      if (end > i + 1) {
+        const noteEvent = out[i];
+        const actions = out.slice(i + 1, end);
+        // Keep non-highlight actions (like visit/set) before compare/swap so
+        // traceEngine doesn't clear comparedRefs or swappedRefs before the note.
+        const regularActions = actions.filter(
+          (a) => a.t !== 'swap' && a.t !== 'compare',
+        );
+        const highlightActions = actions.filter(
+          (a) => a.t === 'swap' || a.t === 'compare',
+        );
+        const reordered = [...regularActions, ...highlightActions, noteEvent];
+        out.splice(i, end - i, ...reordered);
+        i = end;
+        continue;
+      }
+    }
+    i++;
+  }
+  return out;
+}
+
 export function bubbleSortTrace(
   input: number[],
   emitInit: boolean = true,
@@ -342,7 +381,7 @@ export function bubbleSortTrace(
   events.push({ t: 'done' });
 
   return {
-    events,
+    events: syncNotesAfterActions(events),
     finalArray: arr,
     meta: ARRAY_ALGORITHM_METADATA['bubble-sort'],
   };
@@ -433,7 +472,7 @@ export function selectionSortTrace(
   events.push({ t: 'done' });
 
   return {
-    events,
+    events: syncNotesAfterActions(events),
     finalArray: arr,
     meta: ARRAY_ALGORITHM_METADATA['selection-sort'],
   };
@@ -520,7 +559,7 @@ export function insertionSortTrace(
   events.push({ t: 'done' });
 
   return {
-    events,
+    events: syncNotesAfterActions(events),
     finalArray: arr,
     meta: ARRAY_ALGORITHM_METADATA['insertion-sort'],
   };
@@ -651,7 +690,7 @@ export function mergeSortTrace(
   events.push({ t: 'done' });
 
   return {
-    events,
+    events: syncNotesAfterActions(events),
     finalArray: arr,
     meta: ARRAY_ALGORITHM_METADATA['merge-sort'],
   };
@@ -772,7 +811,7 @@ export function quickSortTrace(
   events.push({ t: 'done' });
 
   return {
-    events,
+    events: syncNotesAfterActions(events),
     finalArray: arr,
     meta: ARRAY_ALGORITHM_METADATA['quick-sort'],
   };
@@ -827,7 +866,7 @@ export function arrayInsertAtTrace(
   events.push({ t: 'done' });
 
   return {
-    events,
+    events: syncNotesAfterActions(events),
     finalArray: arr,
     meta: ARRAY_ALGORITHM_METADATA['insert-at'],
   };
@@ -886,7 +925,7 @@ export function arrayDeleteAtTrace(
   events.push({ t: 'done' });
 
   return {
-    events,
+    events: syncNotesAfterActions(events),
     finalArray: arr,
     meta: ARRAY_ALGORITHM_METADATA['delete-at'],
   };
@@ -929,7 +968,7 @@ export function arrayUpdateAtTrace(
   events.push({ t: 'done' });
 
   return {
-    events,
+    events: syncNotesAfterActions(events),
     finalArray: arr,
     meta: ARRAY_ALGORITHM_METADATA['update-at'],
   };
@@ -971,7 +1010,11 @@ export function arrayLinearSearchTrace(
         text: `Found ${target} at position ${i + 1} (Found target ${target} at index ${i})!`,
       });
       events.push({ t: 'done' });
-      return { events, finalArray: arr, meta: ARRAY_ALGORITHM_METADATA['linear-search'] };
+      return {
+        events: syncNotesAfterActions(events),
+        finalArray: arr,
+        meta: ARRAY_ALGORITHM_METADATA['linear-search'],
+      };
     }
     events.push({
       t: 'note',
@@ -985,7 +1028,11 @@ export function arrayLinearSearchTrace(
     text: `Checked every number, and ${target} was not found.`,
   });
   events.push({ t: 'done' });
-  return { events, finalArray: arr, meta: ARRAY_ALGORITHM_METADATA['linear-search'] };
+  return {
+    events: syncNotesAfterActions(events),
+    finalArray: arr,
+    meta: ARRAY_ALGORITHM_METADATA['linear-search'],
+  };
 }
 
 export function arrayBinarySearchTrace(
@@ -1034,7 +1081,11 @@ export function arrayBinarySearchTrace(
         text: `Found ${target} at position ${mid + 1} (Target found at index ${mid})!`,
       });
       events.push({ t: 'done' });
-      return { events, finalArray: arr, meta: ARRAY_ALGORITHM_METADATA['binary-search'] };
+      return {
+        events: syncNotesAfterActions(events),
+        finalArray: arr,
+        meta: ARRAY_ALGORITHM_METADATA['binary-search'],
+      };
     }
 
     if (arr[mid] < target) {
@@ -1060,7 +1111,11 @@ export function arrayBinarySearchTrace(
     text: `Search finished: ${target} is not in the list.`,
   });
   events.push({ t: 'done' });
-  return { events, finalArray: arr, meta: ARRAY_ALGORITHM_METADATA['binary-search'] };
+  return {
+    events: syncNotesAfterActions(events),
+    finalArray: arr,
+    meta: ARRAY_ALGORITHM_METADATA['binary-search'],
+  };
 }
 
 export function arrayReverseTrace(
@@ -1119,7 +1174,11 @@ export function arrayReverseTrace(
     text: `Reverse complete! The new order is ${arr.join(', ')}.`,
   });
   events.push({ t: 'done' });
-  return { events, finalArray: arr, meta: ARRAY_ALGORITHM_METADATA['reverse'] };
+  return {
+    events: syncNotesAfterActions(events),
+    finalArray: arr,
+    meta: ARRAY_ALGORITHM_METADATA['reverse'],
+  };
 }
 
 export function arrayRotateTrace(
@@ -1177,7 +1236,11 @@ export function arrayRotateTrace(
     text: `Shift complete! The new order is ${arr.join(', ')}.`,
   });
   events.push({ t: 'done' });
-  return { events, finalArray: arr, meta: ARRAY_ALGORITHM_METADATA['rotate'] };
+  return {
+    events: syncNotesAfterActions(events),
+    finalArray: arr,
+    meta: ARRAY_ALGORITHM_METADATA['rotate'],
+  };
 }
 
 export function runArrayOperation(
