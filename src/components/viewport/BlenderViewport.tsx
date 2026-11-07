@@ -44,14 +44,13 @@ function SceneObjectMesh({
 }: NodeMeshProps) {
   const groupRef = useRef<THREE.Group>(null);
   const barMeshRef = useRef<THREE.Mesh>(null);
-  const capMeshRef = useRef<THREE.Mesh>(null);
   const valueTextRef = useRef<THREE.Group>(null);
 
   const isArrayCell = obj.kind === 'array-cell';
   const numericVal = typeof obj.value === 'number' ? obj.value : 20;
   const targetHeight = isArrayCell
-    ? Math.max(0.45, Math.min(4.8, Math.abs(numericVal) / 22))
-    : 1.0;
+    ? Math.max(0.6, Math.min(4.8, Math.abs(numericVal) / 22))
+    : 1.1;
 
   const isCompared =
     snapshot.comparedRefs !== null &&
@@ -74,42 +73,37 @@ function SceneObjectMesh({
   const isInvolvedInCurrentStep =
     isCompared || isSwapped || isSpawned || isActiveVisit;
 
-  // Dim non-involved bars when an active comparison/swap/write/visit is happening
   const isDimmed = hasActiveHighlight && !isInvolvedInCurrentStep;
 
-  let fillColor =
-    obj.kind === 'array-cell'
-      ? '#3d6cb9'
-      : obj.kind === 'list-node'
-        ? '#2e8b6e'
-        : '#6c5ce7';
+  // Authentic Blender Workbench Solid Clay Default (#b8b8b8) + Active Highlights
+  let fillColor = '#b8b8b8';
   let statusIcon = '';
 
   if (isSwapped) {
-    fillColor = '#9b51e0'; // Purple for swapping
+    fillColor = '#a855f7';
     statusIcon = '⇄';
   } else if (isCompared) {
-    fillColor = '#eab308'; // Yellow for comparing
+    fillColor = '#ff9f2c';
     statusIcon = '?';
   } else if (isSpawned) {
-    fillColor = '#0ea5e9'; // Bright sky/teal for writing
+    fillColor = '#38bdf8';
     statusIcon = '✎';
   } else if (isActiveVisit || isDoneItem) {
-    fillColor = '#22c55e'; // Green for done / visited
+    fillColor = '#4ade80';
     statusIcon = '✓';
   } else if (isDimmed) {
-    fillColor = '#252b36';
+    fillColor = '#787878';
   }
 
   const outlineColor = selected
-    ? '#ff8c1a'
+    ? '#ff9f2c'
     : isSwapped
-      ? '#d8b4fe'
+      ? '#e9d5ff'
       : isCompared
-        ? '#fef08a'
+        ? '#ffd166'
         : isDoneItem
           ? '#86efac'
-          : '#1f2329';
+          : '';
 
   const cellIndex =
     typeof obj.fields.index === 'number' ? obj.fields.index + 1 : 1;
@@ -131,13 +125,10 @@ function SceneObjectMesh({
           targetHeight,
           step,
         );
-        barMeshRef.current.position.y = barMeshRef.current.scale.y / 2 + 0.06;
-      }
-      if (capMeshRef.current && barMeshRef.current) {
-        capMeshRef.current.position.y = barMeshRef.current.scale.y + 0.08;
+        barMeshRef.current.position.y = barMeshRef.current.scale.y / 2;
       }
       if (valueTextRef.current && barMeshRef.current) {
-        valueTextRef.current.position.y = barMeshRef.current.scale.y + 0.45;
+        valueTextRef.current.position.y = barMeshRef.current.scale.y + 0.38;
       }
     } else {
       const targetNodePos = new THREE.Vector3(...obj.position);
@@ -159,72 +150,24 @@ function SceneObjectMesh({
     >
       {isArrayCell ? (
         <>
-          {/* Base pedestal */}
-          <mesh position={[0, 0.03, 0]} receiveShadow>
-            <boxGeometry args={[1.36, 0.06, 1.36]} />
-            <meshStandardMaterial
-              color={selected ? '#382a1e' : '#20232a'}
-              roughness={0.7}
-              metalness={0.2}
-            />
-            <Edges color={selected ? '#ff8c1a' : '#323844'} />
-          </mesh>
-
-          {/* Yellow Ring for Comparing or Purple Ring for Swapping */}
-          {(isCompared || isSwapped || isDoneItem) && (
-            <mesh position={[0, 0.075, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-              <ringGeometry args={[0.72, 0.88, 32]} />
-              <meshBasicMaterial
-                color={
-                  isSwapped ? '#c084fc' : isCompared ? '#fde047' : '#4ade80'
-                }
-                side={THREE.DoubleSide}
-              />
-            </mesh>
-          )}
-
-          {/* Main Bar */}
+          {/* Clean Blender Solid Studio Mesh */}
           <mesh
             ref={barMeshRef}
-            position={[0, targetHeight / 2 + 0.06, 0]}
+            position={[0, targetHeight / 2, 0]}
             scale={[1, targetHeight, 1]}
             castShadow
             receiveShadow
           >
-            <boxGeometry args={[1.08, 1, 1.08]} />
-            <meshStandardMaterial
+            <boxGeometry args={[1.15, 1, 1.15]} />
+            <meshLambertMaterial
               color={fillColor}
-              roughness={isDimmed ? 0.75 : 0.32}
-              metalness={isDimmed ? 0.08 : 0.18}
-              transparent={isDimmed}
-              opacity={isDimmed ? 0.45 : 1}
               wireframe={wireframe}
             />
-            <Edges color={outlineColor} />
-          </mesh>
-
-          {/* Top Cap */}
-          <mesh ref={capMeshRef} position={[0, targetHeight + 0.08, 0]}>
-            <boxGeometry args={[1.1, 0.04, 1.1]} />
-            <meshStandardMaterial
-              color={
-                selected
-                  ? '#ff9f38'
-                  : isSwapped
-                    ? '#e9d5ff'
-                    : isCompared
-                      ? '#fef08a'
-                      : isDoneItem
-                        ? '#86efac'
-                        : '#7b93b8'
-              }
-              roughness={0.25}
-              metalness={0.55}
-            />
+            {outlineColor && <Edges color={outlineColor} lineWidth={1.8} />}
           </mesh>
 
           {/* Value + Icon Badge always facing camera */}
-          <group ref={valueTextRef} position={[0, targetHeight + 0.45, 0]}>
+          <group ref={valueTextRef} position={[0, targetHeight + 0.38, 0]}>
             <Html center distanceFactor={15} zIndexRange={[5, 0]}>
               <div className={`stage-bar-label ${isDimmed ? 'dimmed' : ''}`}>
                 {statusIcon && (
@@ -249,7 +192,7 @@ function SceneObjectMesh({
 
           {/* Small position number underneath in Standard Mode; full arr[i] + hex in Pro Mode */}
           <Html
-            position={[0, 0.08, 0.92]}
+            position={[0, 0.06, 0.85]}
             center
             distanceFactor={15}
             zIndexRange={[4, 0]}
@@ -268,24 +211,31 @@ function SceneObjectMesh({
       ) : (
         <>
           <mesh castShadow receiveShadow>
-            <sphereGeometry args={[0.5, 28, 28]} />
-            <meshStandardMaterial
+            <boxGeometry args={[1.1, 1.1, 1.1]} />
+            <meshLambertMaterial
               color={fillColor}
-              roughness={0.32}
-              metalness={0.22}
               wireframe={wireframe}
             />
+            {outlineColor && <Edges color={outlineColor} lineWidth={1.8} />}
           </mesh>
 
-          {selected && (
-            <mesh>
-              <sphereGeometry args={[0.54, 16, 16]} />
-              <meshBasicMaterial color="#ff8c1a" wireframe />
-            </mesh>
-          )}
-
-          <Html position={[0, 0.82, 0]} center distanceFactor={15} zIndexRange={[5, 0]}>
+          <Html position={[0, 0.88, 0]} center distanceFactor={15} zIndexRange={[5, 0]}>
             <div className="stage-bar-label">
+              {statusIcon && (
+                <span
+                  className={`stage-bar-icon ${
+                    isSwapped
+                      ? 'swapping'
+                      : isCompared
+                        ? 'comparing'
+                        : isSpawned
+                          ? 'writing'
+                          : 'done'
+                  }`}
+                >
+                  {statusIcon}
+                </span>
+              )}
               <span className="stage-bar-val">{String(obj.value)}</span>
             </div>
           </Html>
@@ -339,11 +289,11 @@ function InteractionArc3D({
     };
   }, [fromObj, toObj, mode]);
 
-  const color = mode === 'swap' ? '#a855f7' : '#eab308';
+  const color = mode === 'swap' ? '#a855f7' : '#ff9f2c';
 
   return (
     <group>
-      <Line points={points} color={color} lineWidth={3} />
+      <Line points={points} color={color} lineWidth={2.5} />
       <Html position={midPoint} center distanceFactor={15} zIndexRange={[6, 0]}>
         <span className={`stage-arc-pill ${mode}`}>
           {mode === 'swap' ? '⇄ Swapping' : '? Comparing'}
@@ -353,25 +303,87 @@ function InteractionArc3D({
   );
 }
 
-function WorldOriginAxes() {
+/**
+ * Authentic Blender Red (X) and Green (Y/Z ground) World Origin Axes
+ */
+function BlenderGroundAxes() {
   return (
-    <group position={[0, 0.006, 0]}>
+    <group position={[0, 0.008, 0]}>
+      {/* Red X Axis */}
       <Line
         points={[
-          [-24, 0, 0],
-          [24, 0, 0],
+          [-45, 0, 0],
+          [45, 0, 0],
         ]}
-        color="#8a3333"
-        lineWidth={1.4}
+        color="#b83d48"
+        lineWidth={1.6}
       />
+      {/* Green Ground Axis */}
       <Line
         points={[
-          [0, 0, -24],
-          [0, 0, 24],
+          [0, 0, -45],
+          [0, 0, 45],
         ]}
-        color="#2f5999"
-        lineWidth={1.4}
+        color="#5c9933"
+        lineWidth={1.6}
       />
+    </group>
+  );
+}
+
+/**
+ * Iconic Blender 3D Cursor at [0, 0.6, 0.6] (red/white dashed ring + dark crosshair ticks)
+ */
+function Blender3DCursor() {
+  return (
+    <Html position={[0, 0.55, 0.58]} center zIndexRange={[3, 0]}>
+      <div className="blender-3d-cursor" aria-hidden="true">
+        <span className="b3d-ring" />
+        <span className="b3d-tick top" />
+        <span className="b3d-tick bottom" />
+        <span className="b3d-tick left" />
+        <span className="b3d-tick right" />
+      </div>
+    </Html>
+  );
+}
+
+/**
+ * Iconic Blender Wireframe Camera Frustum Rig + Solid Orange Up-Triangle
+ * matching the reference screenshot.
+ */
+function BlenderSceneCameraRig() {
+  const apex: [number, number, number] = [-6.8, 2.3, 3.2];
+  const tl: [number, number, number] = [-4.2, 3.1, 1.4];
+  const tr: [number, number, number] = [-3.4, 3.1, 2.9];
+  const br: [number, number, number] = [-3.4, 1.5, 2.9];
+  const bl: [number, number, number] = [-4.2, 1.5, 1.4];
+
+  const triangleGeom = useMemo(() => {
+    const g = new THREE.BufferGeometry();
+    const vertices = new Float32Array([
+      -4.12, 3.25, 1.55,
+      -3.48, 3.25, 2.75,
+      -3.8, 4.15, 2.15,
+    ]);
+    g.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    g.computeVertexNormals();
+    return g;
+  }, []);
+
+  return (
+    <group>
+      {/* Rectangular camera view plane */}
+      <Line points={[tl, tr, br, bl, tl]} color="#ff9f2c" lineWidth={1.6} />
+      {/* 4 frustum rays from apex to corners */}
+      <Line points={[apex, tl]} color="#ff9f2c" lineWidth={1.5} />
+      <Line points={[apex, tr]} color="#ff9f2c" lineWidth={1.5} />
+      <Line points={[apex, br]} color="#ff9f2c" lineWidth={1.5} />
+      <Line points={[apex, bl]} color="#ff9f2c" lineWidth={1.5} />
+      {/* Solid orange camera up-triangle */}
+      <mesh geometry={triangleGeom}>
+        <meshBasicMaterial color="#ff9f2c" side={THREE.DoubleSide} />
+      </mesh>
     </group>
   );
 }
@@ -410,10 +422,12 @@ function SceneContents() {
 
   return (
     <>
-      <color attach="background" args={['#1d1f23']} />
-      <ambientLight intensity={0.76} />
-      <directionalLight position={[12, 20, 14]} intensity={1.1} castShadow />
-      <directionalLight position={[-12, 10, -10]} intensity={0.35} />
+      {/* Exact Blender Viewport Charcoal Grey Background (#393939) */}
+      <color attach="background" args={['#393939']} />
+      {/* Blender Studio Workbench Lighting (distinct top, left, and right face shading) */}
+      <ambientLight intensity={0.58} />
+      <directionalLight position={[10, 22, 14]} intensity={0.95} />
+      <directionalLight position={[-14, 8, -10]} intensity={0.28} />
 
       <CameraController />
 
@@ -421,20 +435,23 @@ function SceneContents() {
         <>
           <Grid
             position={[0, 0, 0]}
-            args={[48, 48]}
+            args={[80, 80]}
             cellSize={1}
-            cellThickness={0.5}
-            cellColor="#2a2d34"
-            sectionSize={5}
-            sectionThickness={1.0}
-            sectionColor="#3b4049"
-            fadeDistance={42}
-            fadeStrength={1.2}
+            cellThickness={0.6}
+            cellColor="#474747"
+            sectionSize={10}
+            sectionThickness={1.1}
+            sectionColor="#565656"
+            fadeDistance={60}
+            fadeStrength={1.4}
             infiniteGrid
           />
-          {uiMode === 'pro' && <WorldOriginAxes />}
+          <BlenderGroundAxes />
         </>
       )}
+
+      <BlenderSceneCameraRig />
+      <Blender3DCursor />
 
       {objectList.map((obj) =>
         obj.linksTo.map((link) => {
@@ -473,12 +490,9 @@ function SceneContents() {
         />
       ))}
 
-      <GizmoHelper
-        alignment="bottom-right"
-        margin={uiMode === 'standard' ? [48, 48] : [62, 62]}
-      >
+      <GizmoHelper alignment="top-right" margin={[58, 58]}>
         <GizmoViewport
-          axisColors={['#d94040', '#56b849', '#3b78d8']}
+          axisColors={['#e03e49', '#65b032', '#3b78d8']}
           labelColor="#111317"
         />
       </GizmoHelper>
@@ -598,7 +612,7 @@ export function BlenderViewport() {
 
       {/* 3D Canvas Stage */}
       <div className="viewport-canvas-stage">
-        {/* Step 4: Clean floating stage controls (View menu + What do the colours mean? popover) */}
+        {/* Clean floating stage controls (View menu + What do the colours mean? popover) */}
         <div className="stage-floating-controls">
           <div className="stage-popover-anchor">
             <button
@@ -619,7 +633,7 @@ export function BlenderViewport() {
                   <span className="legend-badge comparing">?</span>
                   <div>
                     <strong>Comparing</strong>
-                    <p>Yellow ring &amp; question mark — checking two numbers</p>
+                    <p>Orange highlight &amp; question mark — checking two items</p>
                   </div>
                 </div>
                 <div className="legend-popover-row">
@@ -741,7 +755,7 @@ export function BlenderViewport() {
         </Canvas>
       </div>
 
-      {/* STEP 1 + STEP 5: Plain-English Caption Bar (19px) + Final Sorted Result Line */}
+      {/* Plain-English Caption Bar (19px) + Final Sorted Result Line */}
       <div className="stage-caption-bar" role="status" aria-live="polite">
         <div className="stage-caption-content">
           <p className="stage-caption-sentence">{currentSnapshot.narration}</p>

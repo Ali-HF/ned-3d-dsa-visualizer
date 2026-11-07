@@ -5,7 +5,7 @@
   --bg-panel: #242831;
   --bg-panel-header: #1a1d24;
   --bg-input: #121418;
-  --bg-viewport: #1d1f23;
+  --bg-viewport: #393939;
   --border-hard: #0f1114;
   --border-subtle: #313744;
   --text-primary: #eef2f7;
@@ -794,6 +794,60 @@ body,
 
 .state-off {
   color: var(--text-muted);
+}
+
+/* Iconic Blender 3D Cursor */
+.blender-3d-cursor {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.b3d-ring {
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  border: 2px dashed #e13d45;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85) inset;
+}
+
+.b3d-tick {
+  position: absolute;
+  background: #1b1b1b;
+}
+
+.b3d-tick.top {
+  width: 1.5px;
+  height: 6px;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.b3d-tick.bottom {
+  width: 1.5px;
+  height: 6px;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.b3d-tick.left {
+  width: 6px;
+  height: 1.5px;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.b3d-tick.right {
+  width: 6px;
+  height: 1.5px;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 /* Step 5: 3D Bar Value, Icon Badge, and Position Labels */
