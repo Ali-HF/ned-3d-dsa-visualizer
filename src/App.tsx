@@ -198,7 +198,7 @@ export function App() {
   const selectAndRunCorpusFile = useViewportStore((s) => s.selectAndRunCorpusFile);
   const runCustomCodeNow = useViewportStore((s) => s.runCustomCodeNow);
 
-  const [structPickerOpen, setStructPickerOpen] = useState(false);
+  const [structPickerOpen, setStructPickerOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<StitchCategoryTab>('Sort');
   const [arrayInputText, setArrayInputText] = useState(workingArray.join(', '));
   const [paramIndex, setParamIndex] = useState<number>(2);
