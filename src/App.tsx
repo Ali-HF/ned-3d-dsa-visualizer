@@ -250,10 +250,13 @@ export function App() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
+      const isTextInput =
+        (e.target instanceof HTMLInputElement &&
+          e.target.type !== 'range' &&
+          e.target.type !== 'button' &&
+          e.target.type !== 'checkbox') ||
+        e.target instanceof HTMLTextAreaElement;
+      if (isTextInput) {
         return;
       }
       if (e.code === 'Space') {
@@ -261,10 +264,18 @@ export function App() {
         togglePlay();
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
+        useViewportStore.getState().pause();
         stepForward();
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
+        useViewportStore.getState().pause();
         stepBackward();
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        restart();
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        skipToEnd();
       } else if (e.key === 'r' || e.key === 'R') {
         e.preventDefault();
         restart();
@@ -280,13 +291,14 @@ export function App() {
         triggerCameraPreset('focus');
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
   }, [
     togglePlay,
     stepForward,
     stepBackward,
     restart,
+    skipToEnd,
     triggerCameraPreset,
   ]);
 

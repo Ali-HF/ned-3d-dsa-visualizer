@@ -94,4 +94,20 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     expect(state.selectedCorpusFile).toBe('12_avl_tree/avl_tree.cpp');
     expect(state.activeMetadata.code.join('\n')).toContain('rightRotate');
   });
+
+  it('steps forward and backward cleanly between visual note events', () => {
+    const store = useViewportStore.getState();
+    store.setPreviewScene('bst');
+    store.restart();
+    const initialStep = useViewportStore.getState().currentStep;
+    const initialNarration = useViewportStore.getState().currentSnapshot.narration;
+
+    store.stepForward();
+    const nextState = useViewportStore.getState();
+    expect(nextState.currentStep).toBeGreaterThan(initialStep);
+    expect(nextState.currentSnapshot.narration).not.toBe(initialNarration);
+
+    store.stepBackward();
+    expect(useViewportStore.getState().currentStep).toBe(initialStep);
+  });
 });

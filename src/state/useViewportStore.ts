@@ -474,9 +474,22 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
   stepForward: () => {
     const state = get();
     if (state.currentStep < state.totalSteps) {
-      state.seekToStep(state.currentStep + 1);
-    } else {
+      let nextStep = state.currentStep + 1;
+      for (let i = state.currentStep; i < state.timeline.events.length; i++) {
+        const ev = state.timeline.events[i];
+        if (ev.t === 'note' || ev.t === 'done') {
+          nextStep = i + 1;
+          break;
+        }
+      }
+      state.seekToStep(nextStep);
+    } else if (state.isPlaying) {
       set({ isPlaying: false });
+    } else {
+      // Manual step forward at the end of the timeline wraps to the first visual step
+      const firstNoteIdx = state.timeline.events.findIndex((e) => e.t === 'note');
+      const startStep = firstNoteIdx >= 0 ? firstNoteIdx + 1 : 1;
+      state.seekToStep(Math.min(startStep, state.totalSteps));
     }
   },
 
@@ -484,7 +497,15 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
     const state = get();
     set({ isPlaying: false });
     if (state.currentStep > 0) {
-      state.seekToStep(state.currentStep - 1);
+      let prevStep = state.currentStep - 1;
+      for (let i = state.currentStep - 2; i >= 0; i--) {
+        const ev = state.timeline.events[i];
+        if (ev.t === 'note') {
+          prevStep = i + 1;
+          break;
+        }
+      }
+      state.seekToStep(prevStep);
     }
   },
 
