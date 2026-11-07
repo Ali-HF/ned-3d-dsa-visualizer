@@ -166,7 +166,6 @@ export function App() {
   const previewScene = useViewportStore((s) => s.previewScene);
   const setPreviewScene = useViewportStore((s) => s.setPreviewScene);
   const selectedId = useViewportStore((s) => s.selectedId);
-  const selectObject = useViewportStore((s) => s.selectObject);
   const sceneObjects = useViewportStore((s) => s.sceneObjects);
   const triggerCameraPreset = useViewportStore((s) => s.triggerCameraPreset);
   const showGrid = useViewportStore((s) => s.showGrid);
