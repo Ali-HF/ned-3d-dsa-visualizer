@@ -9,6 +9,8 @@ import {
 } from './corpus/cppCorpusRegistry';
 import type { PreviewSceneKind } from './types/trace';
 import {
+  IconCube,
+  IconGrid,
   IconPause,
   IconPlay,
   IconPlus,
@@ -19,6 +21,7 @@ import {
   IconStepForward,
   IconTarget,
   IconTurtle,
+  IconWireframe,
 } from './components/icons/StudioIcons';
 
 interface ArrayActionOption {
@@ -182,7 +185,12 @@ export function App() {
   const selectedId = useViewportStore((s) => s.selectedId);
   const selectObject = useViewportStore((s) => s.selectObject);
   const sceneObjects = useViewportStore((s) => s.sceneObjects);
+  const cameraPreset = useViewportStore((s) => s.cameraPreset);
   const triggerCameraPreset = useViewportStore((s) => s.triggerCameraPreset);
+  const showGrid = useViewportStore((s) => s.showGrid);
+  const toggleGrid = useViewportStore((s) => s.toggleGrid);
+  const wireframe = useViewportStore((s) => s.wireframe);
+  const toggleWireframe = useViewportStore((s) => s.toggleWireframe);
 
   const workingArray = useViewportStore((s) => s.workingArray);
   const activeOperation = useViewportStore((s) => s.activeOperation);
@@ -331,7 +339,7 @@ export function App() {
 
   return (
     <div className="app-shell">
-      {/* Top Studio Bar */}
+      {/* Top Studio Bar (Level 1 Dock Shell) */}
       <header className="app-header">
         <div className="brand-title">
           <span className="brand-mark">DSA</span>
@@ -380,13 +388,59 @@ export function App() {
         </div>
       </header>
 
-      {/* Main Studio Workspace */}
+      {/* Main DCC Workbench Grid: Tool Ribbon + Left Outliner/Guide + Central Viewport + Right Inspector */}
       <div className={`workspace-grid ${showRightSidebar ? 'with-right' : 'no-right'}`}>
-        {/* LEFT COLUMN: 3-Step Guide (in Learn mode) OR C++ Corpus Runner (in Run my code mode) */}
+        {/* DOCKED VERTICAL ICON RIBBON (38px Fixed Width DCC Tool Shelf) */}
+        <nav className="dcc-tool-ribbon" aria-label="Viewport Tool Shelf">
+          <button
+            type="button"
+            className={`dcc-tool-btn ${cameraPreset === 'isometric' ? 'active' : ''}`}
+            onClick={() => triggerCameraPreset('isometric')}
+            title="Perspective Orbit View (Numpad 0)"
+          >
+            <IconCube />
+          </button>
+          <button
+            type="button"
+            className={`dcc-tool-btn ${cameraPreset === 'top' ? 'active' : ''}`}
+            onClick={() => triggerCameraPreset('top')}
+            title="Top Orthographic View (Numpad 7)"
+          >
+            <IconTarget />
+          </button>
+          <div className="dcc-ribbon-sep" />
+          <button
+            type="button"
+            className={`dcc-tool-btn ${showGrid ? 'active' : ''}`}
+            onClick={toggleGrid}
+            title="Toggle Coordinate Floor Grid"
+          >
+            <IconGrid />
+          </button>
+          <button
+            type="button"
+            className={`dcc-tool-btn ${wireframe ? 'active' : ''}`}
+            onClick={toggleWireframe}
+            title="Toggle Wireframe Topology"
+          >
+            <IconWireframe />
+          </button>
+          <div className="dcc-ribbon-sep" />
+          <button
+            type="button"
+            className={`dcc-tool-btn ${isPlaying ? 'active' : ''}`}
+            onClick={togglePlay}
+            title="Compute / Play Simulation (Space)"
+          >
+            {isPlaying ? <IconPause /> : <IconPlay />}
+          </button>
+        </nav>
+
+        {/* LEFT DOCK: 3-Step Guide (in Learn mode) OR C++ Corpus Runner (in Run my code mode) */}
         <aside className="left-panel">
           {appMode === 'library' ? (
             <div className="step-guide-container">
-              {/* STEP 1: Pick a structure (All 8 CT-159 Structure Families) */}
+              {/* STEP 1: Pick a structure */}
               <section
                 className={`guide-step-card ${guideStep === 1 ? 'expanded' : 'collapsed'}`}
               >
@@ -395,6 +449,9 @@ export function App() {
                   className="guide-step-header"
                   onClick={() => setGuideStep(1)}
                 >
+                  <span className="dcc-caret" aria-hidden="true">
+                    ▸
+                  </span>
                   <span className="guide-step-num">1</span>
                   <span className="guide-step-title">Pick a structure</span>
                   <span className="guide-step-summary">{currentStructureCard.name}</span>
@@ -427,7 +484,7 @@ export function App() {
                 )}
               </section>
 
-              {/* STEP 2: Pick what to do (Dynamic per structure!) */}
+              {/* STEP 2: Pick what to do */}
               <section
                 className={`guide-step-card ${guideStep === 2 ? 'expanded' : 'collapsed'}`}
               >
@@ -436,6 +493,9 @@ export function App() {
                   className="guide-step-header"
                   onClick={() => setGuideStep(2)}
                 >
+                  <span className="dcc-caret" aria-hidden="true">
+                    ▸
+                  </span>
                   <span className="guide-step-num">2</span>
                   <span className="guide-step-title">Pick what to do</span>
                   <span className="guide-step-summary">{activeActionSummary}</span>
@@ -520,6 +580,9 @@ export function App() {
                   className="guide-step-header"
                   onClick={() => setGuideStep(3)}
                 >
+                  <span className="dcc-caret" aria-hidden="true">
+                    ▸
+                  </span>
                   <span className="guide-step-num">3</span>
                   <span className="guide-step-title">Your numbers</span>
                   <span className="guide-step-summary">
@@ -619,6 +682,9 @@ export function App() {
             <div className="corpus-runner-panel">
               <div className="guide-step-card expanded">
                 <div className="guide-step-header">
+                  <span className="dcc-caret" aria-hidden="true">
+                    ▸
+                  </span>
                   <span className="guide-step-num">C++</span>
                   <span className="guide-step-title">Team C++ Corpus (cpp_corpus/)</span>
                 </div>
@@ -676,14 +742,19 @@ export function App() {
               <section className="dock-panel">
                 <div className="dock-header">
                   <span>SCENE COLLECTION</span>
-                  <label className="inline-check">
-                    <input
-                      type="checkbox"
-                      checked={autoPlayOnRun}
-                      onChange={toggleAutoPlayOnRun}
-                    />
+                  <button
+                    type="button"
+                    className="inline-check"
+                    onClick={toggleAutoPlayOnRun}
+                  >
+                    <span
+                      className={`dcc-checkbox ${autoPlayOnRun ? 'checked' : ''}`}
+                      aria-hidden="true"
+                    >
+                      {autoPlayOnRun ? '✓' : ''}
+                    </span>
                     <span>Auto-Run</span>
-                  </label>
+                  </button>
                 </div>
                 <div className="dock-body">
                   <div className="collection-list">
@@ -694,7 +765,9 @@ export function App() {
                         className={`collection-row ${previewScene === c.id ? 'selected' : ''}`}
                         onClick={() => setPreviewScene(c.id)}
                       >
-                        <span className="col-name">{c.name}</span>
+                        <span className="col-name">
+                          {c.icon} {c.name}
+                        </span>
                         <span className="col-tag">{c.desc}</span>
                       </button>
                     ))}
@@ -705,7 +778,7 @@ export function App() {
               <section className="dock-panel">
                 <div className="dock-header">
                   <span>TRACE OPERATION QUEUE</span>
-                  <span className="dock-meta">{operationHistory.length} Ops</span>
+                  <span className="dock-meta">{operationHistory.length} OPS</span>
                 </div>
                 <div className="dock-body">
                   <ul className="outliner-tree">
@@ -740,16 +813,16 @@ export function App() {
           <BlenderViewport />
         </main>
 
-        {/* RIGHT PANEL: Details Drawer (Standard Mode when open) or Full Developer Inspector (Pro Mode) */}
+        {/* RIGHT DOCK: Details Drawer (Standard Mode when open) or Full Developer Inspector (Pro Mode) */}
         {showRightSidebar && (
           <aside className="right-panel" aria-label="Details and Code Inspector">
             {uiMode === 'pro' && (
               <>
                 <section className="dock-panel">
                   <div className="dock-header">
-                    <span>OUTLINER</span>
+                    <span>OUTLINER HIERARCHY</span>
                     <span className="dock-meta">
-                      {Object.keys(sceneObjects).length} Objects
+                      {Object.keys(sceneObjects).length} MESHES
                     </span>
                   </div>
                   <div className="dock-body">
@@ -761,6 +834,7 @@ export function App() {
                             className={`tree-row ${selectedId === obj.id ? 'active' : ''}`}
                             onClick={() => selectObject(obj.id)}
                           >
+                            <span className="tree-type-glyph">◈</span>
                             <span className="tree-label">
                               {obj.label} = <strong>{String(obj.value)}</strong>
                             </span>
@@ -774,29 +848,46 @@ export function App() {
 
                 <section className="dock-panel">
                   <div className="dock-header">
-                    <span>OBJECT PROPERTIES</span>
-                    <span className="dock-meta">Memory Inspector</span>
+                    <span>NODE INSPECTOR</span>
+                    <span className="dock-meta">TRANSFORM &amp; MEMORY</span>
                   </div>
                   <div className="dock-body">
                     {selectedObj ? (
                       <div className="prop-sheet">
+                        {/* Contiguous [X | Y | Z] Vector Input Triplet from Algorithm Studio Spec */}
+                        <div className="prop-divider">WORLD TRANSFORM [X | Y | Z]</div>
+                        <div className="xyz-vector-triplet">
+                          <div className="xyz-cell">
+                            <span className="xyz-badge x">X</span>
+                            <code className="xyz-val">
+                              {selectedObj.position[0].toFixed(2)}
+                            </code>
+                          </div>
+                          <div className="xyz-cell">
+                            <span className="xyz-badge y">Y</span>
+                            <code className="xyz-val">
+                              {selectedObj.position[1].toFixed(2)}
+                            </code>
+                          </div>
+                          <div className="xyz-cell">
+                            <span className="xyz-badge z">Z</span>
+                            <code className="xyz-val">
+                              {selectedObj.position[2].toFixed(2)}
+                            </code>
+                          </div>
+                        </div>
+
+                        <div className="prop-divider">MEMORY &amp; TOPOLOGY</div>
                         <div className="prop-grid">
                           <span className="prop-label">Identifier</span>
                           <code className="prop-val">{selectedObj.id}</code>
 
-                          <span className="prop-label">Primitive Type</span>
+                          <span className="prop-label">Primitive</span>
                           <code className="prop-val">{selectedObj.kind}</code>
 
-                          <span className="prop-label">Hex Address</span>
+                          <span className="prop-label">Address</span>
                           <code className="prop-val accent">
                             {selectedObj.memoryAddress}
-                          </code>
-
-                          <span className="prop-label">World Transform</span>
-                          <code className="prop-val">
-                            X:{selectedObj.position[0].toFixed(1)} Y:
-                            {selectedObj.position[1].toFixed(1)} Z:
-                            {selectedObj.position[2].toFixed(1)}
                           </code>
                         </div>
 
@@ -818,13 +909,13 @@ export function App() {
                           onClick={() => triggerCameraPreset('focus')}
                         >
                           <IconTarget />
-                          <span>Frame Selected in Viewport (Numpad .)</span>
+                          <span>Frame Selected (Numpad .)</span>
                         </button>
                       </div>
                     ) : (
                       <div className="empty-state">
                         Select a mesh in the 3D Viewport or Outliner to inspect its
-                        simulated memory cell and transform.
+                        coordinates and memory cell.
                       </div>
                     )}
                   </div>
@@ -835,7 +926,7 @@ export function App() {
                     <div className="dock-header">
                       <span>CALL STACK FRAMES</span>
                       <span className="dock-meta">
-                        Depth {currentSnapshot.callStack.length}
+                        DEPTH {currentSnapshot.callStack.length}
                       </span>
                     </div>
                     <div className="dock-body">
@@ -864,10 +955,9 @@ export function App() {
                 <span className="dock-meta">{displayedCodeMeta.title}</span>
               </div>
 
-              {/* Plain-English sentence explaining the highlighted code line */}
               <div className="code-line-explanation">
                 <span className="code-exp-badge">
-                  Line {currentSnapshot.activeLine ?? 1}
+                  LINE {currentSnapshot.activeLine ?? 1}
                 </span>
                 <p>{plainCodeExplanation}</p>
               </div>
@@ -875,10 +965,10 @@ export function App() {
               {uiMode === 'pro' && (
                 <div className="complexity-strip">
                   <span>
-                    Time: <strong>{displayedCodeMeta.timeComplexity}</strong>
+                    TIME: <strong>{displayedCodeMeta.timeComplexity}</strong>
                   </span>
                   <span>
-                    Space: <strong>{displayedCodeMeta.spaceComplexity}</strong>
+                    SPACE: <strong>{displayedCodeMeta.spaceComplexity}</strong>
                   </span>
                 </div>
               )}
@@ -903,7 +993,7 @@ export function App() {
         )}
       </div>
 
-      {/* STEP 6: One Clean Playback Bar */}
+      {/* Bottom Timeline & Playback Shelf */}
       <footer className="bottom-transport-bar">
         <div className="transport-cluster">
           <button

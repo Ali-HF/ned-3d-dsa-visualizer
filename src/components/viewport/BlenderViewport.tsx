@@ -75,35 +75,37 @@ function SceneObjectMesh({
 
   const isDimmed = hasActiveHighlight && !isInvolvedInCurrentStep;
 
-  // Authentic Blender Workbench Solid Clay Default (#b8b8b8) + Active Highlights
-  let fillColor = '#b8b8b8';
+  // Algorithm Studio DCC Semantic Palette + Clay Default
+  let fillColor = '#b8bac2';
   let statusIcon = '';
 
   if (isSwapped) {
-    fillColor = '#a855f7';
+    fillColor = '#6366f1'; // Secondary: Electric Indigo
     statusIcon = '⇄';
   } else if (isCompared) {
-    fillColor = '#ff9f2c';
+    fillColor = '#f59e0b'; // Primary: Amber Gold
     statusIcon = '?';
   } else if (isSpawned) {
-    fillColor = '#38bdf8';
+    fillColor = '#06b6d4'; // Tertiary: Signal Cyan
     statusIcon = '✎';
   } else if (isActiveVisit || isDoneItem) {
-    fillColor = '#4ade80';
+    fillColor = '#10b981'; // Axis Y / Done: Vibrant Emerald
     statusIcon = '✓';
   } else if (isDimmed) {
-    fillColor = '#787878';
+    fillColor = '#6e717a';
   }
 
   const outlineColor = selected
-    ? '#ff9f2c'
+    ? '#f59e0b'
     : isSwapped
-      ? '#e9d5ff'
+      ? '#c0c1ff'
       : isCompared
-        ? '#ffd166'
-        : isDoneItem
-          ? '#86efac'
-          : '';
+        ? '#ffc174'
+        : isSpawned
+          ? '#54ddfc'
+          : isDoneItem
+            ? '#6ee7b7'
+            : '';
 
   const cellIndex =
     typeof obj.fields.index === 'number' ? obj.fields.index + 1 : 1;
@@ -150,7 +152,6 @@ function SceneObjectMesh({
     >
       {isArrayCell ? (
         <>
-          {/* Clean Blender Solid Studio Mesh */}
           <mesh
             ref={barMeshRef}
             position={[0, targetHeight / 2, 0]}
@@ -159,14 +160,10 @@ function SceneObjectMesh({
             receiveShadow
           >
             <boxGeometry args={[1.15, 1, 1.15]} />
-            <meshLambertMaterial
-              color={fillColor}
-              wireframe={wireframe}
-            />
+            <meshLambertMaterial color={fillColor} wireframe={wireframe} />
             {outlineColor && <Edges color={outlineColor} lineWidth={1.8} />}
           </mesh>
 
-          {/* Value + Icon Badge always facing camera */}
           <group ref={valueTextRef} position={[0, targetHeight + 0.38, 0]}>
             <Html center distanceFactor={15} zIndexRange={[5, 0]}>
               <div className={`stage-bar-label ${isDimmed ? 'dimmed' : ''}`}>
@@ -190,7 +187,6 @@ function SceneObjectMesh({
             </Html>
           </group>
 
-          {/* Small position number underneath in Standard Mode; full arr[i] + hex in Pro Mode */}
           <Html
             position={[0, 0.06, 0.85]}
             center
@@ -212,10 +208,7 @@ function SceneObjectMesh({
         <>
           <mesh castShadow receiveShadow>
             <boxGeometry args={[1.1, 1.1, 1.1]} />
-            <meshLambertMaterial
-              color={fillColor}
-              wireframe={wireframe}
-            />
+            <meshLambertMaterial color={fillColor} wireframe={wireframe} />
             {outlineColor && <Edges color={outlineColor} lineWidth={1.8} />}
           </mesh>
 
@@ -289,7 +282,7 @@ function InteractionArc3D({
     };
   }, [fromObj, toObj, mode]);
 
-  const color = mode === 'swap' ? '#a855f7' : '#ff9f2c';
+  const color = mode === 'swap' ? '#6366f1' : '#f59e0b';
 
   return (
     <group>
@@ -303,37 +296,31 @@ function InteractionArc3D({
   );
 }
 
-/**
- * Authentic Blender Red (X) and Green (Y/Z ground) World Origin Axes
- */
 function BlenderGroundAxes() {
   return (
     <group position={[0, 0.008, 0]}>
-      {/* Red X Axis */}
+      {/* Axis X: Vibrant Crimson (#ef4444) */}
       <Line
         points={[
           [-45, 0, 0],
           [45, 0, 0],
         ]}
-        color="#b83d48"
+        color="#ef4444"
         lineWidth={1.6}
       />
-      {/* Green Ground Axis */}
+      {/* Axis Y: Vibrant Emerald (#10b981) */}
       <Line
         points={[
           [0, 0, -45],
           [0, 0, 45],
         ]}
-        color="#5c9933"
+        color="#10b981"
         lineWidth={1.6}
       />
     </group>
   );
 }
 
-/**
- * Iconic Blender 3D Cursor at [0, 0.6, 0.6] (red/white dashed ring + dark crosshair ticks)
- */
 function Blender3DCursor() {
   return (
     <Html position={[0, 0.55, 0.58]} center zIndexRange={[3, 0]}>
@@ -348,10 +335,6 @@ function Blender3DCursor() {
   );
 }
 
-/**
- * Iconic Blender Wireframe Camera Frustum Rig + Solid Orange Up-Triangle
- * matching the reference screenshot.
- */
 function BlenderSceneCameraRig() {
   const apex: [number, number, number] = [-6.8, 2.3, 3.2];
   const tl: [number, number, number] = [-4.2, 3.1, 1.4];
@@ -373,16 +356,13 @@ function BlenderSceneCameraRig() {
 
   return (
     <group>
-      {/* Rectangular camera view plane */}
-      <Line points={[tl, tr, br, bl, tl]} color="#ff9f2c" lineWidth={1.6} />
-      {/* 4 frustum rays from apex to corners */}
-      <Line points={[apex, tl]} color="#ff9f2c" lineWidth={1.5} />
-      <Line points={[apex, tr]} color="#ff9f2c" lineWidth={1.5} />
-      <Line points={[apex, br]} color="#ff9f2c" lineWidth={1.5} />
-      <Line points={[apex, bl]} color="#ff9f2c" lineWidth={1.5} />
-      {/* Solid orange camera up-triangle */}
+      <Line points={[tl, tr, br, bl, tl]} color="#f59e0b" lineWidth={1.6} />
+      <Line points={[apex, tl]} color="#f59e0b" lineWidth={1.5} />
+      <Line points={[apex, tr]} color="#f59e0b" lineWidth={1.5} />
+      <Line points={[apex, br]} color="#f59e0b" lineWidth={1.5} />
+      <Line points={[apex, bl]} color="#f59e0b" lineWidth={1.5} />
       <mesh geometry={triangleGeom}>
-        <meshBasicMaterial color="#ff9f2c" side={THREE.DoubleSide} />
+        <meshBasicMaterial color="#f59e0b" side={THREE.DoubleSide} />
       </mesh>
     </group>
   );
@@ -422,9 +402,7 @@ function SceneContents() {
 
   return (
     <>
-      {/* Exact Blender Viewport Charcoal Grey Background (#393939) */}
       <color attach="background" args={['#393939']} />
-      {/* Blender Studio Workbench Lighting (distinct top, left, and right face shading) */}
       <ambientLight intensity={0.58} />
       <directionalLight position={[10, 22, 14]} intensity={0.95} />
       <directionalLight position={[-14, 8, -10]} intensity={0.28} />
@@ -492,8 +470,8 @@ function SceneContents() {
 
       <GizmoHelper alignment="top-right" margin={[58, 58]}>
         <GizmoViewport
-          axisColors={['#e03e49', '#65b032', '#3b78d8']}
-          labelColor="#111317"
+          axisColors={['#ef4444', '#10b981', '#3b82f6']}
+          labelColor="#121316"
         />
       </GizmoHelper>
     </>
@@ -612,7 +590,7 @@ export function BlenderViewport() {
 
       {/* 3D Canvas Stage */}
       <div className="viewport-canvas-stage">
-        {/* Clean floating stage controls (View menu + What do the colours mean? popover) */}
+        {/* Floating HUD Badges (Algorithm Studio Level 4 Surface) */}
         <div className="stage-floating-controls">
           <div className="stage-popover-anchor">
             <button
@@ -633,28 +611,28 @@ export function BlenderViewport() {
                   <span className="legend-badge comparing">?</span>
                   <div>
                     <strong>Comparing</strong>
-                    <p>Orange highlight &amp; question mark — checking two items</p>
+                    <p>Amber gold &amp; question mark — checking two items</p>
                   </div>
                 </div>
                 <div className="legend-popover-row">
                   <span className="legend-badge swapping">⇄</span>
                   <div>
                     <strong>Swapping</strong>
-                    <p>Purple &amp; arrows — trading places</p>
+                    <p>Electric indigo &amp; arrows — trading places</p>
                   </div>
                 </div>
                 <div className="legend-popover-row">
                   <span className="legend-badge writing">✎</span>
                   <div>
                     <strong>Writing</strong>
-                    <p>Blue &amp; pencil — saving a number into a slot</p>
+                    <p>Signal cyan &amp; pencil — saving a number into a slot</p>
                   </div>
                 </div>
                 <div className="legend-popover-row">
                   <span className="legend-badge done">✓</span>
                   <div>
                     <strong>Done</strong>
-                    <p>Green &amp; check mark — locked in its final place</p>
+                    <p>Emerald green &amp; check mark — locked in place</p>
                   </div>
                 </div>
               </div>
@@ -684,7 +662,8 @@ export function BlenderViewport() {
                     setViewMenuOpen(false);
                   }}
                 >
-                  Reset view
+                  <span>Reset view</span>
+                  <kbd>0</kbd>
                 </button>
                 <button
                   type="button"
@@ -694,7 +673,8 @@ export function BlenderViewport() {
                     setViewMenuOpen(false);
                   }}
                 >
-                  Top view
+                  <span>Top view</span>
+                  <kbd>7</kbd>
                 </button>
                 <button
                   type="button"
@@ -704,7 +684,8 @@ export function BlenderViewport() {
                     setViewMenuOpen(false);
                   }}
                 >
-                  Side view
+                  <span>Side view</span>
+                  <kbd>1</kbd>
                 </button>
                 <div className="stage-menu-divider" />
                 <button
@@ -716,27 +697,30 @@ export function BlenderViewport() {
                   }}
                 >
                   <span>Follow the action</span>
-                  <strong className={autoFollowCamera ? 'state-on' : 'state-off'}>
-                    {autoFollowCamera ? 'On' : 'Off'}
-                  </strong>
+                  <span
+                    className={`dcc-switch ${autoFollowCamera ? 'checked' : ''}`}
+                    aria-hidden="true"
+                  >
+                    <span className="dcc-switch-thumb" />
+                  </span>
                 </button>
               </div>
             )}
           </div>
         </div>
 
-        {/* Pro Mode Only: Camera / Objects / Active Status Line */}
+        {/* Pro Mode Only: Floating HUD Telemetry Badge */}
         {uiMode === 'pro' && (
           <div className="viewport-telemetry-overlay" aria-label="Viewport Overlay Info">
             <div className="vt-row">
-              <span className="vt-key">Camera:</span>
+              <span className="vt-key">CAM</span>
               <span className="vt-val">{cameraPreset.toUpperCase()}</span>
               <span className="vt-sep">|</span>
-              <span className="vt-key">Objects:</span>
+              <span className="vt-key">MESHES</span>
               <span className="vt-val">{Object.keys(sceneObjects).length}</span>
               <span className="vt-sep">|</span>
-              <span className="vt-key">Active:</span>
-              <span className="vt-val accent">{selectedId ?? 'None'}</span>
+              <span className="vt-key">ACTIVE</span>
+              <span className="vt-val accent">{selectedId ?? 'NONE'}</span>
             </div>
           </div>
         )}
@@ -755,7 +739,7 @@ export function BlenderViewport() {
         </Canvas>
       </div>
 
-      {/* Plain-English Caption Bar (19px) + Final Sorted Result Line */}
+      {/* Plain-English Caption Bar + Final Sorted Result Line */}
       <div className="stage-caption-bar" role="status" aria-live="polite">
         <div className="stage-caption-content">
           <p className="stage-caption-sentence">{currentSnapshot.narration}</p>
