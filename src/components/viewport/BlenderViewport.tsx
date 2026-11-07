@@ -34,7 +34,6 @@ function SceneObjectMesh({
 }: NodeMeshProps) {
   const groupRef = useRef<THREE.Group>(null);
   const barMeshRef = useRef<THREE.Mesh>(null);
-  const topCapRef = useRef<THREE.Mesh>(null);
   const valueTextRef = useRef<THREE.Group>(null);
 
   const isArrayCell = obj.kind === 'array-cell';
@@ -63,30 +62,25 @@ function SceneObjectMesh({
 
   const isActiveBar = isCompared || isSwapped || isSpawned || isActiveVisit;
 
-  // Match the exact dark metallic-slate & glowing amber gold bar styling from the Stitch screenshot
-  let fillColor = '#1c1f26';
-  let edgeColor = '#2e3340';
-  let capColor = '#2e3340';
+  // Classic Blender 4.x Solid Viewport Studio Grey (#a8a8a8) with Blender Orange selection/active outlines
+  let fillColor = '#a8a8a8';
+  let edgeColor = '#2b2b2b';
 
   if (isSwapped) {
-    fillColor = '#2e2440';
-    edgeColor = '#a855f7';
-    capColor = '#c084fc';
+    fillColor = '#b8b0a4';
+    edgeColor = '#ffa834';
   } else if (isCompared) {
-    fillColor = '#2d2418';
-    edgeColor = '#f59e0b';
-    capColor = '#fbbf24';
+    fillColor = '#b4b4b4';
+    edgeColor = '#ff9f2c';
   } else if (isSpawned) {
-    fillColor = '#162c35';
-    edgeColor = '#06b6d4';
-    capColor = '#22d3ee';
+    fillColor = '#a8b4b8';
+    edgeColor = '#38bdf8';
   } else if (isActiveVisit || isDoneItem) {
-    fillColor = '#162d24';
-    edgeColor = '#10b981';
-    capColor = '#34d399';
+    fillColor = '#a8b4ac';
+    edgeColor = '#4ade80';
   } else if (selected) {
-    edgeColor = '#f59e0b';
-    capColor = '#f59e0b';
+    fillColor = '#b4b4b4';
+    edgeColor = '#ff9f2c';
   }
 
   const cellIndex =
@@ -99,7 +93,8 @@ function SceneObjectMesh({
     const step = Math.min(1, delta * 14);
 
     if (isArrayCell) {
-      const targetGroupPos = new THREE.Vector3(obj.position[0], -1.2, obj.position[2]);
+      // Array bars stand directly on the y = 0 horizontal ground plane
+      const targetGroupPos = new THREE.Vector3(obj.position[0], 0, obj.position[2]);
       if (isSwapped) {
         targetGroupPos.z += 0.25;
       }
@@ -113,14 +108,15 @@ function SceneObjectMesh({
         );
         barMeshRef.current.position.y = barMeshRef.current.scale.y / 2;
       }
-      if (topCapRef.current && barMeshRef.current) {
-        topCapRef.current.position.y = barMeshRef.current.scale.y + 0.02;
-      }
       if (valueTextRef.current && barMeshRef.current) {
         valueTextRef.current.position.y = barMeshRef.current.scale.y + 0.36;
       }
     } else {
-      const targetNodePos = new THREE.Vector3(...obj.position);
+      const targetNodePos = new THREE.Vector3(
+        obj.position[0],
+        Math.max(0.55, obj.position[1]),
+        obj.position[2],
+      );
       if (isActiveVisit) {
         targetNodePos.y += Math.sin(state.clock.elapsedTime * 6) * 0.06;
       }
@@ -131,7 +127,11 @@ function SceneObjectMesh({
   return (
     <group
       ref={groupRef}
-      position={isArrayCell ? [obj.position[0], -1.2, obj.position[2]] : obj.position}
+      position={
+        isArrayCell
+          ? [obj.position[0], 0, obj.position[2]]
+          : [obj.position[0], Math.max(0.55, obj.position[1]), obj.position[2]]
+      }
       onClick={(e) => {
         e.stopPropagation();
         onSelect(obj.id);
@@ -139,7 +139,7 @@ function SceneObjectMesh({
     >
       {isArrayCell ? (
         <>
-          {/* Main Metallic-Rough Bar */}
+          {/* Blender Solid Studio Grey Bar standing on the ground grid */}
           <mesh
             ref={barMeshRef}
             position={[0, targetHeight / 2, 0]}
@@ -150,17 +150,15 @@ function SceneObjectMesh({
             <boxGeometry args={[1.08, 1, 0.92]} />
             <meshStandardMaterial
               color={fillColor}
-              roughness={0.42}
-              metalness={0.35}
+              roughness={0.55}
+              metalness={0.05}
               wireframe={wireframe}
             />
-            <Edges color={edgeColor} lineWidth={isActiveBar ? 1.8 : 1.1} />
-          </mesh>
-
-          {/* Glowing Top Cap Bar */}
-          <mesh ref={topCapRef} position={[0, targetHeight + 0.02, 0]}>
-            <boxGeometry args={[1.09, 0.05, 0.93]} />
-            <meshBasicMaterial color={capColor} />
+            <Edges
+              threshold={15}
+              color={edgeColor}
+              lineWidth={isActiveBar || selected ? 2.2 : 1.0}
+            />
           </mesh>
 
           {/* Top VAL Badge (hidden on primary left compared bar because the OP: CMP callout sits above it) */}
@@ -186,7 +184,7 @@ function SceneObjectMesh({
           </Html>
 
           <Html
-            position={[0, -0.42, 0.2]}
+            position={[0, -0.35, 0.35]}
             center
             distanceFactor={14}
             zIndexRange={[4, 0]}
@@ -205,11 +203,15 @@ function SceneObjectMesh({
             <boxGeometry args={[1.05, 1.05, 1.05]} />
             <meshStandardMaterial
               color={fillColor}
-              roughness={0.38}
-              metalness={0.3}
+              roughness={0.55}
+              metalness={0.05}
               wireframe={wireframe}
             />
-            <Edges color={edgeColor} lineWidth={1.6} />
+            <Edges
+              threshold={15}
+              color={edgeColor}
+              lineWidth={isActiveBar || selected ? 2.2 : 1.0}
+            />
           </mesh>
 
           <Html position={[0, 0.85, 0]} center distanceFactor={14} zIndexRange={[5, 0]}>
@@ -264,12 +266,12 @@ function TechnicalComparisonCallout({
 
   const hA =
     fromObj.kind === 'array-cell'
-      ? Math.max(0.65, Math.min(4.8, Math.abs(valA) / 18)) - 1.2
-      : fromObj.position[1];
+      ? Math.max(0.65, Math.min(4.8, Math.abs(valA) / 18))
+      : Math.max(0.55, fromObj.position[1]) + 0.52;
   const hB =
     toObj.kind === 'array-cell'
-      ? Math.max(0.65, Math.min(4.8, Math.abs(valB) / 18)) - 1.2
-      : toObj.position[1];
+      ? Math.max(0.65, Math.min(4.8, Math.abs(valB) / 18))
+      : Math.max(0.55, toObj.position[1]) + 0.52;
 
   const topY = Math.max(hA, hB) + 0.65;
   const midX = (fromObj.position[0] + toObj.position[0]) / 2;
@@ -291,8 +293,8 @@ function TechnicalComparisonCallout({
           [toObj.position[0], topY - 0.15, toObj.position[2]],
           [toObj.position[0], hB + 0.05, toObj.position[2]],
         ]}
-        color="#f59e0b"
-        lineWidth={1.4}
+        color="#ff9f2c"
+        lineWidth={1.5}
       />
 
       {/* Main OP: CMP Callout Box above first bar */}
@@ -318,35 +320,31 @@ function TechnicalComparisonCallout({
   );
 }
 
-function StitchCoordinateAxes() {
+/**
+ * Classic Blender 4.x Ground-Plane Axis Lines lying flat on the horizontal floor (y = 0.003):
+ * - Red X-Axis (#9e3b42) along X
+ * - Green Floor Y-Axis (#568235) along Z
+ */
+function BlenderGroundAxes() {
   return (
-    <group position={[0, -0.5, 0]}>
-      {/* Glowing Crimson Horizontal X-Axis */}
+    <group>
+      {/* Blender X-Axis: Muted Crimson Red on Ground Floor */}
       <Line
         points={[
-          [-40, 0, 0],
-          [40, 0, 0],
+          [-100, 0.003, 0],
+          [100, 0.003, 0],
         ]}
-        color="#ef4444"
-        lineWidth={1.5}
+        color="#9e3b42"
+        lineWidth={1.6}
       />
-      {/* Glowing Emerald Vertical Y-Axis */}
+      {/* Blender Y-Axis (Floor Depth): Muted Olive Green on Ground Floor */}
       <Line
         points={[
-          [0, -20, 0],
-          [0, 20, 0],
+          [0, 0.003, -100],
+          [0, 0.003, 100],
         ]}
-        color="#10b981"
-        lineWidth={1.5}
-      />
-      {/* Glowing Emerald Depth Z-Axis */}
-      <Line
-        points={[
-          [0, 0, -40],
-          [0, 0, 40],
-        ]}
-        color="#10b981"
-        lineWidth={1.2}
+        color="#568235"
+        lineWidth={1.6}
       />
     </group>
   );
@@ -354,7 +352,7 @@ function StitchCoordinateAxes() {
 
 function Blender3DCursor() {
   return (
-    <Html position={[0, -0.5, 0]} center zIndexRange={[6, 0]}>
+    <Html position={[0, 0.01, 0]} center zIndexRange={[6, 0]}>
       <div className="blender-3d-cursor" aria-hidden="true">
         <span className="b3d-ring" />
         <span className="b3d-tick top" />
@@ -394,43 +392,35 @@ function SceneContents() {
 
   return (
     <>
-      <color attach="background" args={['#111215']} />
-      <ambientLight intensity={0.75} />
-      <directionalLight position={[8, 16, 12]} intensity={1.1} />
-      <directionalLight position={[-10, -6, -8]} intensity={0.35} />
+      {/* Exact Blender 4.x Solid Viewport Charcoal Background & Distance Fog */}
+      <color attach="background" args={['#303030']} />
+      <fog attach="fog" args={['#303030', 38, 120]} />
+
+      {/* 3-Point Blender Studio Solid Lighting for Three-Tone Grey Object Shading */}
+      <ambientLight intensity={0.68} />
+      <hemisphereLight args={['#ffffff', '#383838', 0.55]} />
+      <directionalLight position={[-8, 16, 11]} intensity={1.15} />
+      <directionalLight position={[10, 6, -9]} intensity={0.35} />
 
       <CameraController />
 
       {showGrid && (
         <>
-          {/* Ground & Backplane Technical Grid */}
+          {/* Exact Blender Horizontal Ground-Plane Infinite Subdivision Grid */}
           <Grid
-            position={[0, -1.2, 0]}
-            args={[60, 60]}
-            cellSize={0.5}
-            cellThickness={0.5}
-            cellColor="#181a20"
-            sectionSize={2.5}
-            sectionThickness={1.0}
-            sectionColor="#22252e"
-            fadeDistance={38}
-            fadeStrength={1.5}
+            position={[0, -0.002, 0]}
+            args={[160, 160]}
+            cellSize={1}
+            cellThickness={0.75}
+            cellColor="#3d3d3d"
+            sectionSize={5}
+            sectionThickness={1.25}
+            sectionColor="#4e4e4e"
+            fadeDistance={85}
+            fadeStrength={1.3}
             infiniteGrid
           />
-          <Grid
-            position={[0, 1.2, -1.5]}
-            rotation={[Math.PI / 2, 0, 0]}
-            args={[32, 16]}
-            cellSize={0.5}
-            cellThickness={0.5}
-            cellColor="#17191f"
-            sectionSize={2.5}
-            sectionThickness={0.9}
-            sectionColor="#20232b"
-            fadeDistance={22}
-            fadeStrength={1.6}
-          />
-          <StitchCoordinateAxes />
+          <BlenderGroundAxes />
         </>
       )}
 
@@ -444,8 +434,16 @@ function SceneContents() {
           return (
             <DirectedEdge3D
               key={`${obj.id}->${link.targetId}-${link.label}`}
-              from={obj.position}
-              to={target.position}
+              from={[
+                obj.position[0],
+                Math.max(0.55, obj.position[1]),
+                obj.position[2],
+              ]}
+              to={[
+                target.position[0],
+                Math.max(0.55, target.position[1]),
+                target.position[2],
+              ]}
               label={link.label}
               highlighted={highlighted}
             />
@@ -482,8 +480,8 @@ function SceneContents() {
 
       <GizmoHelper alignment="top-right" margin={[54, 54]}>
         <GizmoViewport
-          axisColors={['#ef4444', '#10b981', '#3b82f6']}
-          labelColor="#111215"
+          axisColors={['#e03e4b', '#65a338', '#3c78d8']}
+          labelColor="#1a1a1a"
         />
       </GizmoHelper>
     </>
@@ -514,17 +512,17 @@ export function BlenderViewport() {
         {/* Top-Left Stitch Viewport HUD Pills */}
         <div className="stitch-top-hud">
           <div className="stitch-hud-pill">
-            <span className="hud-cam-mode">Top-Orthographic</span>
+            <span className="hud-cam-mode">User Perspective</span>
             <span className="hud-scene-name">{sceneFileName}</span>
           </div>
 
           <div className="stitch-hud-pill telemetry">
             <span>
-              SHADING: <strong>METALLIC_ROUGH</strong>
+              SHADING: <strong>SOLID_STUDIO</strong>
             </span>
             <span className="hud-sep">|</span>
             <span>
-              FOV: <strong className="cyan">55.0mm</strong>
+              FOV: <strong className="cyan">45.0mm</strong>
             </span>
             <span className="hud-sep">|</span>
             <span>
@@ -536,7 +534,7 @@ export function BlenderViewport() {
         <Canvas
           shadows
           gl={{ preserveDrawingBuffer: true }}
-          camera={{ position: [0, 1.2, 11.5], fov: 40, near: 0.1, far: 200 }}
+          camera={{ position: [9, 7.2, 11], fov: 45, near: 0.1, far: 250 }}
           onPointerMissed={() => selectObject(null)}
         >
           <SceneContents />

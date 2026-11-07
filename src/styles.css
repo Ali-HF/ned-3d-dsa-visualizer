@@ -735,7 +735,7 @@ body,
   position: relative;
   width: 100%;
   height: 100%;
-  background: var(--bg-void);
+  background: #303030;
   min-width: 0;
   min-height: 0;
 }
@@ -745,6 +745,7 @@ body,
   position: relative;
   width: 100%;
   height: 100%;
+  background: #303030;
 }
 
 /* Top-Left Viewport HUD Pills */
@@ -862,7 +863,11 @@ body,
 .stitch-bar-height {
   font-family: var(--font-mono);
   font-size: 9px;
-  color: rgba(156, 163, 175, 0.55);
+  font-weight: 600;
+  color: #1f2937;
+  background: rgba(255, 255, 255, 0.35);
+  padding: 0 4px;
+  border-radius: 2px;
   white-space: nowrap;
   pointer-events: none;
 }
@@ -883,7 +888,7 @@ body,
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--text-std);
 }
 
 .stitch-idx-box.active {
@@ -894,7 +899,7 @@ body,
 .stitch-hex-addr {
   font-family: var(--font-mono);
   font-size: 8.5px;
-  color: #4b5262;
+  color: #9ca3af;
 }
 
 /* Iconic Blender 3D Cursor at Origin */
