@@ -393,9 +393,17 @@ body,
 }
 
 .st-struct-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--text-muted);
+}
+
+.st-struct-chevron {
+  font-size: 11px;
+  color: var(--text-std);
 }
 
 .st-struct-dropdown {

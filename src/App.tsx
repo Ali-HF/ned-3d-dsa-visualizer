@@ -496,8 +496,9 @@ export function App() {
                     type="button"
                     className="st-edit-link"
                     onClick={() => setStructPickerOpen((v) => !v)}
+                    aria-label="Toggle Structure Dropdown"
                   >
-                    Edit ✎
+                    {structPickerOpen ? '▴' : '▾'}
                   </button>
                 </div>
 
@@ -505,6 +506,7 @@ export function App() {
                   type="button"
                   className="st-struct-well"
                   onClick={() => setStructPickerOpen((v) => !v)}
+                  aria-expanded={structPickerOpen}
                 >
                   <span className="st-struct-left">
                     <code className="st-struct-glyph">{currentStructureCard.icon}</code>
@@ -512,7 +514,12 @@ export function App() {
                       {currentStructureCard.name} [{Object.keys(sceneObjects).length}]
                     </strong>
                   </span>
-                  <span className="st-struct-meta">{currentStructureCard.metaTag}</span>
+                  <span className="st-struct-meta">
+                    {currentStructureCard.metaTag}{' '}
+                    <span className="st-struct-chevron">
+                      {structPickerOpen ? '▴' : '▾'}
+                    </span>
+                  </span>
                 </button>
 
                 {structPickerOpen && (
