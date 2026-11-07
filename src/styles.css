@@ -1,25 +1,25 @@
 :root {
   color-scheme: dark;
-  --bg-void: #111215;
-  --bg-shell: #14151a;
-  --bg-card: #191b22;
-  --bg-well: #101115;
-  --bg-control: #20232c;
-  --bg-hover: #282c37;
-  --border-subtle: #242731;
-  --border-card: #282c38;
-  --blue-primary: #2563eb;
-  --blue-glow: rgba(37, 99, 235, 0.22);
-  --amber-gold: #f59e0b;
-  --amber-bright: #fbbf24;
-  --cyan-signal: #38bdf8;
-  --emerald-ok: #10b981;
-  --axis-x: #ef4444;
-  --axis-y: #10b981;
-  --axis-z: #3b82f6;
-  --text-hi: #f3f4f6;
-  --text-std: #9ca3af;
-  --text-muted: #64748b;
+  --bg-void: #1d1d1d;
+  --bg-shell: #242424;
+  --bg-card: #2d2d2d;
+  --bg-well: #1d1d1d;
+  --bg-control: #383838;
+  --bg-hover: #444444;
+  --border-subtle: #353535;
+  --border-card: #3d3d3d;
+  --blue-primary: #4772b3;
+  --blue-glow: rgba(71, 114, 179, 0.25);
+  --amber-gold: #ff9f2c;
+  --amber-bright: #ffb347;
+  --cyan-signal: #5fbcd3;
+  --emerald-ok: #65a338;
+  --axis-x: #e03e4b;
+  --axis-y: #65a338;
+  --axis-z: #3c78d8;
+  --text-hi: #e6e6e6;
+  --text-std: #b8b8b8;
+  --text-muted: #858585;
   --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
 }
@@ -61,7 +61,7 @@ body,
   align-items: center;
   justify-content: space-between;
   padding: 0 12px;
-  background: #131419;
+  background: var(--bg-shell);
   border-bottom: 1px solid var(--border-subtle);
   user-select: none;
 }
@@ -126,9 +126,9 @@ body,
 
 .st-tab-btn.active {
   background: var(--blue-primary);
-  border-color: #3b82f6;
+  border-color: #5680c2;
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 2px 8px rgba(71, 114, 179, 0.35);
 }
 
 .st-tab-icon {
@@ -183,7 +183,7 @@ body,
 }
 
 .st-seg-item.active {
-  background: #272b36;
+  background: var(--bg-control);
   color: var(--text-hi);
   font-weight: 600;
 }
@@ -261,7 +261,7 @@ body,
    LEFT N-PANEL SIDEBAR
    ========================================== */
 .stitch-left-panel {
-  background: #141519;
+  background: var(--bg-shell);
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
@@ -290,7 +290,7 @@ body,
   font-family: var(--font-mono);
   font-size: 9.5px;
   color: var(--text-muted);
-  background: #1b1d24;
+  background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   padding: 1px 6px;
   border-radius: 3px;
@@ -307,7 +307,7 @@ body,
 }
 
 .st-card {
-  background: #181a20;
+  background: var(--bg-card);
   border: 1px solid var(--border-card);
   border-radius: 6px;
   padding: 8px;
@@ -326,7 +326,7 @@ body,
   width: 17px;
   height: 17px;
   border-radius: 50%;
-  background: #252832;
+  background: var(--bg-control);
   color: var(--text-std);
   font-family: var(--font-mono);
   font-size: 10px;
@@ -428,12 +428,12 @@ body,
 }
 
 .st-struct-option.selected {
-  background: rgba(37, 99, 235, 0.2);
+  background: rgba(71, 114, 179, 0.25);
   color: #ffffff;
 }
 
 .st-struct-option code {
-  color: #60a5fa;
+  color: #7ea3dc;
   font-family: var(--font-mono);
   width: 18px;
 }
@@ -472,7 +472,7 @@ body,
 
 .st-pill-tab.active {
   background: var(--blue-primary);
-  border-color: #3b82f6;
+  border-color: #5680c2;
   color: #ffffff;
 }
 
@@ -503,7 +503,7 @@ body,
 }
 
 .st-algo-row.active {
-  background: rgba(37, 99, 235, 0.14);
+  background: rgba(71, 114, 179, 0.2);
   border-color: var(--blue-primary);
   color: #ffffff;
   font-weight: 600;
@@ -522,8 +522,8 @@ body,
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #60a5fa;
-  box-shadow: 0 0 6px #60a5fa;
+  background: #7ea3dc;
+  box-shadow: 0 0 6px #7ea3dc;
 }
 
 .st-algo-badge {
@@ -533,8 +533,8 @@ body,
 }
 
 .st-algo-row.active .st-algo-badge {
-  background: rgba(37, 99, 235, 0.25);
-  color: #93c5fd;
+  background: rgba(71, 114, 179, 0.3);
+  color: #b5ceef;
   padding: 1px 5px;
   border-radius: 3px;
 }
@@ -670,7 +670,7 @@ body,
 .st-telemetry-box {
   margin: 0 8px 6px 8px;
   padding: 8px 10px;
-  background: #16181e;
+  background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
   display: flex;
@@ -763,7 +763,7 @@ body,
 .stitch-hud-pill {
   height: 26px;
   padding: 0 10px;
-  background: rgba(20, 22, 28, 0.88);
+  background: rgba(36, 36, 36, 0.9);
   border: 1px solid var(--border-card);
   border-radius: 4px;
   display: inline-flex;
@@ -835,8 +835,8 @@ body,
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: rgba(22, 25, 32, 0.9);
-  border: 1px solid #323746;
+  background: rgba(36, 36, 36, 0.92);
+  border: 1px solid var(--border-card);
   border-radius: 3px;
   padding: 2px 7px;
   font-family: var(--font-mono);
@@ -881,8 +881,8 @@ body,
 }
 
 .stitch-idx-box {
-  background: rgba(20, 22, 28, 0.9);
-  border: 1px solid #2b303d;
+  background: rgba(36, 36, 36, 0.92);
+  border: 1px solid var(--border-card);
   border-radius: 3px;
   padding: 1px 6px;
   font-family: var(--font-mono);
@@ -969,7 +969,7 @@ body,
 .stitch-dbg-console {
   height: 30px;
   padding: 0 12px;
-  background: rgba(20, 22, 28, 0.92);
+  background: rgba(36, 36, 36, 0.94);
   border: 1px solid var(--border-card);
   border-radius: 5px;
   display: inline-flex;
@@ -977,7 +977,7 @@ body,
   gap: 8px;
   font-family: var(--font-mono);
   font-size: 11px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
   white-space: nowrap;
 }
 
@@ -1043,7 +1043,7 @@ body,
    4. RIGHT SLIM VERTICAL ICON DOCK & CODE DRAWER
    ========================================== */
 .stitch-right-dock {
-  background: #141519;
+  background: var(--bg-shell);
   border-left: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
@@ -1063,7 +1063,7 @@ body,
 .st-dock-btn {
   width: 24px;
   height: 24px;
-  background: #1b1d24;
+  background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: 4px;
   color: var(--text-std);
@@ -1097,7 +1097,7 @@ body,
 }
 
 .stitch-inspector-drawer {
-  background: #15171c;
+  background: var(--bg-shell);
   border-left: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
@@ -1122,7 +1122,7 @@ body,
 .st-drawer-header {
   height: 28px;
   padding: 0 10px;
-  background: #191b22;
+  background: var(--bg-card);
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
@@ -1226,7 +1226,7 @@ body,
   align-items: center;
   justify-content: space-between;
   padding: 0 12px;
-  background: #131419;
+  background: var(--bg-shell);
   border-top: 1px solid var(--border-subtle);
   user-select: none;
 }
@@ -1264,14 +1264,14 @@ body,
   width: 28px;
   height: 28px;
   background: var(--blue-primary);
-  border: 1px solid #3b82f6;
+  border: 1px solid #5680c2;
   border-radius: 5px;
   color: #ffffff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 2px 8px rgba(71, 114, 179, 0.35);
 }
 
 .st-tr-play.playing {
