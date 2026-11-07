@@ -13,26 +13,29 @@ export function CameraController() {
 
   const cameraPreset = useViewportStore((s) => s.cameraPreset);
   const cameraCommandVersion = useViewportStore((s) => s.cameraCommandVersion);
-  const selectedId = useViewportStore((s) => s.selectedId);
-  const sceneObjects = useViewportStore((s) => s.sceneObjects);
   const autoFollowCamera = useViewportStore((s) => s.autoFollowCamera);
   const pauseAutoFollowCamera = useViewportStore((s) => s.pauseAutoFollowCamera);
   const currentSnapshot = useViewportStore((s) => s.currentSnapshot);
+  const sceneObjects = useViewportStore((s) => s.sceneObjects);
 
   const desiredPos = useRef(new THREE.Vector3(9, 7.5, 11));
   const desiredTarget = useRef(new THREE.Vector3(0, 1.4, 0));
   const isTransitioning = useRef(false);
+  const isUserDragging = useRef(false);
 
+  // Only transition the camera when the user explicitly triggers a View preset or shortcut
   useEffect(() => {
-    const selectedObj = selectedId ? sceneObjects[selectedId] : undefined;
+    if (cameraCommandVersion === 0) return;
+    const { selectedId, sceneObjects: latestObjects } = useViewportStore.getState();
+    const selectedObj = selectedId ? latestObjects[selectedId] : undefined;
     const pose = getCameraPoseForPreset(cameraPreset, selectedObj?.position);
     desiredPos.current.set(...pose.position);
     desiredTarget.current.set(...pose.target);
     isTransitioning.current = true;
-  }, [cameraPreset, cameraCommandVersion, selectedId, sceneObjects]);
+  }, [cameraPreset, cameraCommandVersion]);
 
   useFrame((_, delta) => {
-    if (!controlsRef.current) return;
+    if (!controlsRef.current || isUserDragging.current) return;
 
     if (isTransitioning.current) {
       const step = Math.min(1, delta * 9);
@@ -52,7 +55,7 @@ export function CameraController() {
       return;
     }
 
-    // Section 4.1: Auto-follow active element during playback unless paused by user drag
+    // Optional: Follow active element only if user turned on "Follow the action"
     if (autoFollowCamera) {
       let activeId: string | null = null;
       if (currentSnapshot.swappedRefs) {
@@ -83,9 +86,13 @@ export function CameraController() {
       minDistance={2}
       maxDistance={45}
       onStart={() => {
-        // Any manual orbit, pan, or zoom cancels preset transition and pauses auto-follow
+        // Any manual orbit, pan, or zoom immediately gives full control to the user
+        isUserDragging.current = true;
         isTransitioning.current = false;
         pauseAutoFollowCamera();
+      }}
+      onEnd={() => {
+        isUserDragging.current = false;
       }}
     />
   );

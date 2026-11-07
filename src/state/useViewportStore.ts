@@ -346,7 +346,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
   isPlaying: false,
   playbackSpeed: 1,
   autoPlayOnRun: true,
-  autoFollowCamera: true,
+  autoFollowCamera: false,
   operationHistory: [
     {
       uid: 'init-op-1',
