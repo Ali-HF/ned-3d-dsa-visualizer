@@ -61,4 +61,37 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     useViewportStore.getState().pauseAutoFollowCamera();
     expect(useViewportStore.getState().autoFollowCamera).toBe(false);
   });
+
+  it('runs interactive 3D traces for Stack, Queue, Heap, Graph, and Hash Table scenes', () => {
+    const store = useViewportStore.getState();
+
+    store.setPreviewScene('stack');
+    expect(useViewportStore.getState().previewScene).toBe('stack');
+    expect(Object.keys(useViewportStore.getState().sceneObjects).length).toBeGreaterThan(0);
+
+    store.setPreviewScene('queue');
+    expect(useViewportStore.getState().previewScene).toBe('queue');
+    expect(Object.keys(useViewportStore.getState().sceneObjects).length).toBeGreaterThan(0);
+
+    store.setPreviewScene('heap');
+    expect(useViewportStore.getState().previewScene).toBe('heap');
+    expect(Object.keys(useViewportStore.getState().sceneObjects).length).toBeGreaterThan(0);
+
+    store.setPreviewScene('graph');
+    expect(useViewportStore.getState().previewScene).toBe('graph');
+    expect(Object.keys(useViewportStore.getState().sceneObjects).length).toBe(6);
+
+    store.setPreviewScene('hash-table');
+    expect(useViewportStore.getState().previewScene).toBe('hash-table');
+    expect(Object.keys(useViewportStore.getState().sceneObjects).length).toBeGreaterThan(0);
+  });
+
+  it('loads C++ source code directly from cpp_corpus/ when selecting a corpus file', () => {
+    const store = useViewportStore.getState();
+    store.selectAndRunCorpusFile('12_avl_tree/avl_tree.cpp');
+    const state = useViewportStore.getState();
+    expect(state.previewScene).toBe('bst');
+    expect(state.selectedCorpusFile).toBe('12_avl_tree/avl_tree.cpp');
+    expect(state.activeMetadata.code.join('\n')).toContain('rightRotate');
+  });
 });

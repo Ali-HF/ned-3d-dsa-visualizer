@@ -264,11 +264,17 @@ body,
   gap: 6px;
 }
 
+.structure-cards-grid.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
 .structure-big-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: 10px;
+  padding: 9px 10px;
   background: #1a1e26;
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
@@ -276,6 +282,24 @@ body,
   text-align: left;
   cursor: pointer;
   transition: all 0.12s ease;
+}
+
+.structure-big-card.compact-card {
+  padding: 8px 8px;
+  gap: 8px;
+}
+
+.corpus-code-textarea {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  color: var(--text-primary);
+  padding: 8px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.45;
+  resize: vertical;
 }
 
 .structure-big-card:hover {

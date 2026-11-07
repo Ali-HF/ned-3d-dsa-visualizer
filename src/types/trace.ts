@@ -44,7 +44,15 @@ export interface SceneObjectInfo {
 
 export type CameraPreset = 'isometric' | 'front' | 'top' | 'side' | 'focus';
 
-export type PreviewSceneKind = 'array' | 'linked-list' | 'bst';
+export type PreviewSceneKind =
+  | 'array'
+  | 'linked-list'
+  | 'stack'
+  | 'queue'
+  | 'bst'
+  | 'heap'
+  | 'graph'
+  | 'hash-table';
 
 /**
  * Reconstructed state at a specific trace step index.

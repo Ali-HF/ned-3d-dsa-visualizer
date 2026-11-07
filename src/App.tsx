@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react';
 import { BlenderViewport } from './components/viewport/BlenderViewport';
 import { useViewportStore } from './state/useViewportStore';
 import type { ArrayOperationId } from './algorithms/array/arrayAlgorithms';
+import { STRUCTURE_OP_CATALOG } from './algorithms/structures/structureAlgorithms';
+import {
+  CORPUS_FILE_CATALOG,
+  getCorpusRawText,
+} from './corpus/cppCorpusRegistry';
 import type { PreviewSceneKind } from './types/trace';
 import {
   IconPause,
@@ -16,7 +21,7 @@ import {
   IconTurtle,
 } from './components/icons/StudioIcons';
 
-interface ActionOption {
+interface ArrayActionOption {
   id: ArrayOperationId;
   label: string;
   subtitle: string;
@@ -27,7 +32,7 @@ interface ActionOption {
   numberLabel?: string;
 }
 
-const GUIDE_ACTIONS: ActionOption[] = [
+const ARRAY_GUIDE_ACTIONS: ArrayActionOption[] = [
   {
     id: 'bubble-sort',
     label: 'Bubble Sort',
@@ -118,6 +123,22 @@ const GUIDE_ACTIONS: ActionOption[] = [
   },
 ];
 
+const STRUCTURE_CARDS: {
+  id: PreviewSceneKind;
+  name: string;
+  desc: string;
+  icon: string;
+}[] = [
+  { id: 'array', name: 'Array', desc: 'Row of numbered boxes', icon: '▤' },
+  { id: 'linked-list', name: 'Linked List', desc: 'Chain of pointer nodes', icon: '⊶⊷' },
+  { id: 'stack', name: 'Stack', desc: 'LIFO tower & recursion', icon: '☰' },
+  { id: 'queue', name: 'Queue & Deque', desc: 'FIFO line & circular ring', icon: '⇥' },
+  { id: 'bst', name: 'Tree (BST / AVL)', desc: 'Binary & self-balancing', icon: '⑂' },
+  { id: 'heap', name: 'Binary Heap', desc: 'Max-Heap & Priority Queue', icon: '△' },
+  { id: 'graph', name: 'Graph', desc: 'BFS, DFS, MST & Dijkstra', icon: '◈' },
+  { id: 'hash-table', name: 'Hash Table', desc: 'Probing & Separate Chains', icon: '#' },
+];
+
 const ACTION_GROUPS: ('Sort' | 'Add' | 'Remove' | 'Find')[] = [
   'Sort',
   'Add',
@@ -125,74 +146,25 @@ const ACTION_GROUPS: ('Sort' | 'Add' | 'Remove' | 'Find')[] = [
   'Find',
 ];
 
-const PREVIEW_FALLBACK_CODE: Record<
-  Exclude<PreviewSceneKind, 'array'>,
-  { title: string; timeComplexity: string; spaceComplexity: string; code: string[] }
-> = {
-  bst: {
-    title: 'Binary Search Tree — Insert & Search (C++)',
-    timeComplexity: 'O(log n) avg / O(n) worst',
-    spaceComplexity: 'O(h) stack',
-    code: [
-      'struct Node {',
-      '  int key;',
-      '  Node *left, *right;',
-      '  Node(int v) : key(v), left(nullptr), right(nullptr) {}',
-      '};',
-      '',
-      'Node* insert(Node* root, int key) {',
-      '  if (root == nullptr) return new Node(key);',
-      '  if (key < root->key)',
-      '    root->left = insert(root->left, key);',
-      '  else if (key > root->key)',
-      '    root->right = insert(root->right, key);',
-      '  return root;',
-      '}',
-    ],
-  },
-  'linked-list': {
-    title: 'Singly Linked List — In-Place Reversal (C++)',
-    timeComplexity: 'O(n)',
-    spaceComplexity: 'O(1)',
-    code: [
-      'struct Node {',
-      '  int data;',
-      '  Node* next;',
-      '};',
-      '',
-      'Node* reverseList(Node* head) {',
-      '  Node *prev = nullptr, *curr = head, *next = nullptr;',
-      '  while (curr != nullptr) {',
-      '    next = curr->next;',
-      '    curr->next = prev;',
-      '    prev = curr;',
-      '    curr = next;',
-      '  }',
-      '  return prev;',
-      '}',
-    ],
-  },
-};
-
 function explainCodeLineInPlainEnglish(line: string, fallbackNarration: string): string {
   const trimmed = line.trim();
   if (!trimmed || trimmed === '{' || trimmed === '}') {
     return fallbackNarration;
   }
   if (trimmed.startsWith('for ')) {
-    return 'This loop steps through the positions one by one so every number gets checked.';
+    return 'This loop steps through the positions one by one so every item gets checked.';
   }
   if (trimmed.startsWith('while ')) {
     return 'This loop keeps repeating as long as the condition in parentheses stays true.';
   }
   if (trimmed.includes('swap(')) {
-    return 'This line swaps the two numbers so the smaller one sits on the left.';
+    return 'This line swaps the two items so they trade places in memory.';
   }
   if (trimmed.startsWith('if ')) {
-    return 'This line compares two values to decide what action to take next.';
+    return 'This line compares values to decide which branch to take next.';
   }
   if (trimmed.startsWith('return ')) {
-    return 'This line finishes the step and hands back the result.';
+    return 'This line finishes the function and hands back the result.';
   }
   return fallbackNarration;
 }
@@ -214,6 +186,8 @@ export function App() {
 
   const workingArray = useViewportStore((s) => s.workingArray);
   const activeOperation = useViewportStore((s) => s.activeOperation);
+  const activeStructureOp = useViewportStore((s) => s.activeStructureOp);
+  const selectedCorpusFile = useViewportStore((s) => s.selectedCorpusFile);
   const activeMetadata = useViewportStore((s) => s.activeMetadata);
   const currentStep = useViewportStore((s) => s.currentStep);
   const totalSteps = useViewportStore((s) => s.totalSteps);
@@ -233,6 +207,8 @@ export function App() {
   const toggleAutoPlayOnRun = useViewportStore((s) => s.toggleAutoPlayOnRun);
   const setCustomArray = useViewportStore((s) => s.setCustomArray);
   const runOperationNow = useViewportStore((s) => s.runOperationNow);
+  const runStructureOperationNow = useViewportStore((s) => s.runStructureOperationNow);
+  const selectAndRunCorpusFile = useViewportStore((s) => s.selectAndRunCorpusFile);
   const queueOperation = useViewportStore((s) => s.queueOperation);
 
   // 3-step accordion state in the left column (only 1 step expanded at a time)
@@ -240,13 +216,21 @@ export function App() {
   const [arrayInputText, setArrayInputText] = useState(workingArray.join(', '));
   const [paramIndex, setParamIndex] = useState<number>(2);
   const [paramValue, setParamValue] = useState<number>(42);
+  const [customCodeText, setCustomCodeText] = useState<string>(() =>
+    getCorpusRawText('06_elementary_sorting/bubble_sort.cpp'),
+  );
 
-  const currentActionOption =
-    GUIDE_ACTIONS.find((a) => a.id === activeOperation) ?? GUIDE_ACTIONS[0];
+  const currentArrayAction =
+    ARRAY_GUIDE_ACTIONS.find((a) => a.id === activeOperation) ?? ARRAY_GUIDE_ACTIONS[0];
+  const currentStructAction =
+    STRUCTURE_OP_CATALOG.find((a) => a.id === activeStructureOp) ??
+    STRUCTURE_OP_CATALOG[0];
+
+  const activeActionSummary =
+    previewScene === 'array' ? currentArrayAction.label : currentStructAction.label;
 
   const selectedObj = selectedId ? sceneObjects[selectedId] : null;
-  const displayedCodeMeta =
-    previewScene === 'array' ? activeMetadata : PREVIEW_FALLBACK_CODE[previewScene];
+  const displayedCodeMeta = activeMetadata;
 
   const highlightedLineIndex = (currentSnapshot.activeLine ?? 1) - 1;
   const highlightedLineText =
@@ -318,24 +302,30 @@ export function App() {
   };
 
   const handleApplyAndRun = () => {
-    const nums = parseInputNumbers(arrayInputText);
-    setCustomArray(nums);
-    runOperationNow(activeOperation, paramIndex, paramValue);
+    if (previewScene === 'array') {
+      const nums = parseInputNumbers(arrayInputText);
+      setCustomArray(nums);
+      runOperationNow(activeOperation, paramIndex, paramValue);
+    } else {
+      runStructureOperationNow(activeStructureOp, paramValue);
+    }
   };
 
   const handleSurpriseMe = () => {
-    const rnd = Array.from({ length: 6 }, () => Math.floor(Math.random() * 85) + 10);
-    setArrayInputText(rnd.join(', '));
-    setCustomArray(rnd);
-    runOperationNow(activeOperation, paramIndex, paramValue);
+    const rndVal = Math.floor(Math.random() * 80) + 12;
+    setParamValue(rndVal);
+    if (previewScene === 'array') {
+      const rnd = Array.from({ length: 6 }, () => Math.floor(Math.random() * 85) + 10);
+      setArrayInputText(rnd.join(', '));
+      setCustomArray(rnd);
+      runOperationNow(activeOperation, paramIndex, rndVal);
+    } else {
+      runStructureOperationNow(activeStructureOp, rndVal);
+    }
   };
 
-  const structureName =
-    previewScene === 'array'
-      ? 'Array'
-      : previewScene === 'linked-list'
-        ? 'Linked List'
-        : 'Tree';
+  const currentStructureCard =
+    STRUCTURE_CARDS.find((c) => c.id === previewScene) ?? STRUCTURE_CARDS[0];
 
   const showRightSidebar = uiMode === 'pro' || detailsOpen;
 
@@ -392,219 +382,295 @@ export function App() {
 
       {/* Main Studio Workspace */}
       <div className={`workspace-grid ${showRightSidebar ? 'with-right' : 'no-right'}`}>
-        {/* LEFT COLUMN: 3-Step Guide (Only current step expanded) */}
+        {/* LEFT COLUMN: 3-Step Guide (in Learn mode) OR C++ Corpus Runner (in Run my code mode) */}
         <aside className="left-panel">
-          <div className="step-guide-container">
-            {/* STEP 1: Pick a structure */}
-            <section
-              className={`guide-step-card ${guideStep === 1 ? 'expanded' : 'collapsed'}`}
-            >
-              <button
-                type="button"
-                className="guide-step-header"
-                onClick={() => setGuideStep(1)}
+          {appMode === 'library' ? (
+            <div className="step-guide-container">
+              {/* STEP 1: Pick a structure (All 8 CT-159 Structure Families) */}
+              <section
+                className={`guide-step-card ${guideStep === 1 ? 'expanded' : 'collapsed'}`}
               >
-                <span className="guide-step-num">1</span>
-                <span className="guide-step-title">Pick a structure</span>
-                <span className="guide-step-summary">{structureName}</span>
-              </button>
+                <button
+                  type="button"
+                  className="guide-step-header"
+                  onClick={() => setGuideStep(1)}
+                >
+                  <span className="guide-step-num">1</span>
+                  <span className="guide-step-title">Pick a structure</span>
+                  <span className="guide-step-summary">{currentStructureCard.name}</span>
+                </button>
 
-              {guideStep === 1 && (
-                <div className="guide-step-body">
-                  <div className="structure-cards-grid">
-                    <button
-                      type="button"
-                      className={`structure-big-card ${previewScene === 'array' ? 'selected' : ''}`}
-                      onClick={() => {
-                        setPreviewScene('array');
-                        setGuideStep(2);
-                      }}
-                    >
-                      <span className="struct-icon">▤</span>
-                      <div className="struct-text">
-                        <strong>Array</strong>
-                        <span>Row of numbered boxes</span>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      className={`structure-big-card ${previewScene === 'linked-list' ? 'selected' : ''}`}
-                      onClick={() => {
-                        setPreviewScene('linked-list');
-                        setGuideStep(2);
-                      }}
-                    >
-                      <span className="struct-icon">⊶⊷</span>
-                      <div className="struct-text">
-                        <strong>Linked List</strong>
-                        <span>Chain of connected nodes</span>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      className={`structure-big-card ${previewScene === 'bst' ? 'selected' : ''}`}
-                      onClick={() => {
-                        setPreviewScene('bst');
-                        setGuideStep(2);
-                      }}
-                    >
-                      <span className="struct-icon">branch</span>
-                      <div className="struct-text">
-                        <strong>Tree</strong>
-                        <span>Branching hierarchy</span>
-                      </div>
-                    </button>
+                {guideStep === 1 && (
+                  <div className="guide-step-body">
+                    <div className="structure-cards-grid two-col">
+                      {STRUCTURE_CARDS.map((card) => (
+                        <button
+                          key={card.id}
+                          type="button"
+                          className={`structure-big-card compact-card ${
+                            previewScene === card.id ? 'selected' : ''
+                          }`}
+                          onClick={() => {
+                            setPreviewScene(card.id);
+                            setGuideStep(2);
+                          }}
+                        >
+                          <span className="struct-icon">{card.icon}</span>
+                          <div className="struct-text">
+                            <strong>{card.name}</strong>
+                            <span>{card.desc}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </section>
+                )}
+              </section>
 
-            {/* STEP 2: Pick what to do */}
-            <section
-              className={`guide-step-card ${guideStep === 2 ? 'expanded' : 'collapsed'}`}
-            >
-              <button
-                type="button"
-                className="guide-step-header"
-                onClick={() => setGuideStep(2)}
+              {/* STEP 2: Pick what to do (Dynamic per structure!) */}
+              <section
+                className={`guide-step-card ${guideStep === 2 ? 'expanded' : 'collapsed'}`}
               >
-                <span className="guide-step-num">2</span>
-                <span className="guide-step-title">Pick what to do</span>
-                <span className="guide-step-summary">{currentActionOption.label}</span>
-              </button>
+                <button
+                  type="button"
+                  className="guide-step-header"
+                  onClick={() => setGuideStep(2)}
+                >
+                  <span className="guide-step-num">2</span>
+                  <span className="guide-step-title">Pick what to do</span>
+                  <span className="guide-step-summary">{activeActionSummary}</span>
+                </button>
 
-              {guideStep === 2 && (
-                <div className="guide-step-body">
-                  {ACTION_GROUPS.map((groupName) => {
-                    const items = GUIDE_ACTIONS.filter((a) => a.group === groupName);
-                    return (
-                      <div key={groupName} className="action-group-block">
-                        <div className="action-group-heading">{groupName}</div>
-                        <div className="action-group-list">
-                          {items.map((item) => (
-                            <button
-                              key={item.id}
-                              type="button"
-                              className={`action-choice-btn ${activeOperation === item.id ? 'active' : ''}`}
-                              onClick={() => {
-                                runOperationNow(item.id, paramIndex, paramValue);
-                                if (item.needsNumber || item.needsPosition) {
-                                  setGuideStep(3);
-                                }
-                              }}
-                            >
-                              <span className="action-choice-name">{item.label}</span>
-                              {uiMode === 'pro' && (
-                                <span className="action-choice-sub">{item.subtitle}</span>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
+                {guideStep === 2 && (
+                  <div className="guide-step-body">
+                    {previewScene === 'array'
+                      ? ACTION_GROUPS.map((groupName) => {
+                          const items = ARRAY_GUIDE_ACTIONS.filter(
+                            (a) => a.group === groupName,
+                          );
+                          return (
+                            <div key={groupName} className="action-group-block">
+                              <div className="action-group-heading">{groupName}</div>
+                              <div className="action-group-list">
+                                {items.map((item) => (
+                                  <button
+                                    key={item.id}
+                                    type="button"
+                                    className={`action-choice-btn ${
+                                      activeOperation === item.id ? 'active' : ''
+                                    }`}
+                                    onClick={() => {
+                                      runOperationNow(item.id, paramIndex, paramValue);
+                                      if (item.needsNumber || item.needsPosition) {
+                                        setGuideStep(3);
+                                      }
+                                    }}
+                                  >
+                                    <span className="action-choice-name">
+                                      {item.label}
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })
+                      : ACTION_GROUPS.map((groupName) => {
+                          const items = STRUCTURE_OP_CATALOG.filter(
+                            (a) => a.scene === previewScene && a.group === groupName,
+                          );
+                          if (items.length === 0) return null;
+                          return (
+                            <div key={groupName} className="action-group-block">
+                              <div className="action-group-heading">{groupName}</div>
+                              <div className="action-group-list">
+                                {items.map((item) => (
+                                  <button
+                                    key={item.id}
+                                    type="button"
+                                    className={`action-choice-btn ${
+                                      activeStructureOp === item.id ? 'active' : ''
+                                    }`}
+                                    onClick={() => {
+                                      runStructureOperationNow(item.id, paramValue);
+                                      if (item.needsNumber) {
+                                        setGuideStep(3);
+                                      }
+                                    }}
+                                  >
+                                    <span className="action-choice-name">
+                                      {item.label}
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                  </div>
+                )}
+              </section>
 
-            {/* STEP 3: Your numbers */}
-            <section
-              className={`guide-step-card ${guideStep === 3 ? 'expanded' : 'collapsed'}`}
-            >
-              <button
-                type="button"
-                className="guide-step-header"
-                onClick={() => setGuideStep(3)}
+              {/* STEP 3: Your numbers */}
+              <section
+                className={`guide-step-card ${guideStep === 3 ? 'expanded' : 'collapsed'}`}
               >
-                <span className="guide-step-num">3</span>
-                <span className="guide-step-title">Your numbers</span>
-                <span className="guide-step-summary">
-                  {workingArray.slice(0, 4).join(', ')}
-                  {workingArray.length > 4 ? '…' : ''}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  className="guide-step-header"
+                  onClick={() => setGuideStep(3)}
+                >
+                  <span className="guide-step-num">3</span>
+                  <span className="guide-step-title">Your numbers</span>
+                  <span className="guide-step-summary">
+                    {previewScene === 'array'
+                      ? `${workingArray.slice(0, 4).join(', ')}…`
+                      : `Value: ${paramValue}`}
+                  </span>
+                </button>
 
-              {guideStep === 3 && (
+                {guideStep === 3 && (
+                  <div className="guide-step-body">
+                    {previewScene === 'array' && (
+                      <label className="field-block">
+                        <span className="field-label">
+                          Starting numbers (comma-separated)
+                        </span>
+                        <input
+                          type="text"
+                          className="studio-input large"
+                          value={arrayInputText}
+                          onChange={(e) => setArrayInputText(e.target.value)}
+                          aria-label="Your numbers"
+                          placeholder="42, 17, 68, 29, 84, 12"
+                        />
+                      </label>
+                    )}
+
+                    {previewScene === 'array' && currentArrayAction.needsPosition && (
+                      <label className="field-block">
+                        <span className="field-label">
+                          {currentArrayAction.positionLabel ?? 'Position'}
+                        </span>
+                        <input
+                          type="number"
+                          className="studio-input large"
+                          value={paramIndex}
+                          min={0}
+                          max={20}
+                          onChange={(e) => setParamIndex(Number(e.target.value))}
+                        />
+                      </label>
+                    )}
+
+                    {((previewScene === 'array' && currentArrayAction.needsNumber) ||
+                      (previewScene !== 'array' && currentStructAction.needsNumber) ||
+                      previewScene !== 'array') && (
+                      <label className="field-block">
+                        <span className="field-label">
+                          {previewScene === 'array'
+                            ? (currentArrayAction.numberLabel ?? 'Number')
+                            : (currentStructAction.numberLabel ?? 'Number value')}
+                        </span>
+                        <input
+                          type="number"
+                          className="studio-input large"
+                          value={paramValue}
+                          onChange={(e) => setParamValue(Number(e.target.value))}
+                        />
+                      </label>
+                    )}
+
+                    <div className="step3-btn-row">
+                      <button
+                        type="button"
+                        className="studio-btn primary large"
+                        onClick={handleApplyAndRun}
+                      >
+                        Apply &amp; Run
+                      </button>
+                      <button
+                        type="button"
+                        className="studio-btn surprise-btn large"
+                        onClick={handleSurpriseMe}
+                      >
+                        Surprise me
+                      </button>
+                    </div>
+
+                    {uiMode === 'pro' && previewScene === 'array' && (
+                      <button
+                        type="button"
+                        className="studio-btn full-width"
+                        onClick={() =>
+                          queueOperation(activeOperation, paramIndex, paramValue)
+                        }
+                      >
+                        <IconPlus />
+                        <span>Add to playlist</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </section>
+            </div>
+          ) : (
+            /* RUN MY CODE TAB: C++ Corpus Browser (`cpp_corpus/`) + Custom Code Editor */
+            <div className="corpus-runner-panel">
+              <div className="guide-step-card expanded">
+                <div className="guide-step-header">
+                  <span className="guide-step-num">C++</span>
+                  <span className="guide-step-title">Team C++ Corpus (cpp_corpus/)</span>
+                </div>
                 <div className="guide-step-body">
                   <label className="field-block">
-                    <span className="field-label">Starting numbers (comma-separated)</span>
-                    <input
-                      type="text"
+                    <span className="field-label">
+                      Pick a C++ file from cpp_corpus/ (Weeks 1–15)
+                    </span>
+                    <select
                       className="studio-input large"
-                      value={arrayInputText}
-                      onChange={(e) => setArrayInputText(e.target.value)}
-                      aria-label="Your numbers"
-                      placeholder="42, 17, 68, 29, 84, 12"
+                      value={selectedCorpusFile}
+                      onChange={(e) => {
+                        const path = e.target.value;
+                        selectAndRunCorpusFile(path);
+                        setCustomCodeText(getCorpusRawText(path));
+                      }}
+                    >
+                      {CORPUS_FILE_CATALOG.map((file) => (
+                        <option key={file.relativePath} value={file.relativePath}>
+                          {file.weekLabel} — {file.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="field-block">
+                    <span className="field-label">
+                      C++ Source Code ({selectedCorpusFile})
+                    </span>
+                    <textarea
+                      className="corpus-code-textarea"
+                      value={customCodeText}
+                      onChange={(e) => setCustomCodeText(e.target.value)}
+                      rows={14}
+                      spellCheck={false}
                     />
                   </label>
 
-                  {currentActionOption.needsPosition && (
-                    <label className="field-block">
-                      <span className="field-label">
-                        {currentActionOption.positionLabel ?? 'Position'}
-                      </span>
-                      <input
-                        type="number"
-                        className="studio-input large"
-                        value={paramIndex}
-                        min={0}
-                        max={20}
-                        onChange={(e) => setParamIndex(Number(e.target.value))}
-                      />
-                    </label>
-                  )}
-
-                  {currentActionOption.needsNumber && (
-                    <label className="field-block">
-                      <span className="field-label">
-                        {currentActionOption.numberLabel ?? 'Number'}
-                      </span>
-                      <input
-                        type="number"
-                        className="studio-input large"
-                        value={paramValue}
-                        onChange={(e) => setParamValue(Number(e.target.value))}
-                      />
-                    </label>
-                  )}
-
-                  <div className="step3-btn-row">
-                    <button
-                      type="button"
-                      className="studio-btn primary large"
-                      onClick={handleApplyAndRun}
-                    >
-                      Apply &amp; Run
-                    </button>
-                    <button
-                      type="button"
-                      className="studio-btn surprise-btn large"
-                      onClick={handleSurpriseMe}
-                    >
-                      Surprise me
-                    </button>
-                  </div>
-
-                  {uiMode === 'pro' && (
-                    <button
-                      type="button"
-                      className="studio-btn full-width"
-                      onClick={() =>
-                        queueOperation(activeOperation, paramIndex, paramValue)
-                      }
-                    >
-                      <IconPlus />
-                      <span>Add to playlist</span>
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    className="studio-btn primary large full-width"
+                    onClick={() => selectAndRunCorpusFile(selectedCorpusFile)}
+                  >
+                    <IconPlay />
+                    <span>Visualize on 3D Stage</span>
+                  </button>
                 </div>
-              )}
-            </section>
-          </div>
+              </div>
+            </div>
+          )}
 
-          {/* PRO MODE ONLY: Developer Panels on Left (Scene Collection, Auto-Run, Trace Queue) */}
+          {/* PRO MODE ONLY: Developer Panels on Left */}
           {uiMode === 'pro' && (
             <>
               <section className="dock-panel">
@@ -621,30 +687,17 @@ export function App() {
                 </div>
                 <div className="dock-body">
                   <div className="collection-list">
-                    <button
-                      type="button"
-                      className={`collection-row ${previewScene === 'array' ? 'selected' : ''}`}
-                      onClick={() => setPreviewScene('array')}
-                    >
-                      <span className="col-name">Contiguous Array (1D / Aux)</span>
-                      <span className="col-tag">{workingArray.length} cells</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`collection-row ${previewScene === 'linked-list' ? 'selected' : ''}`}
-                      onClick={() => setPreviewScene('linked-list')}
-                    >
-                      <span className="col-name">Linked List (Node* Heap)</span>
-                      <span className="col-tag">4 nodes</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`collection-row ${previewScene === 'bst' ? 'selected' : ''}`}
-                      onClick={() => setPreviewScene('bst')}
-                    >
-                      <span className="col-name">Binary Search / AVL Tree</span>
-                      <span className="col-tag">7 nodes</span>
-                    </button>
+                    {STRUCTURE_CARDS.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className={`collection-row ${previewScene === c.id ? 'selected' : ''}`}
+                        onClick={() => setPreviewScene(c.id)}
+                      >
+                        <span className="col-name">{c.name}</span>
+                        <span className="col-tag">{c.desc}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               </section>
@@ -813,7 +866,9 @@ export function App() {
 
               {/* Plain-English sentence explaining the highlighted code line */}
               <div className="code-line-explanation">
-                <span className="code-exp-badge">Line {currentSnapshot.activeLine ?? 1}</span>
+                <span className="code-exp-badge">
+                  Line {currentSnapshot.activeLine ?? 1}
+                </span>
                 <p>{plainCodeExplanation}</p>
               </div>
 
