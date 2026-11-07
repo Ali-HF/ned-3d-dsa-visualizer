@@ -110,4 +110,47 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     store.stepBackward();
     expect(useViewportStore.getState().currentStep).toBe(initialStep);
   });
+
+  it('applies custom input numbers across non-array structures and persists mutations', () => {
+    const store = useViewportStore.getState();
+    store.setCustomArray([11, 22, 33, 44]);
+    store.runStructureOperationNow('sll-insert-head', 99);
+    const sllState = useViewportStore.getState();
+    expect(sllState.previewScene).toBe('linked-list');
+    expect(sllState.sceneObjects['node-head']?.value).toBe(11);
+    expect(sllState.workingArray[0]).toBe(99);
+  });
+
+  it('supports distinct Kids, Standard, and Pro UI modes', () => {
+    const store = useViewportStore.getState();
+    store.setUiMode('kids');
+    expect(useViewportStore.getState().uiMode).toBe('kids');
+    store.setUiMode('pro');
+    expect(useViewportStore.getState().uiMode).toBe('pro');
+    store.setUiMode('standard');
+    expect(useViewportStore.getState().uiMode).toBe('standard');
+  });
+
+  it('executes custom C++ code with user-edited array literals and operation calls', () => {
+    const store = useViewportStore.getState();
+    const customCpp = `
+      int arr[] = { 91, 14, 73, 28 };
+      void quickSort(int arr[], int low, int high) {}
+    `;
+    store.runCustomCodeNow(customCpp, 'custom_quick.cpp');
+    const state = useViewportStore.getState();
+    expect(state.previewScene).toBe('array');
+    expect(state.workingArray).toEqual([14, 28, 73, 91]);
+    expect(state.activeMetadata.title).toContain('custom_quick.cpp');
+  });
+
+  it('populates live recursion callStack frames during recursive operations', () => {
+    const store = useViewportStore.getState();
+    store.runStructureOperationNow('recursion-factorial', 4);
+    store.stepForward();
+    store.stepForward();
+    const state = useViewportStore.getState();
+    expect(state.currentSnapshot.callStack.length).toBeGreaterThan(0);
+    expect(state.currentSnapshot.callStack[0]?.fn).toBe('factorial');
+  });
 });
