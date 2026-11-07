@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import {
   Billboard,
@@ -99,13 +99,48 @@ function SceneObjectMesh({
   const heightMm = Math.round(Math.abs(numericVal) * 4.2);
   const hexAddr = `0x7FF${(0x400 + cellIndex * 4).toString(16).toUpperCase()}`;
 
-  // Trigger a fresh 0 -> 1 physical swap trajectory whenever a new swap step occurs
-  if (isSwapped && swapPartner && lastSwapStepRef.current !== snapshot.stepIndex) {
-    lastSwapStepRef.current = snapshot.stepIndex;
-    swapProgressRef.current = 0;
-  } else if (!isSwapped) {
-    lastSwapStepRef.current = -1;
-  }
+  // Initialize transforms once on mount so React re-renders never snap animated refs
+  useLayoutEffect(() => {
+    if (groupRef.current) {
+      groupRef.current.position.set(
+        obj.position[0],
+        isArrayCell ? 0 : Math.max(0.55, obj.position[1]),
+        obj.position[2],
+      );
+    }
+    if (barMeshRef.current) {
+      barMeshRef.current.scale.set(1, targetHeight, 1);
+      barMeshRef.current.position.set(0, targetHeight / 2, 0);
+    }
+    if (valueTextRef.current) {
+      valueTextRef.current.position.set(0, targetHeight + 0.36, 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Trigger a fresh 0 -> 1 physical swap trajectory starting from swapPartner.position
+  useLayoutEffect(() => {
+    if (isSwapped && swapPartner && lastSwapStepRef.current !== snapshot.stepIndex) {
+      lastSwapStepRef.current = snapshot.stepIndex;
+      swapProgressRef.current = 0;
+      if (groupRef.current) {
+        groupRef.current.position.set(
+          swapPartner.position[0],
+          isArrayCell ? 0 : Math.max(0.55, swapPartner.position[1]),
+          swapPartner.position[2],
+        );
+      }
+      if (barMeshRef.current) {
+        barMeshRef.current.scale.set(1, targetHeight, 1);
+        barMeshRef.current.position.set(0, targetHeight / 2, 0);
+      }
+      if (valueTextRef.current) {
+        valueTextRef.current.position.set(0, targetHeight + 0.36, 0);
+      }
+    } else if (!isSwapped) {
+      lastSwapStepRef.current = -1;
+    }
+  }, [isSwapped, swapPartner, snapshot.stepIndex, isArrayCell, targetHeight]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
@@ -113,7 +148,7 @@ function SceneObjectMesh({
 
     // Smooth 3D counter-arc swap animation between swapPartner.position -> obj.position
     if (isSwapped && swapPartner && swapProgressRef.current < 1) {
-      swapProgressRef.current = Math.min(1, swapProgressRef.current + delta * 2.25);
+      swapProgressRef.current = Math.min(1, swapProgressRef.current + delta * 1.9);
       const t = swapProgressRef.current;
       // Cubic ease-in-out
       const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -121,10 +156,10 @@ function SceneObjectMesh({
 
       if (isArrayCell) {
         const x = THREE.MathUtils.lerp(swapPartner.position[0], obj.position[0], ease);
-        const y = arc * 0.32;
+        const y = arc * (swapDirection > 0 ? 0.62 : 0.32);
         const z =
           THREE.MathUtils.lerp(swapPartner.position[2], obj.position[2], ease) +
-          swapDirection * arc * 0.9;
+          swapDirection * arc * 1.35;
         groupRef.current.position.set(x, y, z);
 
         if (barMeshRef.current) {
@@ -139,12 +174,12 @@ function SceneObjectMesh({
         const endY = Math.max(0.55, obj.position[1]);
         const x =
           THREE.MathUtils.lerp(swapPartner.position[0], obj.position[0], ease) +
-          swapDirection * arc * 0.45;
+          swapDirection * arc * 0.65;
         const y =
-          THREE.MathUtils.lerp(startY, endY, ease) + swapDirection * arc * 0.35;
+          THREE.MathUtils.lerp(startY, endY, ease) + swapDirection * arc * 0.48;
         const z =
           THREE.MathUtils.lerp(swapPartner.position[2], obj.position[2], ease) +
-          swapDirection * arc * 0.65;
+          swapDirection * arc * 0.95;
         groupRef.current.position.set(x, y, z);
       }
       return;
@@ -182,11 +217,6 @@ function SceneObjectMesh({
   return (
     <group
       ref={groupRef}
-      position={
-        isArrayCell
-          ? [obj.position[0], 0, obj.position[2]]
-          : [obj.position[0], Math.max(0.55, obj.position[1]), obj.position[2]]
-      }
       onClick={(e) => {
         e.stopPropagation();
         onSelect(obj.id);
@@ -197,8 +227,6 @@ function SceneObjectMesh({
           {/* Blender Solid Studio Grey Bar standing on the ground grid */}
           <mesh
             ref={barMeshRef}
-            position={[0, targetHeight / 2, 0]}
-            scale={[1, targetHeight, 1]}
             castShadow
             receiveShadow
           >
@@ -216,9 +244,9 @@ function SceneObjectMesh({
             />
           </mesh>
 
-          {/* Top VAL Badge (hidden on primary left compared bar because the OP: CMP callout sits above it) */}
-          <group ref={valueTextRef} position={[0, targetHeight + 0.36, 0]}>
-            {!isPrimaryActive && (
+          {/* Top VAL Badge (visible on both bars during swap, hidden on primary left bar only during compare) */}
+          <group ref={valueTextRef}>
+            {(!isPrimaryActive || isSwapped) && (
               <Html center distanceFactor={14} zIndexRange={[5, 0]}>
                 <div className={`stitch-val-badge ${isActiveBar ? 'active' : ''}`}>
                   {isActiveBar && <span className="stitch-val-dot" />}
@@ -399,10 +427,40 @@ function TechnicalComparisonCallout({
 
   const opText =
     mode === 'swap'
-      ? `OP: SWP (A[${idxA}]:${valA} ↔ A[${idxB}]:${valB})`
+      ? `OP: SWP (${fromObj.id}:${valA} ↔ ${toObj.id}:${valB})`
       : `OP: CMP (A[${idxA}]:${valA} > A[${idxB}]:${valB}) = ${
           valA > valB ? 'TRUE' : 'FALSE'
         }`;
+
+  const swapArcFront = useMemo(() => {
+    if (mode !== 'swap') return [];
+    const pts: [number, number, number][] = [];
+    for (let i = 0; i <= 20; i++) {
+      const t = i / 20;
+      const arc = Math.sin(t * Math.PI);
+      pts.push([
+        THREE.MathUtils.lerp(fromObj.position[0], toObj.position[0], t),
+        THREE.MathUtils.lerp(hA * 0.55, hB * 0.55, t) + arc * 0.65,
+        THREE.MathUtils.lerp(fromObj.position[2], toObj.position[2], t) + arc * 1.35,
+      ]);
+    }
+    return pts;
+  }, [mode, fromObj.position, toObj.position, hA, hB]);
+
+  const swapArcBack = useMemo(() => {
+    if (mode !== 'swap') return [];
+    const pts: [number, number, number][] = [];
+    for (let i = 0; i <= 20; i++) {
+      const t = i / 20;
+      const arc = Math.sin(t * Math.PI);
+      pts.push([
+        THREE.MathUtils.lerp(toObj.position[0], fromObj.position[0], t),
+        THREE.MathUtils.lerp(hB * 0.55, hA * 0.55, t) + arc * 0.35,
+        THREE.MathUtils.lerp(toObj.position[2], fromObj.position[2], t) - arc * 1.35,
+      ]);
+    }
+    return pts;
+  }, [mode, fromObj.position, toObj.position, hA, hB]);
 
   return (
     <group>
@@ -418,7 +476,14 @@ function TechnicalComparisonCallout({
         lineWidth={1.5}
       />
 
-      {/* Main OP: CMP Callout Box above first bar */}
+      {mode === 'swap' && swapArcFront.length > 0 && (
+        <>
+          <Line points={swapArcFront} color="#ffa834" lineWidth={2.2} />
+          <Line points={swapArcBack} color="#4772b3" lineWidth={1.8} />
+        </>
+      )}
+
+      {/* Main OP: CMP / SWP Callout Box above first bar */}
       <Html
         position={[fromObj.position[0] + 0.25, topY + 0.35, fromObj.position[2]]}
         center
@@ -428,14 +493,16 @@ function TechnicalComparisonCallout({
         <div className="stitch-op-callout">{opText}</div>
       </Html>
 
-      {/* Delta pill on the horizontal bridge */}
+      {/* Delta / Swap pill on the horizontal bridge */}
       <Html
         position={[midX, topY - 0.15, fromObj.position[2]]}
         center
         distanceFactor={14}
         zIndexRange={[7, 0]}
       >
-        <span className="stitch-delta-pill">Δ {diffStr}</span>
+        <span className="stitch-delta-pill">
+          {mode === 'swap' ? '⇄ SWAP' : `Δ ${diffStr}`}
+        </span>
       </Html>
     </group>
   );

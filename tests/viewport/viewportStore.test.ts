@@ -153,4 +153,30 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     expect(state.currentSnapshot.callStack.length).toBeGreaterThan(0);
     expect(state.currentSnapshot.callStack[0]?.fn).toBe('factorial');
   });
+
+  it('stops directly on active comparedRefs and swappedRefs steps when stepping through Array and Heap operations', () => {
+    const store = useViewportStore.getState();
+    store.setCustomArray([42, 17, 68]);
+    store.runOperationNow('bubble-sort');
+
+    let sawCompare = false;
+    let sawSwap = false;
+    for (let i = 0; i < 8; i++) {
+      store.stepForward();
+      const snap = useViewportStore.getState().currentSnapshot;
+      if (snap.comparedRefs) sawCompare = true;
+      if (snap.swappedRefs) sawSwap = true;
+    }
+    expect(sawCompare).toBe(true);
+    expect(sawSwap).toBe(true);
+
+    store.runStructureOperationNow('heap-insert', 95);
+    let sawHeapSwap = false;
+    for (let i = 0; i < 8; i++) {
+      store.stepForward();
+      const snap = useViewportStore.getState().currentSnapshot;
+      if (snap.swappedRefs) sawHeapSwap = true;
+    }
+    expect(sawHeapSwap).toBe(true);
+  });
 });
