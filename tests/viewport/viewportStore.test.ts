@@ -179,4 +179,87 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     }
     expect(sawHeapSwap).toBe(true);
   });
+
+  it('executes custom C++ loops with swap() and manual temp swaps in the live sandbox', () => {
+    const store = useViewportStore.getState();
+
+    // 1. Custom descending sort loop
+    const descendingCpp = `
+      int main() {
+        int arr[] = { 20, 80, 40, 60 };
+        for (int i = 0; i < 3; i++) {
+          for (int j = 0; j < 3 - i; j++) {
+            if (arr[j] < arr[j + 1]) {
+              swap(arr[j], arr[j + 1]);
+            }
+          }
+        }
+        return 0;
+      }
+    `;
+    store.runCustomCodeNow(descendingCpp, 'descending_sort.cpp');
+    let state = useViewportStore.getState();
+    expect(state.previewScene).toBe('array');
+    expect(state.workingArray).toEqual([80, 60, 40, 20]);
+    expect(state.timeline.events.some((e) => e.t === 'swap')).toBe(true);
+    expect(state.timeline.events.some((e) => e.t === 'compare')).toBe(true);
+
+    // 2. Manual 3-line temp variable swap
+    const tempSwapCpp = `
+      int arr[] = { 10, 50, 90 };
+      int temp = arr[0];
+      arr[0] = arr[2];
+      arr[2] = temp;
+    `;
+    store.runCustomCodeNow(tempSwapCpp, 'temp_swap.cpp');
+    state = useViewportStore.getState();
+    expect(state.workingArray).toEqual([90, 50, 10]);
+    expect(state.timeline.events.some((e) => e.t === 'swap')).toBe(true);
+  });
+
+  it('executes multi-step Stack, Queue, and Linked List scripts in Run My Code', () => {
+    const store = useViewportStore.getState();
+
+    // Stack script
+    store.runCustomCodeNow(
+      `
+      push(20);
+      push(45);
+      push(75);
+      pop();
+      push(92);
+      `,
+      'stack_script.cpp',
+    );
+    let state = useViewportStore.getState();
+    expect(state.previewScene).toBe('stack');
+    expect(state.workingArray).toEqual([20, 45, 92]);
+
+    // Queue script
+    store.runCustomCodeNow(
+      `
+      enqueue(11);
+      enqueue(22);
+      dequeue();
+      enqueue(33);
+      `,
+      'queue_script.cpp',
+    );
+    state = useViewportStore.getState();
+    expect(state.previewScene).toBe('queue');
+    expect(state.workingArray).toEqual([22, 33]);
+
+    // Linked List script
+    store.runCustomCodeNow(
+      `
+      insertHead(5);
+      insertTail(99);
+      `,
+      'sll_script.cpp',
+    );
+    state = useViewportStore.getState();
+    expect(state.previewScene).toBe('linked-list');
+    expect(state.workingArray[0]).toBe(5);
+    expect(state.workingArray[state.workingArray.length - 1]).toBe(99);
+  });
 });

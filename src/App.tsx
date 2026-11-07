@@ -148,6 +148,57 @@ const STRUCTURE_CARDS: {
   },
 ];
 
+const CUSTOM_CODE_TEMPLATES: { label: string; fileName: string; code: string }[] = [
+  {
+    label: 'Custom Swap',
+    fileName: 'custom_sort.cpp',
+    code: `// Write custom C++ or JS loops, comparisons & swaps!
+int main() {
+  int arr[] = { 65, 18, 84, 32, 47, 12 };
+  int n = 6;
+  for (int i = 0; i < n - 1; i++) {
+    for (int j = 0; j < n - i - 1; j++) {
+      if (arr[j] > arr[j + 1]) {
+        swap(arr[j], arr[j + 1]);
+      }
+    }
+  }
+  return 0;
+}`,
+  },
+  {
+    label: 'Stack Script',
+    fileName: 'stack_script.cpp',
+    code: `// Multi-step Stack LIFO script
+push(20);
+push(45);
+push(75);
+pop();
+push(92);
+peek();`,
+  },
+  {
+    label: 'Queue Script',
+    fileName: 'queue_script.cpp',
+    code: `// Multi-step Queue FIFO script
+enqueue(15);
+enqueue(35);
+enqueue(60);
+dequeue();
+enqueue(88);`,
+  },
+  {
+    label: 'Linked List',
+    fileName: 'sll_script.cpp',
+    code: `// Multi-step Singly Linked List script
+insertHead(12);
+insertTail(48);
+insertTail(76);
+deleteValue(48);
+insertTail(95);`,
+  },
+];
+
 const STITCH_TABS: StitchCategoryTab[] = ['Sort', 'Add', 'Del', 'Find', 'Walk'];
 
 function mapGroupToTab(group: 'Sort' | 'Add' | 'Remove' | 'Find'): StitchCategoryTab {
@@ -727,6 +778,22 @@ export function App() {
                     </option>
                   ))}
                 </select>
+                <div className="st-filter-pills" style={{ marginBottom: 6 }}>
+                  {CUSTOM_CODE_TEMPLATES.map((tpl) => (
+                    <button
+                      key={tpl.label}
+                      type="button"
+                      className="st-pill-tab"
+                      title={`Load ${tpl.fileName}`}
+                      onClick={() => {
+                        setCustomCodeText(tpl.code);
+                        runCustomCodeNow(tpl.code, tpl.fileName);
+                      }}
+                    >
+                      {tpl.label}
+                    </button>
+                  ))}
+                </div>
                 <textarea
                   className="st-corpus-textarea"
                   value={customCodeText}
@@ -737,11 +804,23 @@ export function App() {
                 <button
                   type="button"
                   className="st-corpus-run-btn"
-                  onClick={() => runCustomCodeNow(customCodeText)}
+                  onClick={() => runCustomCodeNow(customCodeText, 'custom_code.cpp')}
                 >
                   <IconPlay />
                   <span>Visualize on 3D Stage</span>
                 </button>
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 10.5,
+                    color: '#9ca3af',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <span>Active: {displayedCodeMeta.title}</span>
+                  <code style={{ color: '#4ade80' }}>{totalSteps} events</code>
+                </div>
               </section>
             </div>
           )}
