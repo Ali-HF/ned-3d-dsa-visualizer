@@ -22,6 +22,8 @@ interface NodeMeshProps {
   wireframe: boolean;
   snapshot: TraceStateSnapshot;
   isPrimaryActive: boolean;
+  swapPartner: SceneObjectInfo | null;
+  swapDirection: 1 | -1;
   uiMode: 'kids' | 'standard' | 'pro';
   onSelect: (id: string) => void;
 }
@@ -32,6 +34,8 @@ function SceneObjectMesh({
   wireframe,
   snapshot,
   isPrimaryActive,
+  swapPartner,
+  swapDirection,
   uiMode,
   onSelect,
 }: NodeMeshProps) {
@@ -39,6 +43,8 @@ function SceneObjectMesh({
   const groupRef = useRef<THREE.Group>(null);
   const barMeshRef = useRef<THREE.Mesh>(null);
   const valueTextRef = useRef<THREE.Group>(null);
+  const swapProgressRef = useRef(1);
+  const lastSwapStepRef = useRef(-1);
 
   const isArrayCell = obj.kind === 'array-cell';
   const isCircularNode = obj.kind === 'tree-node' || obj.kind === 'graph-node';
@@ -93,16 +99,60 @@ function SceneObjectMesh({
   const heightMm = Math.round(Math.abs(numericVal) * 4.2);
   const hexAddr = `0x7FF${(0x400 + cellIndex * 4).toString(16).toUpperCase()}`;
 
+  // Trigger a fresh 0 -> 1 physical swap trajectory whenever a new swap step occurs
+  if (isSwapped && swapPartner && lastSwapStepRef.current !== snapshot.stepIndex) {
+    lastSwapStepRef.current = snapshot.stepIndex;
+    swapProgressRef.current = 0;
+  } else if (!isSwapped) {
+    lastSwapStepRef.current = -1;
+  }
+
   useFrame((state, delta) => {
     if (!groupRef.current) return;
-    const step = Math.min(1, delta * 14);
+    const step = Math.min(1, delta * 12);
+
+    // Smooth 3D counter-arc swap animation between swapPartner.position -> obj.position
+    if (isSwapped && swapPartner && swapProgressRef.current < 1) {
+      swapProgressRef.current = Math.min(1, swapProgressRef.current + delta * 2.25);
+      const t = swapProgressRef.current;
+      // Cubic ease-in-out
+      const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      const arc = Math.sin(t * Math.PI);
+
+      if (isArrayCell) {
+        const x = THREE.MathUtils.lerp(swapPartner.position[0], obj.position[0], ease);
+        const y = arc * 0.32;
+        const z =
+          THREE.MathUtils.lerp(swapPartner.position[2], obj.position[2], ease) +
+          swapDirection * arc * 0.9;
+        groupRef.current.position.set(x, y, z);
+
+        if (barMeshRef.current) {
+          barMeshRef.current.scale.y = targetHeight;
+          barMeshRef.current.position.y = targetHeight / 2;
+        }
+        if (valueTextRef.current) {
+          valueTextRef.current.position.y = targetHeight + 0.36;
+        }
+      } else {
+        const startY = Math.max(0.55, swapPartner.position[1]);
+        const endY = Math.max(0.55, obj.position[1]);
+        const x =
+          THREE.MathUtils.lerp(swapPartner.position[0], obj.position[0], ease) +
+          swapDirection * arc * 0.45;
+        const y =
+          THREE.MathUtils.lerp(startY, endY, ease) + swapDirection * arc * 0.35;
+        const z =
+          THREE.MathUtils.lerp(swapPartner.position[2], obj.position[2], ease) +
+          swapDirection * arc * 0.65;
+        groupRef.current.position.set(x, y, z);
+      }
+      return;
+    }
 
     if (isArrayCell) {
       // Array bars stand directly on the y = 0 horizontal ground plane
       const targetGroupPos = new THREE.Vector3(obj.position[0], 0, obj.position[2]);
-      if (isSwapped) {
-        targetGroupPos.z += 0.25;
-      }
       groupRef.current.position.lerp(targetGroupPos, step);
 
       if (barMeshRef.current) {
@@ -538,18 +588,31 @@ function SceneContents() {
         />
       )}
 
-      {objectList.map((obj) => (
-        <SceneObjectMesh
-          key={obj.id}
-          obj={obj}
-          selected={selectedId === obj.id}
-          wireframe={wireframe}
-          snapshot={currentSnapshot}
-          isPrimaryActive={obj.id === primaryActiveId}
-          uiMode={uiMode}
-          onSelect={(id) => selectObject(id)}
-        />
-      ))}
+      {objectList.map((obj) => {
+        const isFirstSwap = swapPair?.a.id === obj.id;
+        const isSecondSwap = swapPair?.b.id === obj.id;
+        const swapPartner = isFirstSwap
+          ? (swapPair?.b ?? null)
+          : isSecondSwap
+            ? (swapPair?.a ?? null)
+            : null;
+        const swapDirection: 1 | -1 = isFirstSwap ? 1 : -1;
+
+        return (
+          <SceneObjectMesh
+            key={obj.id}
+            obj={obj}
+            selected={selectedId === obj.id}
+            wireframe={wireframe}
+            snapshot={currentSnapshot}
+            isPrimaryActive={obj.id === primaryActiveId}
+            swapPartner={swapPartner}
+            swapDirection={swapDirection}
+            uiMode={uiMode}
+            onSelect={(id) => selectObject(id)}
+          />
+        );
+      })}
 
       <GizmoHelper alignment="top-right" margin={[54, 54]}>
         <GizmoViewport

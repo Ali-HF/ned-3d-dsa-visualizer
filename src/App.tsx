@@ -241,7 +241,7 @@ export function App() {
   // Playback timer loop
   useEffect(() => {
     if (!isPlaying) return;
-    const intervalMs = Math.max(45, Math.round(460 / playbackSpeed));
+    const intervalMs = Math.max(60, Math.round(620 / playbackSpeed));
     const timer = window.setInterval(() => {
       useViewportStore.getState().stepForward();
     }, intervalMs);
