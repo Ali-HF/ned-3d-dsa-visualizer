@@ -47,8 +47,21 @@ function SceneObjectMesh({
   const lastSwapStepRef = useRef(-1);
 
   const isArrayCell = obj.kind === 'array-cell';
-  const isCircularNode = obj.kind === 'tree-node' || obj.kind === 'graph-node';
+  const isStackSlab =
+    obj.kind === 'stack-slab' ||
+    obj.id.startsWith('stk-') ||
+    obj.id.startsWith('stack-');
+  const isTopSlab =
+    isStackSlab &&
+    !snapshot.edges.some((e) => e.to === obj.id && e.label === 'below') &&
+    Object.keys(snapshot.nodes).length > 0;
   const numericVal = typeof obj.value === 'number' ? obj.value : 20;
+  const isHanoiDisk =
+    Boolean(obj.fields.isHanoi) && typeof numericVal === 'number';
+  const slabRadius = isHanoiDisk
+    ? 0.95 + (Math.min(30, Math.max(10, numericVal)) / 30) * 0.75
+    : 1.45;
+  const baseMinY = isStackSlab ? 0.2 : 0.55;
   const targetHeight = isArrayCell
     ? Math.max(0.65, Math.min(4.8, Math.abs(numericVal) / 18))
     : 1.1;
@@ -104,7 +117,7 @@ function SceneObjectMesh({
     if (groupRef.current) {
       groupRef.current.position.set(
         obj.position[0],
-        isArrayCell ? 0 : Math.max(0.55, obj.position[1]),
+        isArrayCell ? 0 : Math.max(baseMinY, obj.position[1]),
         obj.position[2],
       );
     }
@@ -126,7 +139,7 @@ function SceneObjectMesh({
       if (groupRef.current) {
         groupRef.current.position.set(
           swapPartner.position[0],
-          isArrayCell ? 0 : Math.max(0.55, swapPartner.position[1]),
+          isArrayCell ? 0 : Math.max(baseMinY, swapPartner.position[1]),
           swapPartner.position[2],
         );
       }
@@ -140,7 +153,7 @@ function SceneObjectMesh({
     } else if (!isSwapped) {
       lastSwapStepRef.current = -1;
     }
-  }, [isSwapped, swapPartner, snapshot.stepIndex, isArrayCell, targetHeight]);
+  }, [isSwapped, swapPartner, snapshot.stepIndex, isArrayCell, targetHeight, baseMinY]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
@@ -170,8 +183,8 @@ function SceneObjectMesh({
           valueTextRef.current.position.y = targetHeight + 0.36;
         }
       } else {
-        const startY = Math.max(0.55, swapPartner.position[1]);
-        const endY = Math.max(0.55, obj.position[1]);
+        const startY = Math.max(baseMinY, swapPartner.position[1]);
+        const endY = Math.max(baseMinY, obj.position[1]);
         const x =
           THREE.MathUtils.lerp(swapPartner.position[0], obj.position[0], ease) +
           swapDirection * arc * 0.65;
@@ -204,7 +217,7 @@ function SceneObjectMesh({
     } else {
       const targetNodePos = new THREE.Vector3(
         obj.position[0],
-        Math.max(0.55, obj.position[1]),
+        Math.max(baseMinY, obj.position[1]),
         obj.position[2],
       );
       if (isActiveVisit) {
@@ -284,8 +297,66 @@ function SceneObjectMesh({
             </div>
           </Html>
         </>
-      ) : isCircularNode ? (
+      ) : isStackSlab ? (
         <>
+          {/* Vertical Rounded Slab (Cylinder Disk) */}
+          <mesh castShadow receiveShadow>
+            <cylinderGeometry args={[slabRadius, slabRadius, 0.42, 48]} />
+            <meshStandardMaterial
+              color={fillColor}
+              roughness={0.52}
+              metalness={0.06}
+              wireframe={wireframe}
+            />
+            <Edges
+              threshold={20}
+              color={edgeColor}
+              lineWidth={isActiveBar || selected ? 2.4 : 1.2}
+            />
+          </mesh>
+
+          {/* Front Horizontal Slab Badge: prevents vertical overlap on stacked slabs */}
+          <Html
+            position={[0, 0, slabRadius + 0.35]}
+            center
+            distanceFactor={14}
+            zIndexRange={[5, 0]}
+          >
+            <div className={`stitch-slab-badge ${isActiveBar ? 'active' : ''}`}>
+              <span
+                className={`stitch-idx-box ${
+                  isActiveBar || visitOrderIndex >= 0 ? 'active' : ''
+                }`}
+              >
+                {obj.id}
+              </span>
+              <div className="stitch-val-badge">
+                {isActiveBar && <span className="stitch-val-dot" />}
+                <span>
+                  {isKids ? String(obj.value) : `VAL: ${String(obj.value)}`}
+                </span>
+              </div>
+              {!isKids && (
+                <span className="stitch-hex-addr">{obj.memoryAddress}</span>
+              )}
+            </div>
+          </Html>
+
+          {/* Floating TOP Indicator above topmost slab */}
+          {isTopSlab && (
+            <Html
+              position={[0, 0.42, 0]}
+              center
+              distanceFactor={14}
+              zIndexRange={[6, 0]}
+            >
+              <div className="stitch-top-badge">TOP ▲</div>
+            </Html>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Circular Node (Sphere with contour ring) for Tree, Graph, Linked List, Queue */}
           <mesh castShadow receiveShadow>
             <sphereGeometry args={[0.58, 32, 32]} />
             <meshStandardMaterial
@@ -312,52 +383,6 @@ function SceneObjectMesh({
               />
             </mesh>
           </Billboard>
-
-          <Html position={[0, 0.85, 0]} center distanceFactor={14} zIndexRange={[5, 0]}>
-            <div className={`stitch-val-badge ${isActiveBar ? 'active' : ''}`}>
-              {isActiveBar && <span className="stitch-val-dot" />}
-              <span>
-                {isKids ? String(obj.value) : `VAL: ${String(obj.value)}`}
-              </span>
-            </div>
-          </Html>
-
-          <Html
-            position={[0, -0.78, 0.2]}
-            center
-            distanceFactor={14}
-            zIndexRange={[4, 0]}
-          >
-            <div className="stitch-under-bar">
-              <span
-                className={`stitch-idx-box ${
-                  isActiveBar || visitOrderIndex >= 0 ? 'active' : ''
-                }`}
-              >
-                {obj.id}
-              </span>
-              {!isKids && (
-                <span className="stitch-hex-addr">{obj.memoryAddress}</span>
-              )}
-            </div>
-          </Html>
-        </>
-      ) : (
-        <>
-          <mesh castShadow receiveShadow>
-            <boxGeometry args={[1.05, 1.05, 1.05]} />
-            <meshStandardMaterial
-              color={fillColor}
-              roughness={0.55}
-              metalness={0.05}
-              wireframe={wireframe}
-            />
-            <Edges
-              threshold={15}
-              color={edgeColor}
-              lineWidth={isActiveBar || selected ? 2.2 : 1.0}
-            />
-          </mesh>
 
           <Html position={[0, 0.85, 0]} center distanceFactor={14} zIndexRange={[5, 0]}>
             <div className={`stitch-val-badge ${isActiveBar ? 'active' : ''}`}>
@@ -619,18 +644,26 @@ function SceneContents() {
         obj.linksTo.map((link) => {
           const target = sceneObjects[link.targetId];
           if (!target) return null;
+          // For stacked slabs, do not draw an internal vertical arrow cutting through the solid slabs
+          if (
+            link.label === 'below' &&
+            (obj.kind === 'stack-slab' || obj.id.startsWith('stk-')) &&
+            (target.kind === 'stack-slab' || target.id.startsWith('stk-'))
+          ) {
+            return null;
+          }
           const highlighted = selectedId === obj.id || selectedId === target.id;
           return (
             <DirectedEdge3D
               key={`${obj.id}->${link.targetId}-${link.label}`}
               from={[
                 obj.position[0],
-                Math.max(0.55, obj.position[1]),
+                Math.max(0.2, obj.position[1]),
                 obj.position[2],
               ]}
               to={[
                 target.position[0],
-                Math.max(0.55, target.position[1]),
+                Math.max(0.2, target.position[1]),
                 target.position[2],
               ]}
               label={link.label}

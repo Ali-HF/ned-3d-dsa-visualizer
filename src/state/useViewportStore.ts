@@ -299,9 +299,10 @@ export function buildSceneObjectsForScene(
       pos = [startX + idx * spacing, 1.0, zOffset];
       kind = 'list-node';
     } else if (scene === 'stack') {
-      // Vertical 3D Stack along Y axis
-      pos = [0, 0.65 + idx * 1.15, 0];
-      kind = 'list-node';
+      // Vertical 3D Stack along Y axis (rounded slabs stacked vertically)
+      const slabSpacing = 0.58;
+      pos = [0, 0.24 + idx * slabSpacing, 0];
+      kind = 'stack-slab';
     } else if (scene === 'queue') {
       if (node.id.startsWith('cq-')) {
         // Circular Queue ring layout

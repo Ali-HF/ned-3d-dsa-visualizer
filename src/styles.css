@@ -910,6 +910,52 @@ body,
   color: #9ca3af;
 }
 
+/* Vertical Stack Rounded Slab Badge & Top Marker */
+.stitch-slab-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(28, 28, 28, 0.92);
+  border: 1px solid var(--border-card);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: var(--font-mono);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  user-select: none;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.stitch-slab-badge.active {
+  border-color: var(--amber-gold);
+  background: rgba(45, 33, 18, 0.95);
+  box-shadow: 0 0 10px rgba(255, 159, 44, 0.4);
+}
+
+.stitch-top-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--amber-gold);
+  color: #1a1a1a;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  animation: pulse-top 1.8s infinite ease-in-out;
+  user-select: none;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+@keyframes pulse-top {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
 /* Iconic Blender 3D Cursor at Origin */
 .blender-3d-cursor {
   position: relative;

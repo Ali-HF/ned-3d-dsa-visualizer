@@ -67,11 +67,15 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
 
     store.setPreviewScene('stack');
     expect(useViewportStore.getState().previewScene).toBe('stack');
-    expect(Object.keys(useViewportStore.getState().sceneObjects).length).toBeGreaterThan(0);
+    const stackObjs = Object.values(useViewportStore.getState().sceneObjects);
+    expect(stackObjs.length).toBeGreaterThan(0);
+    expect(stackObjs[0]?.kind).toBe('stack-slab');
 
     store.setPreviewScene('queue');
     expect(useViewportStore.getState().previewScene).toBe('queue');
-    expect(Object.keys(useViewportStore.getState().sceneObjects).length).toBeGreaterThan(0);
+    const queueObjs = Object.values(useViewportStore.getState().sceneObjects);
+    expect(queueObjs.length).toBeGreaterThan(0);
+    expect(queueObjs[0]?.kind).toBe('list-node');
 
     store.setPreviewScene('heap');
     expect(useViewportStore.getState().previewScene).toBe('heap');

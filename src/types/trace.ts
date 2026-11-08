@@ -33,7 +33,7 @@ export type TraceEvent =
  */
 export interface SceneObjectInfo {
   id: string;
-  kind: 'array-cell' | 'list-node' | 'tree-node' | 'graph-node';
+  kind: 'array-cell' | 'list-node' | 'tree-node' | 'graph-node' | 'stack-slab';
   label: string;
   value: Primitive;
   memoryAddress: string;

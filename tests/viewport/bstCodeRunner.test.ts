@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { useViewportStore } from '../../src/state/useViewportStore';
 import { executeCustomCodeTrace } from '../../src/engine/codeRunner';
 
