@@ -640,7 +640,7 @@ function SceneContents() {
         }),
       )}
 
-      {comparePair && (
+      {comparePair && comparePair.a.id !== comparePair.b.id && (
         <TechnicalComparisonCallout
           fromObj={comparePair.a}
           toObj={comparePair.b}
