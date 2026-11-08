@@ -366,6 +366,36 @@ export function buildSceneObjectsForScene(
     scene === 'graph' ? computeDynamicGraphLayout(snapshot) : null;
   const dynamicHashCoords =
     scene === 'hash-table' ? computeDynamicHashChainLayout(snapshot) : null;
+  const isHanoiScene =
+    scene === 'stack' && snapshot.edges.some((e) => e.label === 'peg');
+  const hanoiCoords: Record<string, [number, number, number]> = {};
+  if (isHanoiScene) {
+    const pegXMap: Record<string, number> = {
+      'peg-A': -3.8,
+      'peg-B': 0,
+      'peg-C': 3.8,
+    };
+    const byPeg: Record<string, typeof nodeEntries> = {
+      'peg-A': [],
+      'peg-B': [],
+      'peg-C': [],
+    };
+    for (const n of nodeEntries) {
+      const pegEdge = snapshot.edges.find(
+        (e) => e.from === n.id && e.label === 'peg',
+      );
+      const pegId = pegEdge?.to && pegEdge.to in byPeg ? pegEdge.to : 'peg-A';
+      byPeg[pegId].push(n);
+    }
+    for (const [pegId, disks] of Object.entries(byPeg)) {
+      // Larger disk values sit lower on the peg
+      disks.sort((a, b) => Number(b.value ?? 0) - Number(a.value ?? 0));
+      const px = pegXMap[pegId] ?? 0;
+      disks.forEach((d, dIdx) => {
+        hanoiCoords[d.id] = [px, 0.24 + dIdx * 0.56, 0];
+      });
+    }
+  }
 
   return nodeEntries.map((node, idx) => {
     const outgoingLinks = snapshot.edges
@@ -383,9 +413,9 @@ export function buildSceneObjectsForScene(
       pos = [startX + idx * spacing, 1.0, zOffset];
       kind = 'list-node';
     } else if (scene === 'stack') {
-      // Vertical 3D Stack along Y axis (rounded slabs stacked vertically)
+      // Vertical 3D Stack along Y axis (or 3-peg Tower of Hanoi layout)
       const slabSpacing = 0.58;
-      pos = [0, 0.24 + idx * slabSpacing, 0];
+      pos = hanoiCoords[node.id] ?? [0, 0.24 + idx * slabSpacing, 0];
       kind = 'stack-slab';
     } else if (scene === 'queue') {
       if (node.id.startsWith('cq-')) {
@@ -423,6 +453,7 @@ export function buildSceneObjectsForScene(
         id: node.id,
         value: node.value,
         links: outgoingLinks.length,
+        isHanoi: isHanoiScene,
       },
       linksTo: outgoingLinks,
     };

@@ -52,9 +52,11 @@ function SceneObjectMesh({
     obj.id.startsWith('stk-') ||
     obj.id.startsWith('stack-');
   const isHashBucket = obj.id.startsWith('b-');
+  const isHanoi = Boolean(obj.fields.isHanoi);
   const isTopSlab =
     isStackSlab &&
     !isHashBucket &&
+    !isHanoi &&
     !snapshot.edges.some((e) => e.to === obj.id && e.label === 'below') &&
     Object.keys(snapshot.nodes).length > 0;
   const isQueueNode =
@@ -611,6 +613,44 @@ function BlenderGroundAxes() {
   );
 }
 
+function HanoiPegs3D() {
+  const pegs: { id: string; label: string; x: number }[] = [
+    { id: 'peg-A', label: 'PEG A (SRC)', x: -3.8 },
+    { id: 'peg-B', label: 'PEG B (AUX)', x: 0 },
+    { id: 'peg-C', label: 'PEG C (DST)', x: 3.8 },
+  ];
+  return (
+    <group>
+      {pegs.map((peg) => (
+        <group key={peg.id} position={[peg.x, 0, 0]}>
+          {/* Base pedestal */}
+          <mesh position={[0, 0.03, 0]} receiveShadow>
+            <cylinderGeometry args={[1.95, 2.05, 0.06, 36]} />
+            <meshStandardMaterial color="#424242" roughness={0.7} />
+          </mesh>
+          {/* Vertical peg rod */}
+          <mesh position={[0, 1.35, 0]} castShadow>
+            <cylinderGeometry args={[0.11, 0.11, 2.7, 20]} />
+            <meshStandardMaterial
+              color="#7a6855"
+              roughness={0.5}
+              metalness={0.1}
+            />
+          </mesh>
+          <Html
+            position={[0, 2.85, 0]}
+            center
+            distanceFactor={14}
+            zIndexRange={[4, 0]}
+          >
+            <div className="stitch-top-badge">{peg.label}</div>
+          </Html>
+        </group>
+      ))}
+    </group>
+  );
+}
+
 function Blender3DCursor() {
   return (
     <Html position={[0, 0.01, 0]} center zIndexRange={[6, 0]}>
@@ -687,6 +727,7 @@ function SceneContents() {
       )}
 
       <Blender3DCursor />
+      {objectList.some((o) => Boolean(o.fields.isHanoi)) && <HanoiPegs3D />}
 
       {objectList.map((obj) =>
         obj.linksTo.map((link) => {
