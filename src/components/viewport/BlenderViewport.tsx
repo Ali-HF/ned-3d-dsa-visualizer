@@ -55,6 +55,39 @@ function SceneObjectMesh({
     isStackSlab &&
     !snapshot.edges.some((e) => e.to === obj.id && e.label === 'below') &&
     Object.keys(snapshot.nodes).length > 0;
+  const isQueueNode =
+    obj.id.startsWith('q-') ||
+    obj.id.startsWith('cq-') ||
+    obj.id.startsWith('dq-');
+  const isListNode = obj.id.startsWith('node-') || obj.id.startsWith('ll-');
+  const hasIncomingNext = snapshot.edges.some(
+    (e) =>
+      e.to === obj.id &&
+      (e.label === 'next' || e.label === 'wrap % N' || !e.label),
+  );
+  const hasOutgoingNext = snapshot.edges.some(
+    (e) =>
+      e.from === obj.id &&
+      (e.label === 'next' || e.label === 'wrap % N' || !e.label),
+  );
+  const nodeCount = Object.keys(snapshot.nodes).length;
+  const pointerTag = isQueueNode
+    ? !hasIncomingNext && !hasOutgoingNext
+      ? 'FRONT / REAR'
+      : !hasIncomingNext
+        ? 'FRONT ▲'
+        : !hasOutgoingNext && nodeCount > 1
+          ? 'REAR ▼'
+          : null
+    : isListNode
+      ? !hasIncomingNext && !hasOutgoingNext
+        ? 'HEAD / TAIL'
+        : !hasIncomingNext
+          ? 'HEAD ▲'
+          : !hasOutgoingNext && nodeCount > 1
+            ? 'TAIL ▼'
+            : null
+      : null;
   const numericVal = typeof obj.value === 'number' ? obj.value : 20;
   const isHanoiDisk =
     Boolean(obj.fields.isHanoi) && typeof numericVal === 'number';
@@ -384,6 +417,17 @@ function SceneObjectMesh({
             </mesh>
           </Billboard>
 
+          {pointerTag && (
+            <Html
+              position={[0, 1.32, 0]}
+              center
+              distanceFactor={14}
+              zIndexRange={[6, 0]}
+            >
+              <div className="stitch-top-badge">{pointerTag}</div>
+            </Html>
+          )}
+
           <Html position={[0, 0.85, 0]} center distanceFactor={14} zIndexRange={[5, 0]}>
             <div className={`stitch-val-badge ${isActiveBar ? 'active' : ''}`}>
               {isActiveBar && <span className="stitch-val-dot" />}
@@ -653,6 +697,9 @@ function SceneContents() {
             return null;
           }
           const highlighted = selectedId === obj.id || selectedId === target.id;
+          const bidirectional = target.linksTo.some(
+            (rev) => rev.targetId === obj.id,
+          );
           return (
             <DirectedEdge3D
               key={`${obj.id}->${link.targetId}-${link.label}`}
@@ -668,6 +715,7 @@ function SceneContents() {
               ]}
               label={link.label}
               highlighted={highlighted}
+              bidirectional={bidirectional}
             />
           );
         }),

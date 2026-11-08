@@ -1108,6 +1108,7 @@ export function runStructureOperation(
         { t: 'note', text: 'Dequeued 10 from slot 0, freeing up space at the start of the buffer.' },
         { t: 'create', id: 'cq-wrap', kind: 'node', value: 99 },
         { t: 'link', from: 'cq-3', to: 'cq-wrap', label: 'wrap % N' },
+        { t: 'link', from: 'cq-wrap', to: 'cq-1', label: 'loop' },
         { t: 'visit', id: 'cq-wrap' },
         {
           t: 'note',
