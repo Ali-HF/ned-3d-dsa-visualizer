@@ -284,6 +284,50 @@ export function App() {
   const codeViewerRef = useRef<HTMLPreElement>(null);
   const activeLineRef = useRef<HTMLDivElement>(null);
 
+  const [rightDrawerWidth, setRightDrawerWidth] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('dsa_right_drawer_width');
+      const parsed = Number(saved);
+      return Number.isFinite(parsed) && parsed >= 260 && parsed <= 900 ? parsed : 380;
+    } catch {
+      return 380;
+    }
+  });
+  const [isResizing, setIsResizing] = useState(false);
+
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    const startX = e.clientX;
+    const startW = rightDrawerWidth;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const delta = startX - moveEvent.clientX;
+      const minW = 260;
+      const maxW = Math.max(minW, window.innerWidth - 320);
+      const newWidth = Math.max(minW, Math.min(maxW, Math.round(startW + delta)));
+      setRightDrawerWidth(newWidth);
+      try {
+        localStorage.setItem('dsa_right_drawer_width', String(newWidth));
+      } catch {
+        // ignore
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
   // Auto-scroll the code viewer so the currently running line remains centered/visible
   useEffect(() => {
     if (activeLineRef.current) {
@@ -545,6 +589,11 @@ export function App() {
         className={`stitch-workspace ${
           showRightDrawer ? 'with-drawer' : 'no-drawer'
         }`}
+        style={
+          showRightDrawer
+            ? { gridTemplateColumns: `248px 1fr ${rightDrawerWidth}px 32px` }
+            : undefined
+        }
       >
         {/* LEFT N-PANEL SIDEBAR */}
         <aside className="stitch-left-panel">
@@ -887,6 +936,26 @@ export function App() {
         {/* OPTIONAL CODE / NODE INSPECTOR DRAWER (Opens when <> or Pro mode clicked) */}
         {showRightDrawer && (
           <aside className="stitch-inspector-drawer" aria-label="Code and Node Inspector">
+            {/* DRAGGABLE RESIZER HANDLE ON LEFT EDGE */}
+            <div
+              className={`st-drawer-resizer ${isResizing ? 'resizing' : ''}`}
+              onMouseDown={handleResizeStart}
+              onDoubleClick={() => {
+                setRightDrawerWidth(380);
+                try {
+                  localStorage.setItem('dsa_right_drawer_width', '380');
+                } catch {
+                  // ignore
+                }
+              }}
+              title="Drag horizontally to resize code viewer (double-click to reset)"
+              aria-label="Resize Code Viewer Drawer"
+              role="separator"
+              aria-orientation="vertical"
+            >
+              <div className="st-drawer-resizer-line" />
+            </div>
+
             {selectedObj && (
               <div className="st-drawer-section">
                 <div className="st-drawer-header">

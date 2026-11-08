@@ -1111,6 +1111,63 @@ body,
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  position: relative;
+}
+
+.st-drawer-resizer {
+  position: absolute;
+  top: 0;
+  left: -5px;
+  bottom: 0;
+  width: 10px;
+  cursor: col-resize;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  user-select: none;
+}
+
+.st-drawer-resizer-line {
+  width: 2px;
+  height: 100%;
+  background: transparent;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.st-drawer-resizer::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 24px;
+  border-radius: 2px;
+  background: #525252;
+  transition: all 0.15s ease;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.st-drawer-resizer:hover .st-drawer-resizer-line,
+.st-drawer-resizer.resizing .st-drawer-resizer-line {
+  background: var(--amber-gold);
+  box-shadow: 0 0 6px rgba(255, 159, 44, 0.6);
+}
+
+.st-drawer-resizer:hover::after,
+.st-drawer-resizer.resizing::after {
+  background: var(--amber-gold);
+  height: 38px;
+  opacity: 1;
+  box-shadow: 0 0 8px rgba(255, 159, 44, 0.8);
+}
+
+.st-drawer-resizer:hover,
+.st-drawer-resizer.resizing {
+  background: rgba(255, 159, 44, 0.08);
 }
 
 .st-drawer-section {
