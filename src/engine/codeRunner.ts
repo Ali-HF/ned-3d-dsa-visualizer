@@ -985,6 +985,325 @@ function inferOperationFromCode(
   return { kind: 'array', arrayOp: 'bubble-sort' };
 }
 
+interface SimTreeNode {
+  id: string;
+  val: number;
+  left: SimTreeNode | null;
+  right: SimTreeNode | null;
+}
+
+type TreeOpKind =
+  | 'insert'
+  | 'delete'
+  | 'search'
+  | 'pre'
+  | 'in'
+  | 'post'
+  | 'level'
+  | 'min'
+  | 'max'
+  | 'height';
+
+function classifyTreeCall(name: string): TreeOpKind | null {
+  const n = name.toLowerCase();
+  if (n.includes('preorder')) return 'pre';
+  if (n.includes('postorder')) return 'post';
+  if (n.includes('inorder')) return 'in';
+  if (n.includes('levelorder') || n.includes('bfs') || n === 'levelorder') return 'level';
+  if (n.includes('height') || n.includes('depth')) return 'height';
+  if (n.includes('min')) return 'min';
+  if (n.includes('max')) return 'max';
+  if (n.includes('insert') || n === 'add' || n === 'push') return 'insert';
+  if (n.includes('delete') || n.includes('remove') || n.includes('erase') || n === 'del') {
+    return 'delete';
+  }
+  if (n.includes('search') || n.includes('find') || n.includes('contains') || n.includes('exists')) {
+    return 'search';
+  }
+  return null;
+}
+
+/**
+ * Executes Binary Search Tree programs (class-based or free-function C++) by reading
+ * every call made inside `main()` — insert / delete / search / pre-, in-, post-, level-order
+ * traversals, min / max / height — and replaying them in order on a real simulated BST,
+ * so the 3D tree is built from YOUR values and performs exactly what `main()` does.
+ */
+function tryExecuteTreeScript(
+  sourceCode: string,
+  codeLines: string[],
+  fileName?: string,
+): CustomCodeRunResult | null {
+  const lower = sourceCode.toLowerCase();
+  const looksLikeTree =
+    (/->\s*left\b/.test(sourceCode) && /->\s*right\b/.test(sourceCode)) ||
+    /\b(?:bst|binarysearchtree|treenode)\b/.test(lower);
+  if (!looksLikeTree) return null;
+  // AVL rotations & heaps have their own dedicated visualizations
+  if (/rotate|\bavl\b|heapify|siftup|siftdown/.test(lower)) return null;
+
+  const mainIdx = codeLines.findIndex((l) => /\b(?:int|void)\s+main\s*\(/.test(l));
+  const scopeStart = mainIdx >= 0 ? mainIdx : 0;
+  const scopeLines = codeLines.slice(scopeStart);
+  const loopValues = extractNumbersFromCode(scopeLines.join('\n'), []);
+
+  const ops: { kind: TreeOpKind; arg: number | null; line: number; name: string }[] = [];
+  const SKIP = new Set(['if', 'for', 'while', 'switch', 'return', 'sizeof', 'main', 'printf']);
+  const callRegex = /\b([A-Za-z_]\w*)\s*\(([^()]*)\)/g;
+
+  scopeLines.forEach((rawLine, offset) => {
+    const lineNum = scopeStart + offset + 1;
+    const line = rawLine.replace(/\/\/.*$/, '');
+    // Without a main(), ignore function definition lines
+    if (
+      mainIdx < 0 &&
+      /^\s*(?:void|int|bool|auto|static|TreeNode\s*\*|Node\s*\*)\b[^;]*\)\s*\{?\s*$/.test(line)
+    ) {
+      return;
+    }
+    for (const m of line.matchAll(callRegex)) {
+      const name = m[1];
+      if (SKIP.has(name)) continue;
+      const kind = classifyTreeCall(name);
+      if (!kind) continue;
+      const nums = [...m[2].matchAll(/-?\d+/g)].map((x) => Number(x[0]));
+      const arg = nums.length > 0 ? nums[nums.length - 1] : null;
+      if (kind === 'insert' && arg === null && loopValues.length > 0) {
+        // e.g. `for (...) bst.insert(vals[i]);`
+        loopValues.forEach((v) => ops.push({ kind, arg: v, line: lineNum, name }));
+        continue;
+      }
+      ops.push({ kind, arg, line: lineNum, name });
+    }
+  });
+
+  if (!ops.some((o) => o.kind === 'insert' && o.arg !== null)) {
+    return null;
+  }
+
+  const events: TraceEvent[] = [];
+  let root: SimTreeNode | null = null;
+  let nextId = 0;
+  const note = (text: string) => events.push({ t: 'note', text });
+  const focus = (n: SimTreeNode) =>
+    events.push({ t: 'compare', a: { id: n.id }, b: { id: n.id } });
+  const makeNode = (val: number): SimTreeNode => ({
+    id: `t-${nextId++}`,
+    val,
+    left: null,
+    right: null,
+  });
+
+  const collect = (kind: 'pre' | 'in' | 'post' | 'level'): SimTreeNode[] => {
+    const out: SimTreeNode[] = [];
+    if (kind === 'level') {
+      const q: SimTreeNode[] = root ? [root] : [];
+      while (q.length > 0) {
+        const n = q.shift()!;
+        out.push(n);
+        if (n.left) q.push(n.left);
+        if (n.right) q.push(n.right);
+      }
+      return out;
+    }
+    const walk = (n: SimTreeNode | null) => {
+      if (!n) return;
+      if (kind === 'pre') out.push(n);
+      walk(n.left);
+      if (kind === 'in') out.push(n);
+      walk(n.right);
+      if (kind === 'post') out.push(n);
+    };
+    walk(root);
+    return out;
+  };
+
+  const TRAVERSAL_LABEL: Record<'pre' | 'in' | 'post' | 'level', string> = {
+    pre: 'Pre-order (Root → Left → Right)',
+    in: 'In-order (Left → Root → Right)',
+    post: 'Post-order (Left → Right → Root)',
+    level: 'Level-order (Breadth-First)',
+  };
+
+  for (const op of ops) {
+    events.push({ t: 'line', line: op.line });
+
+    if (op.kind === 'insert' && op.arg !== null) {
+      const key = op.arg;
+      events.push({ t: 'call', fn: op.name, args: [key], depth: 1 });
+      if (!root) {
+        root = makeNode(key);
+        events.push({ t: 'create', id: root.id, kind: 'node', value: key });
+        note(`Line ${op.line}: ${op.name}(${key}) — the tree is empty, so ${key} becomes the root.`);
+      } else {
+        let cur: SimTreeNode = root;
+        for (;;) {
+          if (key === cur.val) {
+            focus(cur);
+            note(`${op.name}(${key}): ${key} already exists — a BST ignores duplicates.`);
+            break;
+          }
+          const dir: 'left' | 'right' = key < cur.val ? 'left' : 'right';
+          focus(cur);
+          note(
+            `${op.name}(${key}): ${key} ${key < cur.val ? '<' : '>'} ${cur.val}, so go ${dir}.`,
+          );
+          const child: SimTreeNode | null = cur[dir];
+          if (!child) {
+            const n = makeNode(key);
+            cur[dir] = n;
+            events.push({ t: 'link', from: cur.id, to: n.id, label: dir });
+            events.push({ t: 'create', id: n.id, kind: 'node', value: key });
+            note(`Placed ${key} as the ${dir} child of ${cur.val}.`);
+            break;
+          }
+          cur = child;
+        }
+      }
+      events.push({ t: 'return', fn: op.name });
+      continue;
+    }
+
+    if (op.kind === 'search' && op.arg !== null) {
+      const key = op.arg;
+      events.push({ t: 'call', fn: op.name, args: [key], depth: 1 });
+      let cur: SimTreeNode | null = root;
+      let found = false;
+      while (cur) {
+        focus(cur);
+        if (cur.val === key) {
+          note(`${op.name}(${key}): found ${key}!`);
+          found = true;
+          break;
+        }
+        const dir = key < cur.val ? 'left' : 'right';
+        note(`${op.name}(${key}): ${key} ${key < cur.val ? '<' : '>'} ${cur.val}, so go ${dir}.`);
+        cur = cur[dir];
+      }
+      if (!found) note(`${op.name}(${key}): reached NULL — ${key} is not in the tree.`);
+      events.push({ t: 'return', fn: op.name });
+      continue;
+    }
+
+    if (op.kind === 'delete' && op.arg !== null) {
+      const key = op.arg;
+      events.push({ t: 'call', fn: op.name, args: [key], depth: 1 });
+      let parent: SimTreeNode | null = null;
+      let cur: SimTreeNode | null = root;
+      while (cur && cur.val !== key) {
+        focus(cur);
+        const dir = key < cur.val ? 'left' : 'right';
+        note(`${op.name}(${key}): ${key} ${key < cur.val ? '<' : '>'} ${cur.val}, so go ${dir}.`);
+        parent = cur;
+        cur = cur[dir];
+      }
+      if (!cur) {
+        note(`${op.name}(${key}): ${key} is not in the tree, nothing to delete.`);
+      } else {
+        const target: SimTreeNode = cur;
+        const parentDir: 'left' | 'right' | null = parent
+          ? parent.left === target
+            ? 'left'
+            : 'right'
+          : null;
+        focus(target);
+        if (target.left && target.right) {
+          note(`Found ${key}. It has two children, so find its in-order successor (smallest in right subtree).`);
+          let succParent = target;
+          let succ = target.right;
+          focus(succ);
+          note(`Step right to ${succ.val}.`);
+          while (succ.left) {
+            succParent = succ;
+            succ = succ.left;
+            focus(succ);
+            note(`Keep going left to ${succ.val}.`);
+          }
+          target.val = succ.val;
+          events.push({ t: 'set', target: { id: target.id }, value: succ.val });
+          note(`Copy successor ${succ.val} into the node that held ${key}.`);
+          const sDir: 'left' | 'right' = succParent.left === succ ? 'left' : 'right';
+          if (succ.right) {
+            events.push({ t: 'link', from: succParent.id, to: succ.right.id, label: sDir });
+          }
+          events.push({ t: 'remove', id: succ.id });
+          succParent[sDir] = succ.right;
+          note(`Removed the old successor node, so ${key} is gone from the tree.`);
+        } else {
+          const child: SimTreeNode | null = target.left ?? target.right;
+          events.push({ t: 'remove', id: target.id });
+          if (parent && parentDir) {
+            if (child) {
+              events.push({ t: 'link', from: parent.id, to: child.id, label: parentDir });
+            }
+            parent[parentDir] = child;
+          } else {
+            root = child;
+          }
+          note(
+            child
+              ? `Found ${key} with one child (${child.val}); linked ${child.val} up in its place.`
+              : `Found ${key}, a leaf node — simply removed it.`,
+          );
+        }
+      }
+      events.push({ t: 'return', fn: op.name });
+      continue;
+    }
+
+    if (op.kind === 'pre' || op.kind === 'in' || op.kind === 'post' || op.kind === 'level') {
+      const order = collect(op.kind);
+      events.push({ t: 'call', fn: op.name, args: [], depth: 1 });
+      note(`Line ${op.line}: ${op.name}() starts a ${TRAVERSAL_LABEL[op.kind]} traversal.`);
+      const printed: number[] = [];
+      for (const n of order) {
+        printed.push(n.val);
+        events.push({ t: 'visit', id: n.id });
+        note(`${op.name}: visit ${n.val} → output so far: ${printed.join(' ')}`);
+      }
+      note(`${op.name}() printed: ${printed.join(' ') || '(empty tree)'}`);
+      events.push({ t: 'return', fn: op.name });
+      continue;
+    }
+
+    if ((op.kind === 'min' || op.kind === 'max') && root) {
+      const dir = op.kind === 'min' ? 'left' : 'right';
+      let cur: SimTreeNode = root;
+      focus(cur);
+      note(`${op.name}(): start at the root ${cur.val} and keep going ${dir}.`);
+      while (cur[dir]) {
+        cur = cur[dir]!;
+        focus(cur);
+        note(`${op.name}(): move ${dir} to ${cur.val}.`);
+      }
+      note(`${op.name}() = ${cur.val}.`);
+      continue;
+    }
+
+    if (op.kind === 'height') {
+      const h = (n: SimTreeNode | null): number => (n ? 1 + Math.max(h(n.left), h(n.right)) : 0);
+      note(`${op.name}() = ${h(root)} levels.`);
+    }
+  }
+
+  events.push({ t: 'done' });
+
+  return {
+    scene: 'bst',
+    events,
+    extractedArray: collect('in').map((n) => n.val),
+    executionMode: 'script-structure',
+    meta: {
+      id: 'bubble-sort',
+      title: fileName ? `${fileName} (Live BST Program)` : 'Custom BST Program',
+      category: 'operation',
+      timeComplexity: 'O(h) per op',
+      spaceComplexity: 'O(n)',
+      code: codeLines,
+    },
+  };
+}
+
 /**
  * Runs user-edited or uploaded C++/JS source code and generates a live 3D TraceEvent[]
  * reflecting custom loops, swaps, structure scripts, array literals, and source lines.
@@ -998,6 +1317,12 @@ export function executeCustomCodeTrace(
   const extractedArray = extractNumbersFromCode(sourceCode, fallbackArray);
   const extractedParam = extractParamValueFromCode(sourceCode, 42);
   const codeLines = sourceCode.replace(/\r\n/g, '\n').split('\n');
+
+  // 0. Try executing as a Binary Search Tree program (replays main()'s calls)
+  const treeResult = tryExecuteTreeScript(sourceCode, codeLines, fileName);
+  if (treeResult) {
+    return treeResult;
+  }
 
   // 1. Try executing as a multi-step Stack / Queue / Linked-List script
   const scriptResult = tryExecuteStructureScript(
