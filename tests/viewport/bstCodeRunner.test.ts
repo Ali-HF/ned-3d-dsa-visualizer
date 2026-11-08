@@ -88,9 +88,12 @@ describe('Run My Code — Binary Search Tree programs', () => {
     expect(res.extractedArray).toEqual([20, 30, 40, 50, 60, 70, 80]);
   });
 
-  it('renders all 7 user values with a correct dynamic tree layout on the 3D stage', () => {
+  it('renders all 7 user values with a correct dynamic tree layout on the 3D stage and opens the code editor panel', () => {
     const store = useViewportStore.getState();
+    store.setDetailsOpen(false);
     store.runCustomCodeNow(USER_BST_PROGRAM, 'Task1.cpp');
+    expect(useViewportStore.getState().detailsOpen).toBe(true);
+
     store.skipToEnd();
     const objs = Object.values(useViewportStore.getState().sceneObjects);
     expect(objs.map((o) => o.value).sort((a, b) => Number(a) - Number(b))).toEqual([

@@ -412,7 +412,8 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
   setDetailsOpen: (open) => set({ detailsOpen: open }),
   toggleDetailsOpen: () => set((s) => ({ detailsOpen: !s.detailsOpen })),
 
-  setAppMode: (mode) => set({ appMode: mode }),
+  setAppMode: (mode) =>
+    set({ appMode: mode, detailsOpen: mode === 'upload' ? true : get().detailsOpen }),
 
   setPreviewScene: (scene) => {
     if (scene === 'array') {
@@ -740,6 +741,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       sceneObjects: toObjectMap(objs),
       selectedId: objs[0]?.id ?? null,
       isPlaying: state.autoPlayOnRun,
+      detailsOpen: true,
     });
   },
 

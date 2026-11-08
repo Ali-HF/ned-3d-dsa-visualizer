@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { BlenderViewport } from './components/viewport/BlenderViewport';
 import { useViewportStore } from './state/useViewportStore';
 import type { ArrayOperationId } from './algorithms/array/arrayAlgorithms';
@@ -210,6 +210,7 @@ export function App() {
   const uiMode = useViewportStore((s) => s.uiMode);
   const setUiMode = useViewportStore((s) => s.setUiMode);
   const detailsOpen = useViewportStore((s) => s.detailsOpen);
+  const setDetailsOpen = useViewportStore((s) => s.setDetailsOpen);
   const toggleDetailsOpen = useViewportStore((s) => s.toggleDetailsOpen);
 
   const appMode = useViewportStore((s) => s.appMode);
@@ -279,6 +280,19 @@ export function App() {
       passStr: `${String(currentPass).padStart(2, '0')} / ${String(totalPasses).padStart(2, '0')}`,
     };
   }, [currentStep, totalSteps, timeline.events, workingArray.length]);
+
+  const codeViewerRef = useRef<HTMLPreElement>(null);
+  const activeLineRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll the code viewer so the currently running line remains centered/visible
+  useEffect(() => {
+    if (activeLineRef.current) {
+      activeLineRef.current.scrollIntoView({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
+    }
+  }, [currentSnapshot.activeLine, detailsOpen]);
 
   const currentArrayAction =
     ARRAY_GUIDE_ACTIONS.find((a) => a.id === activeOperation) ?? ARRAY_GUIDE_ACTIONS[0];
@@ -437,7 +451,10 @@ export function App() {
             <button
               type="button"
               className={`st-tab-btn ${appMode === 'upload' ? 'active' : ''}`}
-              onClick={() => setAppMode('upload')}
+              onClick={() => {
+                setAppMode('upload');
+                setDetailsOpen(true);
+              }}
             >
               <span className="st-tab-icon">&gt;_</span>
               <span>Run my code</span>
@@ -756,6 +773,7 @@ export function App() {
                         reader.onload = () => {
                           const text = String(reader.result ?? '');
                           setCustomCodeText(text);
+                          setDetailsOpen(true);
                           runCustomCodeNow(text, file.name);
                         };
                         reader.readAsText(file);
@@ -787,6 +805,7 @@ export function App() {
                       title={`Load ${tpl.fileName}`}
                       onClick={() => {
                         setCustomCodeText(tpl.code);
+                        setDetailsOpen(true);
                         runCustomCodeNow(tpl.code, tpl.fileName);
                       }}
                     >
@@ -804,7 +823,10 @@ export function App() {
                 <button
                   type="button"
                   className="st-corpus-run-btn"
-                  onClick={() => runCustomCodeNow(customCodeText, 'custom_code.cpp')}
+                  onClick={() => {
+                    setDetailsOpen(true);
+                    runCustomCodeNow(customCodeText, 'custom_code.cpp');
+                  }}
                 >
                   <IconPlay />
                   <span>Visualize on 3D Stage</span>
@@ -917,19 +939,62 @@ export function App() {
             )}
 
             <div className="st-drawer-section code-flex">
-              <div className="st-drawer-header">
-                <span>C++ SOURCE TRACE</span>
-                <code>{selectedCorpusFile.split('/')[1]}</code>
+              <div className="st-drawer-header code-editor-header">
+                <div className="code-editor-title-group">
+                  <span className="code-editor-tag">
+                    {appMode === 'upload' ? 'USER CODE' : 'C++ TRACE'}
+                  </span>
+                  <span className="code-editor-filename" title={displayedCodeMeta.title}>
+                    {displayedCodeMeta.title.replace(/\s*\(.*\)/, '')}
+                  </span>
+                </div>
+                <div className="code-editor-status-group">
+                  {currentSnapshot.activeLine ? (
+                    <span className="code-active-line-pill">
+                      ▶ LN {currentSnapshot.activeLine}
+                    </span>
+                  ) : (
+                    <span className="code-idle-line-pill">READY</span>
+                  )}
+                  <button
+                    type="button"
+                    className="st-drawer-close-btn"
+                    onClick={() => setDetailsOpen(false)}
+                    title="Close Code Panel"
+                    aria-label="Close Code Panel"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
-              <pre className="code-viewer" aria-label="Algorithm Source Code">
+              <div className="code-editor-subbar">
+                <span>{displayedCodeMeta.code.length} lines</span>
+                <span>C++ / JS</span>
+                {currentSnapshot.activeLine ? (
+                  <span className="code-subbar-active">
+                    Executing Line {currentSnapshot.activeLine}
+                  </span>
+                ) : (
+                  <span>Idle</span>
+                )}
+              </div>
+              <pre
+                ref={codeViewerRef}
+                className="code-viewer"
+                aria-label="Algorithm Source Code"
+              >
                 {displayedCodeMeta.code.map((line, idx) => {
                   const lineNum = idx + 1;
                   const isHighlighted = currentSnapshot.activeLine === lineNum;
                   return (
                     <div
                       key={lineNum}
+                      ref={isHighlighted ? activeLineRef : null}
                       className={`code-line ${isHighlighted ? 'highlighted' : ''}`}
                     >
+                      <span className="line-gutter-marker">
+                        {isHighlighted ? '▶' : ''}
+                      </span>
                       <span className="line-number">{lineNum}</span>
                       <span className="line-text">{line || ' '}</span>
                     </div>
