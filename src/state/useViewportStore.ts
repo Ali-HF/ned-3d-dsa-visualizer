@@ -208,13 +208,93 @@ const GRAPH_NODE_COORDS: Record<string, [number, number, number]> = {
   'v-5': [4.2, 2.0, 0],
 };
 
-const HASH_CHAIN_COORDS: Record<string, [number, number, number]> = {
-  'b-0': [-3.2, 1.0, 0],
-  'b-1': [0, 1.0, 0],
-  'b-2': [3.2, 1.0, 0],
-  'c-1': [0, 1.0, -2.2],
-  'c-2': [0, 1.0, -4.4],
-};
+/**
+ * Computes a dynamic 3D layout for Separate Chaining Hash Tables:
+ * - Bucket headers (roots with no incoming edges or `b-*`) sit along an elevated horizontal row (`y = 2.8`).
+ * - Collision chain nodes (`c-*` or nodes linked from a bucket) hang vertically downward under their bucket!
+ */
+function computeDynamicHashChainLayout(
+  snapshot: TraceStateSnapshot,
+): Record<string, [number, number, number]> {
+  const ids = Object.keys(snapshot.nodes);
+  const incoming = new Set<string>();
+  const outgoingMap: Record<string, string[]> = {};
+
+  for (const e of snapshot.edges) {
+    if (!snapshot.nodes[e.from] || !snapshot.nodes[e.to]) continue;
+    incoming.add(e.to);
+    outgoingMap[e.from] = [...(outgoingMap[e.from] ?? []), e.to];
+  }
+
+  const buckets = ids.filter((id) => !incoming.has(id) || id.startsWith('b-'));
+  const effectiveBuckets = buckets.length > 0 ? buckets : ids;
+  const spacing = 3.2;
+  const out: Record<string, [number, number, number]> = {};
+  const placed = new Set<string>();
+
+  effectiveBuckets.forEach((bId, bIdx) => {
+    const bx = (bIdx - (effectiveBuckets.length - 1) / 2) * spacing;
+    out[bId] = [bx, 2.8, 0];
+    placed.add(bId);
+
+    let queue = [...(outgoingMap[bId] ?? [])];
+    let depth = 1;
+    while (queue.length > 0) {
+      const nextQueue: string[] = [];
+      for (const childId of queue) {
+        if (placed.has(childId)) continue;
+        placed.add(childId);
+        out[childId] = [
+          bx,
+          Math.max(0.55, 2.8 - depth * 1.35),
+          depth * 0.35,
+        ];
+        nextQueue.push(...(outgoingMap[childId] ?? []));
+      }
+      queue = nextQueue;
+      depth++;
+    }
+  });
+
+  // Any unplaced nodes
+  let extraIdx = 0;
+  for (const id of ids) {
+    if (!placed.has(id)) {
+      out[id] = [extraIdx * 2.2 - 2.2, 0.8, 1.2];
+      extraIdx++;
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Computes a 3D circular/elliptical graph layout when custom graph vertices
+ * are not in the default `GRAPH_NODE_COORDS` map.
+ */
+function computeDynamicGraphLayout(
+  snapshot: TraceStateSnapshot,
+): Record<string, [number, number, number]> {
+  const ids = Object.keys(snapshot.nodes);
+  if (ids.every((id) => id in GRAPH_NODE_COORDS)) {
+    return GRAPH_NODE_COORDS;
+  }
+  const out: Record<string, [number, number, number]> = {};
+  const n = Math.max(1, ids.length);
+  ids.forEach((id, idx) => {
+    if (id in GRAPH_NODE_COORDS) {
+      out[id] = GRAPH_NODE_COORDS[id];
+      return;
+    }
+    const angle = (idx / n) * Math.PI * 2 - Math.PI / 2;
+    out[id] = [
+      Number((Math.cos(angle) * 3.6).toFixed(2)),
+      Number((1.8 + Math.sin(angle * 2) * 0.75).toFixed(2)),
+      Number((Math.sin(angle) * 1.4).toFixed(2)),
+    ];
+  });
+  return out;
+}
 
 /**
  * Computes a classic binary-tree layout (x = in-order rank, y = depth) from the
@@ -282,6 +362,10 @@ export function buildSceneObjectsForScene(
     nodeEntries.some((n) => !(n.id in TREE_NODE_COORDS))
       ? computeDynamicTreeLayout(snapshot)
       : null;
+  const dynamicGraphCoords =
+    scene === 'graph' ? computeDynamicGraphLayout(snapshot) : null;
+  const dynamicHashCoords =
+    scene === 'hash-table' ? computeDynamicHashChainLayout(snapshot) : null;
 
   return nodeEntries.map((node, idx) => {
     const outgoingLinks = snapshot.edges
@@ -318,11 +402,14 @@ export function buildSceneObjectsForScene(
       pos = dynamicTreeCoords?.[node.id] ?? TREE_NODE_COORDS[node.id] ?? [idx * 1.8 - 2.5, 0.6, 0];
       kind = 'tree-node';
     } else if (scene === 'graph') {
-      pos = GRAPH_NODE_COORDS[node.id] ?? [idx * 2.0 - 3.0, 1.5, 0];
+      pos =
+        dynamicGraphCoords?.[node.id] ??
+        GRAPH_NODE_COORDS[node.id] ??
+        [idx * 2.0 - 3.0, 1.5, 0];
       kind = 'graph-node';
     } else if (scene === 'hash-table') {
-      pos = HASH_CHAIN_COORDS[node.id] ?? [idx * 2.2 - 2.2, 1.0, 0];
-      kind = 'list-node';
+      pos = dynamicHashCoords?.[node.id] ?? [idx * 2.2 - 2.2, 1.0, 0];
+      kind = node.id.startsWith('b-') ? 'stack-slab' : 'list-node';
     }
 
     return {

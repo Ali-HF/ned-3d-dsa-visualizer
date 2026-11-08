@@ -51,8 +51,10 @@ function SceneObjectMesh({
     obj.kind === 'stack-slab' ||
     obj.id.startsWith('stk-') ||
     obj.id.startsWith('stack-');
+  const isHashBucket = obj.id.startsWith('b-');
   const isTopSlab =
     isStackSlab &&
+    !isHashBucket &&
     !snapshot.edges.some((e) => e.to === obj.id && e.label === 'below') &&
     Object.keys(snapshot.nodes).length > 0;
   const isQueueNode =
@@ -375,15 +377,17 @@ function SceneObjectMesh({
             </div>
           </Html>
 
-          {/* Floating TOP Indicator above topmost slab */}
-          {isTopSlab && (
+          {/* Floating TOP / BUCKET Indicator above slab */}
+          {(isTopSlab || isHashBucket) && (
             <Html
               position={[0, 0.42, 0]}
               center
               distanceFactor={14}
               zIndexRange={[6, 0]}
             >
-              <div className="stitch-top-badge">TOP ▲</div>
+              <div className="stitch-top-badge">
+                {isHashBucket ? 'BUCKET ▼' : 'TOP ▲'}
+              </div>
             </Html>
           )}
         </>
