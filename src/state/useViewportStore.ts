@@ -217,6 +217,48 @@ const HASH_CHAIN_COORDS: Record<string, [number, number, number]> = {
 };
 
 /**
+ * Computes a classic binary-tree layout (x = in-order rank, y = depth) from the
+ * snapshot's `left` / `right` edges, so trees built from any user values render
+ * correctly no matter how many nodes they have or how they are shaped.
+ */
+function computeDynamicTreeLayout(
+  snapshot: TraceStateSnapshot,
+): Record<string, [number, number, number]> {
+  const ids = Object.keys(snapshot.nodes);
+  const children: Record<string, { left?: string; right?: string }> = {};
+  const hasParent = new Set<string>();
+  for (const e of snapshot.edges) {
+    if (!snapshot.nodes[e.from] || !snapshot.nodes[e.to]) continue;
+    if (e.label !== 'left' && e.label !== 'right') continue;
+    children[e.from] = { ...children[e.from], [e.label]: e.to };
+    hasParent.add(e.to);
+  }
+
+  const order: { id: string; depth: number }[] = [];
+  const visited = new Set<string>();
+  const walk = (id: string | undefined, depth: number) => {
+    if (!id || visited.has(id)) return;
+    visited.add(id);
+    walk(children[id]?.left, depth + 1);
+    order.push({ id, depth });
+    walk(children[id]?.right, depth + 1);
+  };
+  ids.filter((id) => !hasParent.has(id)).forEach((id) => walk(id, 0));
+
+  const maxDepth = order.reduce((m, o) => Math.max(m, o.depth), 0);
+  const spacing = 1.65;
+  const out: Record<string, [number, number, number]> = {};
+  order.forEach((o, idx) => {
+    out[o.id] = [
+      (idx - (order.length - 1) / 2) * spacing,
+      0.6 + (maxDepth - o.depth) * 1.55,
+      0,
+    ];
+  });
+  return out;
+}
+
+/**
  * Universal 3D Scene Builder: converts any TraceStateSnapshot into 3D SceneObjectInfo[]
  * based on the active structure scene.
  */
@@ -235,6 +277,11 @@ export function buildSceneObjectsForScene(
 
   const nodeEntries = Object.values(snapshot.nodes);
   const count = nodeEntries.length;
+  const dynamicTreeCoords =
+    (scene === 'bst' || scene === 'heap') &&
+    nodeEntries.some((n) => !(n.id in TREE_NODE_COORDS))
+      ? computeDynamicTreeLayout(snapshot)
+      : null;
 
   return nodeEntries.map((node, idx) => {
     const outgoingLinks = snapshot.edges
@@ -267,7 +314,7 @@ export function buildSceneObjectsForScene(
       }
       kind = 'list-node';
     } else if (scene === 'bst' || scene === 'heap') {
-      pos = TREE_NODE_COORDS[node.id] ?? [idx * 1.8 - 2.5, 0.6, 0];
+      pos = dynamicTreeCoords?.[node.id] ?? TREE_NODE_COORDS[node.id] ?? [idx * 1.8 - 2.5, 0.6, 0];
       kind = 'tree-node';
     } else if (scene === 'graph') {
       pos = GRAPH_NODE_COORDS[node.id] ?? [idx * 2.0 - 3.0, 1.5, 0];
