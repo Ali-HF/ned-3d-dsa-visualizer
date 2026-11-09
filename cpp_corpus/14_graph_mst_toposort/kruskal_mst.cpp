@@ -1,69 +1,83 @@
-/**
- * NED University - CT-159 Data Structure Algorithms & Applications
- * Week 14: Kruskal's MST (with Disjoint Set Union - DSU)
- */
 #include <iostream>
-#include <vector>
-#include <algorithm>
 using namespace std;
 
+const int V = 5;
+const int E = 7;
+
 struct Edge {
-    int u, v, weight;
-    bool operator<(const Edge& other) const {
-        return weight < other.weight;
-    }
+    int u;
+    int v;
+    int weight;
 };
 
-class DSU {
-    vector<int> parent, rank;
+Edge edges[E];
+int parent[V];
 
-public:
-    DSU(int n) : parent(n), rank(n, 0) {
-        for (int i = 0; i < n; i++) parent[i] = i;
+int find(int x) {
+    while (parent[x] != x) {
+        x = parent[x];
     }
+    return x;
+}
 
-    int find(int i) {
-        if (parent[i] == i) return i;
-        return parent[i] = find(parent[i]); // Path compression
-    }
+void unionSets(int a, int b) {
+    int rootA = find(a);
+    int rootB = find(b);
+    parent[rootA] = rootB;
+}
 
-    void unite(int i, int j) {
-        int root_i = find(i);
-        int root_j = find(j);
-        if (root_i != root_j) {
-            if (rank[root_i] < rank[root_j]) swap(root_i, root_j);
-            parent[root_j] = root_i;
-            if (rank[root_i] == rank[root_j]) rank[root_i]++;
+void sortEdges() {
+    for (int i = 0; i < E - 1; i++) {
+        for (int j = 0; j < E - i - 1; j++) {
+            if (edges[j].weight > edges[j + 1].weight) {
+                Edge temp = edges[j];
+                edges[j] = edges[j + 1];
+                edges[j + 1] = temp;
+            }
         }
     }
-};
+}
 
-void kruskalMST(int V, vector<Edge>& edges) {
-    sort(edges.begin(), edges.end());
-    DSU dsu(V);
-    int mstCost = 0;
+void kruskal() {
+    for (int i = 0; i < V; i++) {
+        parent[i] = i;
+    }
 
-    cout << "Edges in Kruskal's MST:\n";
-    for (const auto& edge : edges) {
-        if (dsu.find(edge.u) != dsu.find(edge.v)) {
-            dsu.unite(edge.u, edge.v);
-            mstCost += edge.weight;
-            cout << edge.u << " - " << edge.v << " : " << edge.weight << endl;
+    sortEdges();
+
+    int total = 0;
+    int taken = 0;
+
+    cout << "Edges in MST:" << endl;
+    for (int i = 0; i < E; i++) {
+        int u = edges[i].u;
+        int v = edges[i].v;
+
+        if (find(u) != find(v)) {
+            cout << u << " - " << v << " (" << edges[i].weight << ")" << endl;
+            total = total + edges[i].weight;
+            unionSets(u, v);
+            taken++;
+        }
+
+        if (taken == V - 1) {
+            break;
         }
     }
-    cout << "Total MST Cost: " << mstCost << endl;
+
+    cout << "Total weight = " << total << endl;
 }
 
 int main() {
-    int V = 4;
-    vector<Edge> edges = {
-        {0, 1, 10},
-        {0, 2, 6},
-        {0, 3, 5},
-        {1, 3, 15},
-        {2, 3, 4}
-    };
+    edges[0] = {0, 1, 4};
+    edges[1] = {0, 2, 3};
+    edges[2] = {1, 2, 1};
+    edges[3] = {1, 3, 2};
+    edges[4] = {2, 3, 5};
+    edges[5] = {3, 4, 7};
+    edges[6] = {2, 4, 6};
 
-    kruskalMST(V, edges);
+    kruskal();
+
     return 0;
 }
