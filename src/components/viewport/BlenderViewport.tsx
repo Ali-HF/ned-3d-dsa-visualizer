@@ -891,35 +891,29 @@ export function BlenderViewport() {
           <SceneContents />
         </Canvas>
 
-        {/* Bottom-Center Floating [DBG] Console & Plain-English Caption Bar */}
+        {/* Bottom-Center Floating Cinematic Subtitle & Narration Bar */}
         <div className="stitch-bottom-hud" role="status" aria-live="polite">
           <div className="stitch-dbg-console">
             {!isKids && (
-              <>
-                <span className="dbg-tag">[DBG]</span>
-                <span className="dbg-chevron">&gt;</span>
-                <span className="dbg-step">EXEC_STEP:{stepPadded}</span>
-                <span className="dbg-sep">|</span>
-              </>
+              <span className="dbg-step-badge">
+                STEP {stepPadded}
+              </span>
             )}
-            <span className="dbg-narration">{currentSnapshot.narration}</span>
+            <span
+              key={currentSnapshot.stepIndex}
+              className="dbg-narration"
+            >
+              {currentSnapshot.narration}
+            </span>
             {showSortedResultLine && (
               <span className="dbg-sorted">
                 [Sorted: {currentArrayValues.join(', ')}]
               </span>
             )}
             {!isKids && (
-              <>
-                <span className="dbg-metric">
-                  Δt: <strong>0.42ms</strong>
-                </span>
-                <span className="dbg-metric">
-                  CYCLES: <strong>{currentStep + 6}</strong>
-                </span>
-                <span className="dbg-live">
-                  <i className="live-dot" /> LIVE_SIM
-                </span>
-              </>
+              <span className="dbg-live">
+                <i className="live-dot" /> LIVE
+              </span>
             )}
           </div>
         </div>
