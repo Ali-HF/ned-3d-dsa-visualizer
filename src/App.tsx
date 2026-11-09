@@ -505,7 +505,6 @@ export function App() {
                 className={`st-tab-btn ${appMode === 'library' ? 'active' : ''}`}
                 onClick={() => setAppMode('library')}
               >
-                <span className="st-tab-icon">🎓</span>
                 <span>Learn</span>
               </button>
             </Screentip>
@@ -525,15 +524,15 @@ export function App() {
                   setDetailsOpen(true);
                 }}
               >
-                <span className="st-tab-icon">&gt;_</span>
-                <span>Run my code</span>
+                <code className="st-code-prompt">&gt;_</code>
+                <span>Run code</span>
               </button>
             </Screentip>
           </div>
 
           <Screentip
-            title="Interactive Tour Guide"
-            description="Step-by-step walkthrough explaining all features and 3D navigation for beginners."
+            title="Studio Guide"
+            description="Minimal walkthrough of controls, 3D camera navigation, and code execution."
             shortcut="?"
             placement="bottom"
           >
@@ -541,10 +540,10 @@ export function App() {
               type="button"
               className="st-tour-btn"
               onClick={() => setIsTourOpen(true)}
-              aria-label="Open Guided Tour"
+              aria-label="Open Studio Guide"
             >
-              <span className="st-tour-btn-icon">💡</span>
-              <span>Tour Guide</span>
+              <span>Guide</span>
+              <kbd className="st-tour-kbd">?</kbd>
             </button>
           </Screentip>
 
@@ -858,7 +857,7 @@ export function App() {
                       className="st-edit-link"
                       onClick={handleCommitArrayInput}
                     >
-                      Apply ✎
+                      Apply
                     </button>
                   </Screentip>
                 </div>
@@ -946,7 +945,7 @@ export function App() {
                   <span className="st-step-circle active-blue">C++</span>
                   <span className="st-card-title">cpp_corpus/ &amp; Upload</span>
                   <label className="st-edit-link" style={{ cursor: 'pointer' }}>
-                    Upload ⬆
+                    Upload
                     <input
                       type="file"
                       accept=".cpp,.cc,.h,.hpp,.js,.ts"
