@@ -167,26 +167,80 @@ export function GuidedTour({ isOpen, onClose }: GuidedTourProps) {
 
   if (!isOpen) return null;
 
+  const pad = 4;
+  const topY = targetRect ? Math.max(0, targetRect.top - pad) : 0;
+  const bottomY = targetRect ? Math.min(window.innerHeight, targetRect.bottom + pad) : 0;
+  const leftX = targetRect ? Math.max(0, targetRect.left - pad) : 0;
+  const rightX = targetRect ? Math.min(window.innerWidth, targetRect.right + pad) : 0;
+  const holeWidth = Math.max(0, rightX - leftX);
+  const holeHeight = Math.max(0, bottomY - topY);
+
   return (
     <div
-      className="tour-overlay"
       role="dialog"
       aria-modal="true"
       aria-label="Studio Walkthrough"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleFinish();
-      }}
     >
-      {targetRect && (
-        <div
-          className="tour-spotlight-box"
-          style={{
-            top: targetRect.top - 4,
-            left: targetRect.left - 4,
-            width: targetRect.width + 8,
-            height: targetRect.height + 8,
-          }}
-        />
+      {/* Surrounding blurred backdrop panels: leaves target area 100% sharp and unblurred */}
+      {targetRect ? (
+        <>
+          {/* Top backdrop */}
+          <div
+            className="tour-backdrop-panel"
+            style={{
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: topY,
+            }}
+            onClick={handleFinish}
+          />
+          {/* Bottom backdrop */}
+          <div
+            className="tour-backdrop-panel"
+            style={{
+              top: bottomY,
+              left: 0,
+              width: '100vw',
+              height: Math.max(0, window.innerHeight - bottomY),
+            }}
+            onClick={handleFinish}
+          />
+          {/* Left backdrop */}
+          <div
+            className="tour-backdrop-panel"
+            style={{
+              top: topY,
+              left: 0,
+              width: leftX,
+              height: holeHeight,
+            }}
+            onClick={handleFinish}
+          />
+          {/* Right backdrop */}
+          <div
+            className="tour-backdrop-panel"
+            style={{
+              top: topY,
+              left: rightX,
+              width: Math.max(0, window.innerWidth - rightX),
+              height: holeHeight,
+            }}
+            onClick={handleFinish}
+          />
+          {/* Precision hairline border around the sharp highlighted element */}
+          <div
+            className="tour-spotlight-border"
+            style={{
+              top: topY,
+              left: leftX,
+              width: holeWidth,
+              height: holeHeight,
+            }}
+          />
+        </>
+      ) : (
+        <div className="tour-backdrop-full" onClick={handleFinish} />
       )}
 
       <div

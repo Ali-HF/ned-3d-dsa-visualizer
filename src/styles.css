@@ -1732,17 +1732,19 @@ body,
   line-height: 13px;
 }
 
-/* Guided Tour Spotlight & Backdrop */
-.tour-overlay {
+/* Guided Tour Spotlight & Backdrop (4-panel cutout: target element stays 100% sharp/unblurred while surrounding area is blurred) */
+.tour-backdrop-panel,
+.tour-backdrop-full {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.68);
+  backdrop-filter: blur(5px);
   z-index: 100000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   animation: tour-overlay-fade 0.18s ease-out;
+}
+
+.tour-backdrop-full {
+  inset: 0;
 }
 
 @keyframes tour-overlay-fade {
@@ -1750,11 +1752,11 @@ body,
   to { opacity: 1; }
 }
 
-.tour-spotlight-box {
+.tour-spotlight-border {
   position: fixed;
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 6px;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.65);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 255, 255, 0.12);
   pointer-events: none;
   z-index: 100001;
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
