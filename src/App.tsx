@@ -20,6 +20,8 @@ import {
   IconTarget,
   IconWireframe,
 } from './components/icons/StudioIcons';
+import { Screentip } from './components/common/Screentip';
+import { GuidedTour } from './components/common/GuidedTour';
 
 type StitchCategoryTab = 'Sort' | 'Add' | 'Del' | 'Find' | 'Walk';
 
@@ -258,6 +260,13 @@ export function App() {
   const [customCodeText, setCustomCodeText] = useState<string>(() =>
     getCorpusRawText('06_elementary_sorting/bubble_sort.cpp'),
   );
+  const [isTourOpen, setIsTourOpen] = useState(() => {
+    try {
+      return localStorage.getItem('dsa_studio_tour_completed') !== 'true';
+    } catch {
+      return false;
+    }
+  });
 
   // Compute live comparisons & swaps executed up to currentStep
   const liveStats = useMemo(() => {
@@ -399,6 +408,8 @@ export function App() {
         triggerCameraPreset('side');
       } else if (e.key === 'f' || e.key === 'F' || e.key === '.') {
         triggerCameraPreset('focus');
+      } else if (e.key === '?' || (e.key.toLowerCase() === 'h' && !e.ctrlKey && !e.metaKey)) {
+        setIsTourOpen((v) => !v);
       }
     };
     window.addEventListener('keydown', handleKeyDown, { capture: true });
@@ -484,26 +495,58 @@ export function App() {
           <span className="st-divider" />
 
           <div className="st-mode-tabs">
-            <button
-              type="button"
-              className={`st-tab-btn ${appMode === 'library' ? 'active' : ''}`}
-              onClick={() => setAppMode('library')}
+            <Screentip
+              title="Learn & Visualize Mode"
+              description="Explore built-in curriculum data structures and algorithms with interactive 3D simulations."
+              placement="bottom"
             >
-              <span className="st-tab-icon">🎓</span>
-              <span>Learn</span>
-            </button>
-            <button
-              type="button"
-              className={`st-tab-btn ${appMode === 'upload' ? 'active' : ''}`}
-              onClick={() => {
-                setAppMode('upload');
-                setDetailsOpen(true);
-              }}
+              <button
+                type="button"
+                className={`st-tab-btn ${appMode === 'library' ? 'active' : ''}`}
+                onClick={() => setAppMode('library')}
+              >
+                <span className="st-tab-icon">🎓</span>
+                <span>Learn</span>
+              </button>
+            </Screentip>
+
+            <Screentip
+              title="Run My Own Code"
+              description="Upload or paste custom C++ lab assignments. Replays main() with live 3D visual tracing."
+              shortcut=">_"
+              placement="bottom"
             >
-              <span className="st-tab-icon">&gt;_</span>
-              <span>Run my code</span>
-            </button>
+              <button
+                type="button"
+                data-tour="run-code-tab"
+                className={`st-tab-btn ${appMode === 'upload' ? 'active' : ''}`}
+                onClick={() => {
+                  setAppMode('upload');
+                  setDetailsOpen(true);
+                }}
+              >
+                <span className="st-tab-icon">&gt;_</span>
+                <span>Run my code</span>
+              </button>
+            </Screentip>
           </div>
+
+          <Screentip
+            title="Interactive Tour Guide"
+            description="Step-by-step walkthrough explaining all features and 3D navigation for beginners."
+            shortcut="?"
+            placement="bottom"
+          >
+            <button
+              type="button"
+              className="st-tour-btn"
+              onClick={() => setIsTourOpen(true)}
+              aria-label="Open Guided Tour"
+            >
+              <span className="st-tour-btn-icon">💡</span>
+              <span>Tour Guide</span>
+            </button>
+          </Screentip>
 
           <span className="st-divider" />
 
@@ -518,68 +561,123 @@ export function App() {
 
         <div className="st-right">
           {/* Segmented Mode Pill: Kids | Standard | Pro */}
-          <div className="st-seg-group" role="group" aria-label="UI Mode">
-            <button
-              type="button"
-              className={`st-seg-item ${uiMode === 'kids' ? 'active' : ''}`}
-              onClick={() => setUiMode('kids')}
+          <div
+            className="st-seg-group"
+            role="group"
+            aria-label="UI Mode"
+            data-tour="ui-mode-pill"
+          >
+            <Screentip
+              title="Kids / Beginner Mode"
+              description="Friendly, simplified cards with larger labels and clean visual icons."
+              placement="bottom"
             >
-              Kids
-            </button>
-            <button
-              type="button"
-              className={`st-seg-item ${uiMode === 'standard' ? 'active' : ''}`}
-              onClick={() => setUiMode('standard')}
+              <button
+                type="button"
+                className={`st-seg-item ${uiMode === 'kids' ? 'active' : ''}`}
+                onClick={() => setUiMode('kids')}
+              >
+                Kids
+              </button>
+            </Screentip>
+
+            <Screentip
+              title="Standard Mode"
+              description="Balanced CAD layout with Big-O analytics, camera controls, and plain-English debug captions."
+              placement="bottom"
             >
-              Standard
-            </button>
-            <button
-              type="button"
-              className={`st-seg-item ${uiMode === 'pro' ? 'active' : ''}`}
-              onClick={() => setUiMode('pro')}
+              <button
+                type="button"
+                className={`st-seg-item ${uiMode === 'standard' ? 'active' : ''}`}
+                onClick={() => setUiMode('standard')}
+              >
+                Standard
+              </button>
+            </Screentip>
+
+            <Screentip
+              title="Pro Mode"
+              description="Developer mode with hex memory addresses, XYZ mesh coordinates, call stack frames, and live code viewer."
+              placement="bottom"
             >
-              Pro
-            </button>
+              <button
+                type="button"
+                className={`st-seg-item ${uiMode === 'pro' ? 'active' : ''}`}
+                onClick={() => setUiMode('pro')}
+              >
+                Pro
+              </button>
+            </Screentip>
           </div>
 
           {/* Viewport Quick Toggles */}
           <div className="st-icon-group">
-            <button
-              type="button"
-              className={`st-icon-btn ${showGrid ? 'active' : ''}`}
-              onClick={toggleGrid}
-              title="Toggle Coordinate Grid"
+            <Screentip
+              title="Ground Reference Grid"
+              description="Toggle the infinite Blender 3D ground plane and colored X/Y axes."
+              shortcut="G"
+              placement="bottom"
             >
-              <IconGrid />
-            </button>
-            <button
-              type="button"
-              className={`st-icon-btn ${wireframe ? 'active' : ''}`}
-              onClick={toggleWireframe}
-              title="Toggle Wireframe Overlay"
+              <button
+                type="button"
+                className={`st-icon-btn ${showGrid ? 'active' : ''}`}
+                onClick={toggleGrid}
+                aria-label="Toggle Coordinate Grid"
+              >
+                <IconGrid />
+              </button>
+            </Screentip>
+
+            <Screentip
+              title="Wireframe Mesh Mode"
+              description="Toggle geometric wireframe edge overlays on all 3D bars, slabs, and nodes."
+              shortcut="W"
+              placement="bottom"
             >
-              <IconWireframe />
-            </button>
-            <button
-              type="button"
-              className="st-icon-btn amber-active"
-              onClick={() => triggerCameraPreset('isometric')}
-              title="Metallic Rough Studio Shading"
+              <button
+                type="button"
+                className={`st-icon-btn ${wireframe ? 'active' : ''}`}
+                onClick={toggleWireframe}
+                aria-label="Toggle Wireframe Overlay"
+              >
+                <IconWireframe />
+              </button>
+            </Screentip>
+
+            <Screentip
+              title="Isometric Perspective Camera"
+              description="Reset camera to the default isometric studio angle."
+              shortcut="0"
+              placement="bottom"
             >
-              ☀
-            </button>
+              <button
+                type="button"
+                className="st-icon-btn amber-active"
+                onClick={() => triggerCameraPreset('isometric')}
+                aria-label="Isometric Perspective View"
+              >
+                ☀
+              </button>
+            </Screentip>
           </div>
 
           <span className="st-divider" />
 
-          <button
-            type="button"
-            className="st-icon-btn"
-            onClick={toggleDetailsOpen}
-            title="Toggle Code & Inspector Drawer"
+          <Screentip
+            title="C++ Code & Inspector Drawer"
+            description="Toggle the live C++ source code viewer and active line execution panel on the right."
+            shortcut="<>"
+            placement="bottom"
           >
-            ?
-          </button>
+            <button
+              type="button"
+              className={`st-icon-btn ${showRightDrawer ? 'active' : ''}`}
+              onClick={toggleDetailsOpen}
+              aria-label="Toggle Code & Inspector Drawer"
+            >
+              &lt;&gt;
+            </button>
+          </Screentip>
           <span className="st-avatar">AS</span>
         </div>
       </header>
@@ -605,7 +703,7 @@ export function App() {
           {appMode === 'library' ? (
             <div className="st-cards-scroll">
               {/* CARD 1: Pick Structure */}
-              <section className="st-card">
+              <section className="st-card" data-tour="structure-picker">
                 <div className="st-card-header">
                   <span className="st-step-circle">1</span>
                   <span className="st-card-title">Pick Structure</span>
@@ -619,25 +717,31 @@ export function App() {
                   </button>
                 </div>
 
-                <button
-                  type="button"
-                  className="st-struct-well"
-                  onClick={() => setStructPickerOpen((v) => !v)}
-                  aria-expanded={structPickerOpen}
+                <Screentip
+                  title="Switch Data Structure"
+                  description="Choose from 8 core structures: Arrays, Linked Lists, Stacks, Queues, Trees, Heaps, and Graphs."
+                  placement="right"
                 >
-                  <span className="st-struct-left">
-                    <code className="st-struct-glyph">{currentStructureCard.icon}</code>
-                    <strong>
-                      {currentStructureCard.name} [{Object.keys(sceneObjects).length}]
-                    </strong>
-                  </span>
-                  <span className="st-struct-meta">
-                    {currentStructureCard.metaTag}{' '}
-                    <span className="st-struct-chevron">
-                      {structPickerOpen ? '▴' : '▾'}
+                  <button
+                    type="button"
+                    className="st-struct-well"
+                    onClick={() => setStructPickerOpen((v) => !v)}
+                    aria-expanded={structPickerOpen}
+                  >
+                    <span className="st-struct-left">
+                      <code className="st-struct-glyph">{currentStructureCard.icon}</code>
+                      <strong>
+                        {currentStructureCard.name} [{Object.keys(sceneObjects).length}]
+                      </strong>
                     </span>
-                  </span>
-                </button>
+                    <span className="st-struct-meta">
+                      {currentStructureCard.metaTag}{' '}
+                      <span className="st-struct-chevron">
+                        {structPickerOpen ? '▴' : '▾'}
+                      </span>
+                    </span>
+                  </button>
+                </Screentip>
 
                 {structPickerOpen && (
                   <div className="st-struct-dropdown">
@@ -663,7 +767,7 @@ export function App() {
               </section>
 
               {/* CARD 2: Pick Algorithm */}
-              <section className="st-card">
+              <section className="st-card" data-tour="algorithm-picker">
                 <div className="st-card-header">
                   <span className="st-step-circle active-blue">2</span>
                   <span className="st-card-title">Pick Algorithm</span>
@@ -689,77 +793,109 @@ export function App() {
                     ? filteredArrayActions.map((item) => {
                         const isSelected = activeOperation === item.id;
                         return (
-                          <button
+                          <Screentip
                             key={item.id}
-                            type="button"
-                            className={`st-algo-row ${isSelected ? 'active' : ''}`}
-                            onClick={() =>
-                              runOperationNow(item.id, paramIndex, paramValue)
-                            }
+                            title={item.label}
+                            description={`Simulate ${item.label} in 3D. Theoretical Time Complexity: ${item.complexity}.`}
+                            placement="right"
                           >
-                            <span className="st-algo-name">
-                              {isSelected && <i className="st-blue-dot" />}
-                              {item.label}
-                            </span>
-                            <code className="st-algo-badge">{item.complexity}</code>
-                          </button>
+                            <button
+                              type="button"
+                              className={`st-algo-row ${isSelected ? 'active' : ''}`}
+                              onClick={() =>
+                                runOperationNow(item.id, paramIndex, paramValue)
+                              }
+                            >
+                              <span className="st-algo-name">
+                                {isSelected && <i className="st-blue-dot" />}
+                                {item.label}
+                              </span>
+                              <code className="st-algo-badge">{item.complexity}</code>
+                            </button>
+                          </Screentip>
                         );
                       })
                     : displayedStructActions.map((item) => {
                         const isSelected = activeStructureOp === item.id;
                         return (
-                          <button
+                          <Screentip
                             key={item.id}
-                            type="button"
-                            className={`st-algo-row ${isSelected ? 'active' : ''}`}
-                            onClick={() =>
-                              runStructureOperationNow(item.id, paramValue)
-                            }
+                            title={item.label}
+                            description={`Execute ${item.label} in 3D with Big-O time complexity ${item.timeComplexity}.`}
+                            placement="right"
                           >
-                            <span className="st-algo-name">
-                              {isSelected && <i className="st-blue-dot" />}
-                              {item.label}
-                            </span>
-                            <code className="st-algo-badge">{item.timeComplexity}</code>
-                          </button>
+                            <button
+                              type="button"
+                              className={`st-algo-row ${isSelected ? 'active' : ''}`}
+                              onClick={() =>
+                                runStructureOperationNow(item.id, paramValue)
+                              }
+                            >
+                              <span className="st-algo-name">
+                                {isSelected && <i className="st-blue-dot" />}
+                                {item.label}
+                              </span>
+                              <code className="st-algo-badge">{item.timeComplexity}</code>
+                            </button>
+                          </Screentip>
                         );
                       })}
                 </div>
               </section>
 
               {/* CARD 3: Input Numbers */}
-              <section className="st-card">
+              <section className="st-card" data-tour="input-numbers">
                 <div className="st-card-header">
                   <span className="st-step-circle">3</span>
                   <span className="st-card-title">Input Numbers</span>
-                  <button
-                    type="button"
-                    className="st-edit-link"
-                    onClick={handleCommitArrayInput}
+                  <Screentip
+                    title="Apply Custom Numbers"
+                    description="Commit the typed array values into the 3D scene."
+                    placement="top"
                   >
-                    Edit ✎
-                  </button>
+                    <button
+                      type="button"
+                      className="st-edit-link"
+                      onClick={handleCommitArrayInput}
+                    >
+                      Apply ✎
+                    </button>
+                  </Screentip>
                 </div>
 
                 <div className="st-input-well-wrap">
-                  <input
-                    type="text"
-                    className="st-numbers-input"
-                    value={arrayInputText}
-                    onChange={(e) => setArrayInputText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleCommitArrayInput();
-                    }}
-                    aria-label="Input Numbers"
-                  />
-                  <button
-                    type="button"
-                    className="st-refresh-btn"
-                    onClick={handleRandomizeNumbers}
-                    title="Surprise me (Randomize numbers)"
+                  <Screentip
+                    title="Edit Dataset Values"
+                    description="Enter comma-separated numbers (press Enter to run)."
+                    placement="top"
                   >
-                    ↻
-                  </button>
+                    <input
+                      type="text"
+                      className="st-numbers-input"
+                      value={arrayInputText}
+                      onChange={(e) => setArrayInputText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleCommitArrayInput();
+                      }}
+                      aria-label="Input Numbers"
+                    />
+                  </Screentip>
+
+                  <Screentip
+                    title="Surprise Me (Randomize)"
+                    description="Generate 6 random numbers to test the algorithm with a surprise dataset."
+                    shortcut="↻"
+                    placement="top"
+                  >
+                    <button
+                      type="button"
+                      className="st-refresh-btn"
+                      onClick={handleRandomizeNumbers}
+                      aria-label="Randomize numbers"
+                    >
+                      ↻
+                    </button>
+                  </Screentip>
                 </div>
 
                 {((previewScene === 'array' &&
@@ -929,7 +1065,7 @@ export function App() {
         </aside>
 
         {/* CENTER 3D VIEWPORT */}
-        <main className="centre-viewport">
+        <main className="centre-viewport" data-tour="viewport-stage">
           <BlenderViewport />
         </main>
 
@@ -1077,39 +1213,71 @@ export function App() {
         {/* RIGHT SLIM VERTICAL ICON DOCK (32px) */}
         <nav className="stitch-right-dock" aria-label="Viewport Utilities">
           <div className="st-dock-top">
-            <button
-              type="button"
-              className="st-dock-btn"
-              onClick={() => triggerCameraPreset('front')}
-              title="Front Orthographic Camera (1)"
+            <Screentip
+              title="Front Orthographic Camera"
+              description="Align camera flat to front view along the X-Y plane."
+              shortcut="1"
+              placement="left"
             >
-              🎥
-            </button>
-            <button
-              type="button"
-              className="st-dock-btn"
-              onClick={() => triggerCameraPreset('isometric')}
-              title="3D Perspective Orbit (0)"
+              <button
+                type="button"
+                className="st-dock-btn"
+                onClick={() => triggerCameraPreset('front')}
+                aria-label="Front Orthographic Camera"
+              >
+                🎥
+              </button>
+            </Screentip>
+
+            <Screentip
+              title="3D Perspective Orbit Camera"
+              description="Snap camera to Blender Studio perspective isometric angle."
+              shortcut="0"
+              placement="left"
             >
-              <IconCube />
-            </button>
-            <button
-              type="button"
-              className="st-dock-btn"
-              onClick={() => triggerCameraPreset('focus')}
-              title="Frame Selected (.)"
+              <button
+                type="button"
+                className="st-dock-btn"
+                onClick={() => triggerCameraPreset('isometric')}
+                aria-label="3D Perspective Orbit"
+              >
+                <IconCube />
+              </button>
+            </Screentip>
+
+            <Screentip
+              title="Focus Selected Object"
+              description="Center and zoom 3D camera onto the currently selected node or bar."
+              shortcut="."
+              placement="left"
             >
-              <IconTarget />
-            </button>
+              <button
+                type="button"
+                className="st-dock-btn"
+                onClick={() => triggerCameraPreset('focus')}
+                aria-label="Frame Selected"
+              >
+                <IconTarget />
+              </button>
+            </Screentip>
+
             <div className="st-dock-sep" />
-            <button
-              type="button"
-              className={`st-dock-btn ${detailsOpen ? 'active' : ''}`}
-              onClick={toggleDetailsOpen}
-              title="Toggle C++ Source Code & Inspector"
+
+            <Screentip
+              title="C++ Source Code & Inspector"
+              description="Toggle the right-hand panel with active executing code lines."
+              shortcut="<>"
+              placement="left"
             >
-              &lt;&gt;
-            </button>
+              <button
+                type="button"
+                className={`st-dock-btn ${detailsOpen ? 'active' : ''}`}
+                onClick={toggleDetailsOpen}
+                aria-label="Toggle Code & Inspector"
+              >
+                &lt;&gt;
+              </button>
+            </Screentip>
           </div>
 
           <div className="st-dock-bottom">
@@ -1119,91 +1287,143 @@ export function App() {
       </div>
 
       {/* 3. BOTTOM TIMELINE & TRANSPORT BAR */}
-      <footer className="stitch-bottom-bar">
+      <footer className="stitch-bottom-bar" data-tour="timeline-controls">
         <div className="st-transport">
-          <button
-            type="button"
-            className="st-tr-btn"
-            onClick={restart}
-            title="Restart (R)"
-            aria-label="Restart"
+          <Screentip
+            title="Restart Animation"
+            description="Rewind the timeline completely back to Step 0."
+            shortcut="R"
+            placement="top"
           >
-            <IconRestart />
-          </button>
-          <button
-            type="button"
-            className="st-tr-btn"
-            onClick={stepBackward}
-            disabled={currentStep <= 0}
-            title="Previous Step (Left Arrow)"
-            aria-label="Previous step"
+            <button
+              type="button"
+              className="st-tr-btn"
+              onClick={restart}
+              aria-label="Restart"
+            >
+              <IconRestart />
+            </button>
+          </Screentip>
+
+          <Screentip
+            title="Previous Step"
+            description="Step backwards by 1 event in the execution trace."
+            shortcut="←"
+            placement="top"
           >
-            <IconStepBack />
-          </button>
-          <button
-            type="button"
-            className={`st-tr-play ${isPlaying ? 'playing' : ''}`}
-            onClick={togglePlay}
-            title="Play / Pause (Space)"
-            aria-label={isPlaying ? 'Pause' : 'Play'}
+            <button
+              type="button"
+              className="st-tr-btn"
+              onClick={stepBackward}
+              disabled={currentStep <= 0}
+              aria-label="Previous step"
+            >
+              <IconStepBack />
+            </button>
+          </Screentip>
+
+          <Screentip
+            title={isPlaying ? 'Pause Simulation' : 'Play Simulation'}
+            description="Animate the 3D algorithm continuously at the selected speed."
+            shortcut="Space"
+            placement="top"
           >
-            {isPlaying ? <IconPause /> : <IconPlay />}
-          </button>
-          <button
-            type="button"
-            className="st-tr-btn"
-            onClick={stepForward}
-            disabled={currentStep >= totalSteps}
-            title="Next Step (Right Arrow)"
-            aria-label="Next step"
+            <button
+              type="button"
+              className={`st-tr-play ${isPlaying ? 'playing' : ''}`}
+              onClick={togglePlay}
+              aria-label={isPlaying ? 'Pause' : 'Play'}
+            >
+              {isPlaying ? <IconPause /> : <IconPlay />}
+            </button>
+          </Screentip>
+
+          <Screentip
+            title="Next Step"
+            description="Advance forward by 1 step to see the next comparison, move, or swap."
+            shortcut="→"
+            placement="top"
           >
-            <IconStepForward />
-          </button>
-          <button
-            type="button"
-            className="st-tr-btn"
-            onClick={skipToEnd}
-            disabled={currentStep >= totalSteps}
+            <button
+              type="button"
+              className="st-tr-btn"
+              onClick={stepForward}
+              disabled={currentStep >= totalSteps}
+              aria-label="Next step"
+            >
+              <IconStepForward />
+            </button>
+          </Screentip>
+
+          <Screentip
             title="Skip to End"
-            aria-label="Skip to end"
+            description="Jump straight to the final completed state of the algorithm."
+            shortcut="End"
+            placement="top"
           >
-            <IconSkipEnd />
-          </button>
+            <button
+              type="button"
+              className="st-tr-btn"
+              onClick={skipToEnd}
+              disabled={currentStep >= totalSteps}
+              aria-label="Skip to end"
+            >
+              <IconSkipEnd />
+            </button>
+          </Screentip>
         </div>
 
         <div className="st-scrubber-area">
           <span className="st-step-readout">
             Step <strong>{currentStep}</strong> / {totalSteps}
           </span>
-          <input
-            type="range"
-            min={0}
-            max={totalSteps}
-            value={currentStep}
-            onChange={(e) => seekToStep(Number(e.target.value))}
-            className="st-range-slider"
-            aria-label="Timeline Scrubber"
-          />
+          <Screentip
+            title="Timeline Scrubber"
+            description="Drag or click to seek directly to any execution step."
+            placement="top"
+          >
+            <input
+              type="range"
+              min={0}
+              max={totalSteps}
+              value={currentStep}
+              onChange={(e) => seekToStep(Number(e.target.value))}
+              className="st-range-slider"
+              aria-label="Timeline Scrubber"
+            />
+          </Screentip>
           <span className="st-pct-readout">{progressPct}%</span>
         </div>
 
         <div className="st-speed-area">
-          <div className="st-speed-pill">
-            <span className="st-speed-label">Speed:</span>
-            <input
-              type="range"
-              min={0.25}
-              max={4}
-              step={0.25}
-              value={playbackSpeed}
-              onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
-              className="st-speed-slider"
-              aria-label="Playback Speed"
-            />
-            <code className="st-speed-val">{playbackSpeed.toFixed(1)}x</code>
-          </div>
+          <Screentip
+            title="Playback Speed"
+            description="Slow down to 0.25x for detailed study or speed up to 4.0x."
+            placement="top"
+          >
+            <div className="st-speed-pill">
+              <span className="st-speed-label">Speed:</span>
+              <input
+                type="range"
+                min={0.25}
+                max={4}
+                step={0.25}
+                value={playbackSpeed}
+                onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
+                className="st-speed-slider"
+                aria-label="Playback Speed"
+              />
+              <code className="st-speed-val">{playbackSpeed.toFixed(1)}x</code>
+            </div>
+          </Screentip>
         </div>
       </footer>
+
+      {/* INTERACTIVE BEGINNER STEP-BY-STEP GUIDED TOUR */}
+      <GuidedTour
+        isOpen={isTourOpen}
+        onClose={() => setIsTourOpen(false)}
+      />
     </div>
   );
 }
