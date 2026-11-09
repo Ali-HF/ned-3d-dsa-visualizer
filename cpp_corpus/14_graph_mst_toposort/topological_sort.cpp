@@ -1,50 +1,79 @@
-/**
- * NED University - CT-159 Data Structure Algorithms & Applications
- * Week 14: Topological Sorting (Kahn's BFS In-Degree Algorithm)
- */
 #include <iostream>
-#include <vector>
-#include <queue>
 using namespace std;
 
-void topologicalSortKahn(int V, const vector<vector<int>>& adj) {
-    vector<int> inDegree(V, 0);
-    for (int u = 0; u < V; u++) {
-        for (int v : adj[u]) inDegree[v]++;
-    }
+const int V = 6;
 
-    queue<int> q;
-    for (int i = 0; i < V; i++) {
-        if (inDegree[i] == 0) q.push(i);
-    }
+int graph[V][V];
 
+void addEdge(int u, int v) {
+    graph[u][v] = 1;
+}
+
+void topologicalSort() {
+    int inDegree[V];
+    int queue[V];
+    int front = 0;
+    int rear = 0;
     int count = 0;
-    cout << "Topological Order: ";
-    while (!q.empty()) {
-        int u = q.front();
-        q.pop();
-        cout << u << " ";
+
+    for (int i = 0; i < V; i++) {
+        inDegree[i] = 0;
+    }
+
+    for (int i = 0; i < V; i++) {
+        for (int j = 0; j < V; j++) {
+            if (graph[i][j] == 1) {
+                inDegree[j]++;
+            }
+        }
+    }
+
+    for (int i = 0; i < V; i++) {
+        if (inDegree[i] == 0) {
+            queue[rear] = i;
+            rear++;
+        }
+    }
+
+    cout << "Topological order: ";
+    while (front < rear) {
+        int node = queue[front];
+        front++;
+        cout << node << " ";
         count++;
 
-        for (int v : adj[u]) {
-            if (--inDegree[v] == 0) q.push(v);
+        for (int j = 0; j < V; j++) {
+            if (graph[node][j] == 1) {
+                inDegree[j]--;
+                if (inDegree[j] == 0) {
+                    queue[rear] = j;
+                    rear++;
+                }
+            }
         }
     }
     cout << endl;
 
     if (count != V) {
-        cout << "Cycle detected! Graph is not a DAG.\n";
+        cout << "Cycle found, topological sort not possible" << endl;
     }
 }
 
 int main() {
-    int V = 6;
-    vector<vector<int>> adj(V);
-    adj[5] = {2, 0};
-    adj[4] = {0, 1};
-    adj[2] = {3};
-    adj[3] = {1};
+    for (int i = 0; i < V; i++) {
+        for (int j = 0; j < V; j++) {
+            graph[i][j] = 0;
+        }
+    }
 
-    topologicalSortKahn(V, adj);
+    addEdge(5, 2);
+    addEdge(5, 0);
+    addEdge(4, 0);
+    addEdge(4, 1);
+    addEdge(2, 3);
+    addEdge(3, 1);
+
+    topologicalSort();
+
     return 0;
 }
