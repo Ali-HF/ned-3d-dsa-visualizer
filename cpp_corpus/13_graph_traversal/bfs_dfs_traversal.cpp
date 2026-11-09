@@ -1,63 +1,104 @@
-/**
- * NED University - CT-159 Data Structure Algorithms & Applications
- * Week 13: BFS and DFS Graph Traversals
- */
 #include <iostream>
-#include <vector>
-#include <queue>
 using namespace std;
 
-void BFS(int start, const vector<vector<int>>& adj, int V) {
-    vector<bool> visited(V, false);
-    queue<int> q;
+const int V = 6;
+
+struct Node {
+    int data;
+    Node* next;
+};
+
+Node* graph[V];
+bool visited[V];
+
+void addDirectedEdge(int u, int v) {
+    Node* newNode = new Node;
+    newNode->data = v;
+    newNode->next = NULL;
+
+    if (graph[u] == NULL) {
+        graph[u] = newNode;
+    } else {
+        Node* temp = graph[u];
+        while (temp->next != NULL) {
+            temp = temp->next;
+        }
+        temp->next = newNode;
+    }
+}
+
+void addEdge(int u, int v) {
+    addDirectedEdge(u, v);
+    addDirectedEdge(v, u);
+}
+
+void resetVisited() {
+    for (int i = 0; i < V; i++) {
+        visited[i] = false;
+    }
+}
+
+void bfs(int start) {
+    int queue[V];
+    int front = 0;
+    int rear = 0;
 
     visited[start] = true;
-    q.push(start);
+    queue[rear] = start;
+    rear++;
 
-    cout << "BFS starting from " << start << ": ";
-    while (!q.empty()) {
-        int u = q.front();
-        q.pop();
-        cout << u << " ";
+    while (front < rear) {
+        int node = queue[front];
+        front++;
+        cout << node << " ";
 
-        for (int v : adj[u]) {
-            if (!visited[v]) {
-                visited[v] = true;
-                q.push(v);
+        Node* temp = graph[node];
+        while (temp != NULL) {
+            int next = temp->data;
+            if (!visited[next]) {
+                visited[next] = true;
+                queue[rear] = next;
+                rear++;
             }
+            temp = temp->next;
         }
     }
     cout << endl;
 }
 
-void DFSUtil(int u, const vector<vector<int>>& adj, vector<bool>& visited) {
-    visited[u] = true;
-    cout << u << " ";
-    for (int v : adj[u]) {
-        if (!visited[v]) {
-            DFSUtil(v, adj, visited);
-        }
-    }
-}
+void dfs(int node) {
+    visited[node] = true;
+    cout << node << " ";
 
-void DFS(int start, const vector<vector<int>>& adj, int V) {
-    vector<bool> visited(V, false);
-    cout << "DFS starting from " << start << ": ";
-    DFSUtil(start, adj, visited);
-    cout << endl;
+    Node* temp = graph[node];
+    while (temp != NULL) {
+        int next = temp->data;
+        if (!visited[next]) {
+            dfs(next);
+        }
+        temp = temp->next;
+    }
 }
 
 int main() {
-    int V = 5;
-    vector<vector<int>> adj(V);
-    adj[0] = {1, 2};
-    adj[1] = {0, 3, 4};
-    adj[2] = {0};
-    adj[3] = {1};
-    adj[4] = {1};
+    for (int i = 0; i < V; i++) {
+        graph[i] = NULL;
+    }
 
-    BFS(0, adj, V);
-    DFS(0, adj, V);
+    addEdge(0, 1);
+    addEdge(0, 2);
+    addEdge(1, 3);
+    addEdge(1, 4);
+    addEdge(2, 5);
+
+    cout << "BFS: ";
+    resetVisited();
+    bfs(0);
+
+    cout << "DFS: ";
+    resetVisited();
+    dfs(0);
+    cout << endl;
 
     return 0;
 }
