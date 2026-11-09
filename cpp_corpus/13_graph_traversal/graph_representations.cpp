@@ -1,66 +1,126 @@
-/**
- * NED University - CT-159 Data Structure Algorithms & Applications
- * Week 13: Graph Representations (Adjacency Matrix & Adjacency List)
- */
 #include <iostream>
-#include <vector>
 using namespace std;
 
-class GraphMatrix {
-    int V;
-    vector<vector<int>> matrix;
+const int V = 5;
+
+class MatrixGraph {
+    int matrix[V][V];
 
 public:
-    GraphMatrix(int vertices) : V(vertices), matrix(vertices, vector<int>(vertices, 0)) {}
+    MatrixGraph() {
+        for (int i = 0; i < V; i++) {
+            for (int j = 0; j < V; j++) {
+                matrix[i][j] = 0;
+            }
+        }
+    }
 
     void addEdge(int u, int v) {
         matrix[u][v] = 1;
-        matrix[v][u] = 1; // Undirected
+        matrix[v][u] = 1;
+    }
+
+    void addDirectedEdge(int u, int v) {
+        matrix[u][v] = 1;
     }
 
     void display() {
-        cout << "Adjacency Matrix:\n";
+        cout << "  ";
         for (int i = 0; i < V; i++) {
-            for (int j = 0; j < V; j++) cout << matrix[i][j] << " ";
+            cout << i << " ";
+        }
+        cout << endl;
+        for (int i = 0; i < V; i++) {
+            cout << i << " ";
+            for (int j = 0; j < V; j++) {
+                cout << matrix[i][j] << " ";
+            }
             cout << endl;
         }
     }
 };
 
-class GraphList {
-    int V;
-    vector<vector<int>> adj;
+struct Node {
+    int data;
+    Node* next;
+};
+
+class ListGraph {
+    Node* list[V];
 
 public:
-    GraphList(int vertices) : V(vertices), adj(vertices) {}
+    ListGraph() {
+        for (int i = 0; i < V; i++) {
+            list[i] = NULL;
+        }
+    }
+
+    void addDirectedEdge(int u, int v) {
+        Node* newNode = new Node;
+        newNode->data = v;
+        newNode->next = NULL;
+
+        if (list[u] == NULL) {
+            list[u] = newNode;
+        } else {
+            Node* temp = list[u];
+            while (temp->next != NULL) {
+                temp = temp->next;
+            }
+            temp->next = newNode;
+        }
+    }
 
     void addEdge(int u, int v) {
-        adj[u].push_back(v);
-        adj[v].push_back(u);
+        addDirectedEdge(u, v);
+        addDirectedEdge(v, u);
     }
 
     void display() {
-        cout << "Adjacency List:\n";
         for (int i = 0; i < V; i++) {
             cout << i << " -> ";
-            for (int v : adj[i]) cout << v << " ";
+            Node* temp = list[i];
+            while (temp != NULL) {
+                cout << temp->data << " ";
+                temp = temp->next;
+            }
             cout << endl;
         }
     }
 };
 
 int main() {
-    GraphMatrix gm(4);
-    gm.addEdge(0, 1);
-    gm.addEdge(1, 2);
-    gm.addEdge(2, 3);
-    gm.display();
+    cout << "Undirected Graph - Adjacency Matrix" << endl;
+    MatrixGraph m1;
+    m1.addEdge(0, 1);
+    m1.addEdge(0, 2);
+    m1.addEdge(1, 3);
+    m1.addEdge(2, 4);
+    m1.display();
 
-    GraphList gl(4);
-    gl.addEdge(0, 1);
-    gl.addEdge(1, 2);
-    gl.addEdge(2, 3);
-    gl.display();
+    cout << endl << "Directed Graph - Adjacency Matrix" << endl;
+    MatrixGraph m2;
+    m2.addDirectedEdge(0, 1);
+    m2.addDirectedEdge(0, 2);
+    m2.addDirectedEdge(1, 3);
+    m2.addDirectedEdge(2, 4);
+    m2.display();
+
+    cout << endl << "Undirected Graph - Adjacency List" << endl;
+    ListGraph l1;
+    l1.addEdge(0, 1);
+    l1.addEdge(0, 2);
+    l1.addEdge(1, 3);
+    l1.addEdge(2, 4);
+    l1.display();
+
+    cout << endl << "Directed Graph - Adjacency List" << endl;
+    ListGraph l2;
+    l2.addDirectedEdge(0, 1);
+    l2.addDirectedEdge(0, 2);
+    l2.addDirectedEdge(1, 3);
+    l2.addDirectedEdge(2, 4);
+    l2.display();
 
     return 0;
 }
