@@ -366,6 +366,31 @@ export function buildSceneObjectsForScene(
     scene === 'graph' ? computeDynamicGraphLayout(snapshot) : null;
   const dynamicHashCoords =
     scene === 'hash-table' ? computeDynamicHashChainLayout(snapshot) : null;
+  const heapIndexMap: Record<string, number> = {};
+  if (scene === 'heap') {
+    const hasParent = new Set<string>();
+    const children: Record<string, { left?: string; right?: string }> = {};
+    for (const e of snapshot.edges) {
+      if (e.label === 'left' || e.label === 'right') {
+        children[e.from] = { ...children[e.from], [e.label]: e.to };
+        hasParent.add(e.to);
+      }
+    }
+    const roots = nodeEntries
+      .map((n) => n.id)
+      .filter((id) => !hasParent.has(id));
+    const bfsQueue = roots.length > 0 ? [...roots] : nodeEntries.map((n) => n.id);
+    const seen = new Set<string>();
+    let hIdx = 0;
+    while (bfsQueue.length > 0) {
+      const cid = bfsQueue.shift()!;
+      if (seen.has(cid) || !snapshot.nodes[cid]) continue;
+      seen.add(cid);
+      heapIndexMap[cid] = hIdx++;
+      if (children[cid]?.left) bfsQueue.push(children[cid].left!);
+      if (children[cid]?.right) bfsQueue.push(children[cid].right!);
+    }
+  }
   const isHanoiScene =
     scene === 'stack' && snapshot.edges.some((e) => e.label === 'peg');
   const hanoiCoords: Record<string, [number, number, number]> = {};
@@ -454,6 +479,7 @@ export function buildSceneObjectsForScene(
         value: node.value,
         links: outgoingLinks.length,
         isHanoi: isHanoiScene,
+        heapIndex: scene === 'heap' ? (heapIndexMap[node.id] ?? idx) : null,
       },
       linksTo: outgoingLinks,
     };
