@@ -1,61 +1,75 @@
-/**
- * NED University - CT-159 Data Structure Algorithms & Applications
- * Week 14: Dijkstra's Shortest Path Algorithm
- */
 #include <iostream>
-#include <vector>
-#include <climits>
 using namespace std;
 
-#define V 5
+const int V = 5;
+const int INF = 9999;
 
-int minDistance(int dist[], bool sptSet[]) {
-    int minVal = INT_MAX, min_index = -1;
-    for (int v = 0; v < V; v++) {
-        if (!sptSet[v] && dist[v] <= minVal) {
-            minVal = dist[v];
-            min_index = v;
-        }
-    }
-    return min_index;
+int graph[V][V];
+
+void addEdge(int u, int v, int w) {
+    graph[u][v] = w;
+    graph[v][u] = w;
 }
 
-void dijkstra(int graph[V][V], int src) {
+int findMinNode(int dist[], bool done[]) {
+    int min = INF;
+    int minIndex = -1;
+    for (int i = 0; i < V; i++) {
+        if (!done[i] && dist[i] < min) {
+            min = dist[i];
+            minIndex = i;
+        }
+    }
+    return minIndex;
+}
+
+void dijkstra(int start) {
     int dist[V];
-    bool sptSet[V];
+    bool done[V];
 
     for (int i = 0; i < V; i++) {
-        dist[i] = INT_MAX;
-        sptSet[i] = false;
+        dist[i] = INF;
+        done[i] = false;
     }
-    dist[src] = 0;
+    dist[start] = 0;
 
-    for (int count = 0; count < V - 1; count++) {
-        int u = minDistance(dist, sptSet);
-        if (u == -1) break;
-        sptSet[u] = true;
+    for (int count = 0; count < V; count++) {
+        int u = findMinNode(dist, done);
+        if (u == -1) {
+            break;
+        }
+        done[u] = true;
 
         for (int v = 0; v < V; v++) {
-            if (!sptSet[v] && graph[u][v] && dist[u] != INT_MAX
-                && dist[u] + graph[u][v] < dist[v]) {
-                dist[v] = dist[u] + graph[u][v];
+            if (graph[u][v] != 0 && !done[v]) {
+                if (dist[u] + graph[u][v] < dist[v]) {
+                    dist[v] = dist[u] + graph[u][v];
+                }
             }
         }
     }
 
-    cout << "Vertex \t Distance from Source " << src << "\n";
-    for (int i = 0; i < V; i++) cout << i << " \t\t " << dist[i] << "\n";
+    cout << "Shortest distance from node " << start << endl;
+    for (int i = 0; i < V; i++) {
+        cout << start << " to " << i << " = " << dist[i] << endl;
+    }
 }
 
 int main() {
-    int graph[V][V] = {
-        {0, 4, 0, 0, 8},
-        {4, 0, 8, 0, 11},
-        {0, 8, 0, 7, 0},
-        {0, 0, 7, 0, 9},
-        {8, 11, 0, 9, 0}
-    };
+    for (int i = 0; i < V; i++) {
+        for (int j = 0; j < V; j++) {
+            graph[i][j] = 0;
+        }
+    }
 
-    dijkstra(graph, 0);
+    addEdge(0, 1, 4);
+    addEdge(0, 2, 1);
+    addEdge(2, 1, 2);
+    addEdge(1, 3, 1);
+    addEdge(2, 3, 5);
+    addEdge(3, 4, 3);
+
+    dijkstra(0);
+
     return 0;
 }
