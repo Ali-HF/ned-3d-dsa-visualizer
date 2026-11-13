@@ -189,6 +189,11 @@ function SceneObjectMesh({
     snapshot.visitedOrder.includes(obj.id) &&
     !hasIncomingNext &&
     !hasOutgoingNext;
+  const isNextPtr =
+    isListNode &&
+    activeStructureOp === 'sll-reverse' &&
+    snapshot.comparedRefs !== null &&
+    formatRefLabel(snapshot.comparedRefs[1]) === obj.id;
   const isTempPtr = (isTempPhase && isActiveVisit) || isDisconnectedTemp;
   const isCurrPtr = isListNode && isActiveVisit && !isSlowPtr && !isFastPtr && !isTempPtr;
   const listPointer = isSlowPtr && isFastPtr
@@ -201,9 +206,11 @@ function SceneObjectMesh({
           ? { label: 'TEMP', color: '#fb7185' }
           : isCurrPtr
             ? { label: 'CURR', color: '#38bdf8' }
-            : isPrevPtr
-              ? { label: 'PREV', color: '#c084fc' }
-              : null;
+            : isNextPtr
+              ? { label: 'NEXT', color: '#34d399' }
+              : isPrevPtr
+                ? { label: 'PREV', color: '#c084fc' }
+                : null;
   const visitOrderIndex = snapshot.visitedOrder.indexOf(obj.id);
   const isDoneItem = snapshot.isDone;
 
@@ -864,7 +871,8 @@ function SceneContents() {
       {comparePair &&
         comparePair.a.id !== comparePair.b.id &&
         activeStructureOp !== 'sll-find-middle' &&
-        activeStructureOp !== 'cll-cycle' && (
+        activeStructureOp !== 'cll-cycle' &&
+        activeStructureOp !== 'sll-reverse' && (
         <TechnicalComparisonCallout
           fromObj={comparePair.a}
           toObj={comparePair.b}

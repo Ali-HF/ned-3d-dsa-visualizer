@@ -995,25 +995,45 @@ export function runStructureOperation(
         events.push({ t: 'visit', id: nodeIds[0] });
         if (nodeIds[1]) {
           events.push(
-            { t: 'unlink', from: nodeIds[0], to: nodeIds[1] },
+            { t: 'compare', a: { id: nodeIds[0] }, b: { id: nodeIds[1] } },
             {
               t: 'note',
-              text: `Detached ${vals[0]} from ${vals[1]} so ${vals[0]} now points to nothing (it becomes the new tail).`,
+              text: `Saved next = curr->next (${vals[1]}) before detaching ${vals[0]}.`,
+            },
+            { t: 'unlink', from: nodeIds[0], to: nodeIds[1] },
+            { t: 'compare', a: { id: nodeIds[0] }, b: { id: nodeIds[1] } },
+            {
+              t: 'note',
+              text: `Detached ${vals[0]} from ${vals[1]} so ${vals[0]} now points to NULL (new tail).`,
             },
           );
         }
         for (let i = 1; i < nodeIds.length; i++) {
           events.push({ t: 'visit', id: nodeIds[i] });
           if (nodeIds[i + 1]) {
-            events.push({ t: 'unlink', from: nodeIds[i], to: nodeIds[i + 1] });
+            events.push(
+              { t: 'compare', a: { id: nodeIds[i] }, b: { id: nodeIds[i + 1] } },
+              {
+                t: 'note',
+                text: `Saved next = curr->next (${vals[i + 1]}).`,
+              },
+              { t: 'unlink', from: nodeIds[i], to: nodeIds[i + 1] },
+              { t: 'link', from: nodeIds[i], to: nodeIds[i - 1], label: 'next' },
+              { t: 'compare', a: { id: nodeIds[i] }, b: { id: nodeIds[i + 1] } },
+              {
+                t: 'note',
+                text: `Flipped ${vals[i]}->next to point back to prev (${vals[i - 1]}).`,
+              },
+            );
+          } else {
+            events.push(
+              { t: 'link', from: nodeIds[i], to: nodeIds[i - 1], label: 'next' },
+              {
+                t: 'note',
+                text: `Flipped ${vals[i]}->next to point back to prev (${vals[i - 1]}). next is NULL!`,
+              },
+            );
           }
-          events.push(
-            { t: 'link', from: nodeIds[i], to: nodeIds[i - 1], label: 'next' },
-            {
-              t: 'note',
-              text: `Flipped arrow so ${vals[i]} now points back to ${vals[i - 1]}.`,
-            },
-          );
         }
       }
       events.push(
