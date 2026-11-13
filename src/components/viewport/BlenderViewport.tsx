@@ -22,6 +22,7 @@ interface NodeMeshProps {
   selected: boolean;
   wireframe: boolean;
   snapshot: TraceStateSnapshot;
+  activeOperation: string | null;
   isPrimaryActive: boolean;
   swapPartner: SceneObjectInfo | null;
   swapDirection: 1 | -1;
@@ -29,11 +30,43 @@ interface NodeMeshProps {
   onSelect: (id: string) => void;
 }
 
+function PointerArrow3D({
+  label,
+  color,
+  baseY,
+}: {
+  label: string;
+  color: string;
+  baseY: number;
+}) {
+  return (
+    <group position={[0, baseY, 0]}>
+      <mesh position={[0, 0.28, 0]}>
+        <cylinderGeometry args={[0.032, 0.032, 0.36, 12]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.35} />
+      </mesh>
+      <mesh position={[0, 0.06, 0]} rotation={[Math.PI, 0, 0]}>
+        <coneGeometry args={[0.1, 0.2, 16]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.45} />
+      </mesh>
+      <Html position={[0, 0.62, 0]} center distanceFactor={14} zIndexRange={[7, 0]}>
+        <div
+          className="stitch-ptr-badge"
+          style={{ background: color, color: '#0b1120' }}
+        >
+          {label}
+        </div>
+      </Html>
+    </group>
+  );
+}
+
 function SceneObjectMesh({
   obj,
   selected,
   wireframe,
   snapshot,
+  activeOperation,
   isPrimaryActive,
   swapPartner,
   swapDirection,
@@ -119,6 +152,45 @@ function SceneObjectMesh({
     (formatRefLabel(snapshot.spawnedRef) === obj.id || snapshot.spawnedRef.id === obj.id);
 
   const isActiveVisit = snapshot.activeVisitId === obj.id;
+  const isSlowFastOp =
+    activeOperation === 'sll-find-middle' || activeOperation === 'cll-cycle';
+  const isPrevCurrOp =
+    activeOperation === 'sll-reverse' || activeOperation === 'sll-delete-val';
+  const isSlowPtr =
+    isListNode &&
+    isSlowFastOp &&
+    snapshot.comparedRefs !== null &&
+    formatRefLabel(snapshot.comparedRefs[0]) === obj.id;
+  const isFastPtr =
+    isListNode &&
+    isSlowFastOp &&
+    snapshot.comparedRefs !== null &&
+    formatRefLabel(snapshot.comparedRefs[1]) === obj.id;
+  let prevVisitId: string | null = null;
+  if (isListNode && isPrevCurrOp && snapshot.activeVisitId) {
+    const activeIdx = snapshot.visitedOrder.lastIndexOf(snapshot.activeVisitId);
+    const scanStart = activeIdx >= 0 ? activeIdx - 1 : snapshot.visitedOrder.length - 1;
+    for (let i = scanStart; i >= 0; i--) {
+      const candidate = snapshot.visitedOrder[i];
+      if (candidate !== snapshot.activeVisitId && snapshot.nodes[candidate]) {
+        prevVisitId = candidate;
+        break;
+      }
+    }
+  }
+  const isPrevPtr = isListNode && prevVisitId === obj.id;
+  const isCurrPtr = isListNode && isActiveVisit && !isSlowPtr && !isFastPtr;
+  const listPointer = isSlowPtr && isFastPtr
+    ? { label: 'SLOW / FAST', color: '#34d399' }
+    : isSlowPtr
+      ? { label: 'SLOW', color: '#34d399' }
+      : isFastPtr
+        ? { label: 'FAST', color: '#fbbf24' }
+        : isCurrPtr
+          ? { label: 'CURR', color: '#38bdf8' }
+          : isPrevPtr
+            ? { label: 'PREV', color: '#c084fc' }
+            : null;
   const visitOrderIndex = snapshot.visitedOrder.indexOf(obj.id);
   const isDoneItem = snapshot.isDone;
 
@@ -435,6 +507,14 @@ function SceneObjectMesh({
             </Html>
           )}
 
+          {listPointer && (
+            <PointerArrow3D
+              label={listPointer.label}
+              color={listPointer.color}
+              baseY={pointerTag ? 1.56 : 1.15}
+            />
+          )}
+
           <Html position={[0, 0.85, 0]} center distanceFactor={14} zIndexRange={[5, 0]}>
             <div className={`stitch-val-badge ${isActiveBar ? 'active' : ''}`}>
               {isActiveBar && <span className="stitch-val-dot" />}
@@ -673,6 +753,7 @@ function SceneContents() {
   const showGrid = useViewportStore((s) => s.showGrid);
   const wireframe = useViewportStore((s) => s.wireframe);
   const currentSnapshot = useViewportStore((s) => s.currentSnapshot);
+  const activeOperation = useViewportStore((s) => s.activeOperation);
   const uiMode = useViewportStore((s) => s.uiMode);
 
   const objectList = Object.values(sceneObjects);
@@ -799,6 +880,7 @@ function SceneContents() {
             selected={selectedId === obj.id}
             wireframe={wireframe}
             snapshot={currentSnapshot}
+            activeOperation={activeOperation}
             isPrimaryActive={obj.id === primaryActiveId}
             swapPartner={swapPartner}
             swapDirection={swapDirection}
