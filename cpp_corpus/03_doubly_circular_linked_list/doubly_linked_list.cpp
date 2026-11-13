@@ -1,76 +1,196 @@
-/**
- * NED University - CT-159 Data Structure Algorithms & Applications
- * Week 3: Doubly Linked List (Insert, Delete, Bidirectional Traversal, Reverse)
- */
 #include <iostream>
 using namespace std;
 
-struct DNode {
+struct Node
+{
     int data;
-    DNode* prev;
-    DNode* next;
-    DNode(int val) : data(val), prev(nullptr), next(nullptr) {}
+    Node* prev;
+    Node* next;
 };
 
-void insertAtHead(DNode*& head, int val) {
-    DNode* newNode = new DNode(val);
+Node* head = NULL;
+
+// Insert at beginning
+void insertBeginning(int value)
+{
+    Node* newNode = new Node;
+
+    newNode->data = value;
+    newNode->prev = NULL;
     newNode->next = head;
-    if (head) head->prev = newNode;
+
+    if (head != NULL)
+    {
+        head->prev = newNode;
+    }
+
     head = newNode;
 }
 
-void insertAtTail(DNode*& head, int val) {
-    DNode* newNode = new DNode(val);
-    if (!head) {
+// Insert at end
+void insertEnd(int value)
+{
+    Node* newNode = new Node;
+
+    newNode->data = value;
+    newNode->next = NULL;
+
+    if (head == NULL)
+    {
+        newNode->prev = NULL;
         head = newNode;
         return;
     }
-    DNode* curr = head;
-    while (curr->next) curr = curr->next;
-    curr->next = newNode;
-    newNode->prev = curr;
-}
 
-void deleteNode(DNode*& head, DNode* del) {
-    if (!head || !del) return;
-    if (head == del) head = del->next;
-    if (del->next) del->next->prev = del->prev;
-    if (del->prev) del->prev->next = del->next;
-    delete del;
-}
+    Node* temp = head;
 
-void reverseDLL(DNode*& head) {
-    DNode* temp = nullptr;
-    DNode* curr = head;
-    while (curr) {
-        temp = curr->prev;
-        curr->prev = curr->next;
-        curr->next = temp;
-        curr = curr->prev;
+    while (temp->next != NULL)
+    {
+        temp = temp->next;
     }
-    if (temp) head = temp->prev;
+
+    temp->next = newNode;
+    newNode->prev = temp;
 }
 
-void printForward(DNode* head) {
-    cout << "Forward: ";
-    while (head) {
-        cout << head->data << " <-> ";
-        head = head->next;
+// Delete from beginning
+void deleteBeginning()
+{
+    if (head == NULL)
+    {
+        cout << "List is empty\n";
+        return;
     }
+
+    Node* temp = head;
+
+    head = head->next;
+
+    if (head != NULL)
+    {
+        head->prev = NULL;
+    }
+
+    delete temp;
+}
+
+// Delete from end
+void deleteEnd()
+{
+    if (head == NULL)
+    {
+        cout << "List is empty\n";
+        return;
+    }
+
+    Node* temp = head;
+
+    while (temp->next != NULL)
+    {
+        temp = temp->next;
+    }
+
+    if (temp->prev != NULL)
+    {
+        temp->prev->next = NULL;
+    }
+    else
+    {
+        head = NULL;
+    }
+
+    delete temp;
+}
+
+// Forward traversal
+void displayForward()
+{
+    Node* temp = head;
+
+    while (temp != NULL)
+    {
+        cout << temp->data << " <-> ";
+        temp = temp->next;
+    }
+
     cout << "NULL\n";
 }
 
-int main() {
-    DNode* head = nullptr;
-    insertAtTail(head, 10);
-    insertAtTail(head, 20);
-    insertAtHead(head, 5);
-    insertAtTail(head, 30);
-    printForward(head);
+// Backward traversal
+void displayBackward()
+{
+    if (head == NULL)
+        return;
 
-    reverseDLL(head);
-    cout << "After Reverse: ";
-    printForward(head);
+    Node* temp = head;
+
+    while (temp->next != NULL)
+    {
+        temp = temp->next;
+    }
+
+    while (temp != NULL)
+    {
+        cout << temp->data << " <-> ";
+        temp = temp->prev;
+    }
+
+    cout << "NULL\n";
+}
+
+int main()
+{
+    int choice, value;
+
+    cout << "1. Insert Beginning\n";
+    cout << "2. Insert End\n";
+    cout << "3. Delete Beginning\n";
+    cout << "4. Delete End\n";
+    cout << "5. Display Forward\n";
+    cout << "6. Display Backward\n";
+
+    cout << "Enter choice: ";
+    cin >> choice;
+
+    switch (choice)
+    {
+        case 1:
+            cout << "Enter value: ";
+            cin >> value;
+            insertBeginning(value);
+            break;
+
+        case 2:
+            cout << "Enter value: ";
+            cin >> value;
+            insertEnd(value);
+            break;
+
+        case 3:
+            deleteBeginning();
+            break;
+
+        case 4:
+            deleteEnd();
+            break;
+
+        case 5:
+            displayForward();
+            break;
+
+        case 6:
+            displayBackward();
+            break;
+
+        default:
+            cout << "Invalid choice";
+    }
+
+    cout << "\nForward: ";
+    displayForward();
+
+    cout << "Backward: ";
+    displayBackward();
 
     return 0;
 }

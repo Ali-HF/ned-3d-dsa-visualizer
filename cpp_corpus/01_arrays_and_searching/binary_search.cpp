@@ -1,49 +1,173 @@
-/**
- * NED University - CT-159 Data Structure Algorithms & Applications
- * Week 1: Binary Search (Iterative, Recursive & Bounds)
- */
+
 #include <iostream>
 using namespace std;
+//note: The array must be sorted for binary search to work correctly.
+// Iterative Binary Search
+int binarySearch(int arr[], int n, int key)
+{
+    int low = 0;
+    int high = n - 1;
 
-int binarySearchIterative(int arr[], int n, int key) {
-    int low = 0, high = n - 1;
-    while (low <= high) {
+    while (low <= high)
+    {
         int mid = low + (high - low) / 2;
-        if (arr[mid] == key) return mid;
-        if (arr[mid] < key) low = mid + 1;
-        else high = mid - 1;
+
+        if (arr[mid] == key)
+            return mid;
+
+        else if (arr[mid] < key)
+            low = mid + 1;
+
+        else
+            high = mid - 1;
     }
+
     return -1;
 }
 
-int binarySearchRecursive(int arr[], int low, int high, int key) {
-    if (low > high) return -1;
+// Recursive Binary Search
+int recursiveBinarySearch(int arr[], int low, int high, int key)
+{
+    if (low > high)
+        return -1;
+
     int mid = low + (high - low) / 2;
-    if (arr[mid] == key) return mid;
-    if (arr[mid] < key) return binarySearchRecursive(arr, mid + 1, high, key);
-    return binarySearchRecursive(arr, low, mid - 1, key);
+
+    if (arr[mid] == key)
+        return mid;
+
+    if (arr[mid] < key)
+        return recursiveBinarySearch(arr, mid + 1, high, key);
+
+    return recursiveBinarySearch(arr, low, mid - 1, key);
 }
 
-int findFirstOccurrence(int arr[], int n, int key) {
-    int low = 0, high = n - 1, ans = -1;
-    while (low <= high) {
+// Lower Bound
+int lowerBound(int arr[], int n, int key)
+{
+    int low = 0, high = n;
+
+    while (low < high)
+    {
         int mid = low + (high - low) / 2;
-        if (arr[mid] == key) {
-            ans = mid;
-            high = mid - 1; // keep looking left
-        } else if (arr[mid] < key) low = mid + 1;
-        else high = mid - 1;
+
+        if (arr[mid] < key)
+            low = mid + 1;
+        else
+            high = mid;
     }
-    return ans;
+
+    return low;
 }
 
-int main() {
-    int arr[] = {10, 20, 30, 30, 30, 40, 50};
-    int n = sizeof(arr) / sizeof(arr[0]);
+// Upper Bound
+int upperBound(int arr[], int n, int key)
+{
+    int low = 0, high = n;
 
-    cout << "Index of 40 (iterative): " << binarySearchIterative(arr, n, 40) << endl;
-    cout << "Index of 40 (recursive): " << binarySearchRecursive(arr, 0, n - 1, 40) << endl;
-    cout << "First occurrence of 30: " << findFirstOccurrence(arr, n, 30) << endl;
+    while (low < high)
+    {
+        int mid = low + (high - low) / 2;
+
+        if (arr[mid] <= key)
+            low = mid + 1;
+        else
+            high = mid;
+    }
+
+    return low;
+}
+
+// First Occurrence
+int firstOccurrence(int arr[], int n, int key)
+{
+    int low = 0, high = n - 1;
+    int answer = -1;
+
+    while (low <= high)
+    {
+        int mid = low + (high - low) / 2;
+
+        if (arr[mid] == key)
+        {
+            answer = mid;
+            high = mid - 1;
+        }
+        else if (arr[mid] < key)
+        {
+            low = mid + 1;
+        }
+        else
+        {
+            high = mid - 1;
+        }
+    }
+
+    return answer;
+}
+
+// Last Occurrence
+int lastOccurrence(int arr[], int n, int key)
+{
+    int low = 0, high = n - 1;
+    int answer = -1;
+
+    while (low <= high)
+    {
+        int mid = low + (high - low) / 2;
+
+        if (arr[mid] == key)
+        {
+            answer = mid;
+            low = mid + 1;
+        }
+        else if (arr[mid] < key)
+        {
+            low = mid + 1;
+        }
+        else
+        {
+            high = mid - 1;
+        }
+    }
+
+    return answer;
+}
+
+int main()
+{
+    int arr[100], n, key;
+
+    cout << "Enter array size: ";
+    cin >> n;
+
+    cout << "Enter sorted array elements: ";
+
+    for (int i = 0; i < n; i++)
+    {
+        cin >> arr[i];
+    }
+
+    cout << "Enter search value: ";
+    cin >> key;
+
+    cout << "\nIterative Search: "
+         << binarySearch(arr, n, key);
+
+    cout << "\nRecursive Search: "
+         << recursiveBinarySearch(arr, 0, n - 1, key);
+
+    cout << "\nLower Bound: "
+         << lowerBound(arr, n, key);
+
+    cout << "\nUpper Bound: "
+         << upperBound(arr, n, key);
+
+    cout << "\nFirst Occurrence: "
+         << firstOccurrence(arr, n, key);
+
+    cout << "\nLast Occurrence: "
+         << lastOccurrence(arr, n, key);
 
     return 0;
 }

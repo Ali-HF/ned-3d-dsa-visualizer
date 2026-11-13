@@ -1,36 +1,90 @@
-/**
- * NED University - CT-159 Data Structure Algorithms & Applications
- * Week 3 Viva Staple: Floyd's Cycle Detection (Tortoise and Hare)
- */
 #include <iostream>
 using namespace std;
 
-struct Node {
+struct Node
+{
     int data;
     Node* next;
-    Node(int val) : data(val), next(nullptr) {}
 };
 
-bool detectCycle(Node* head) {
+// Create a new node
+Node* createNode(int value)
+{
+    Node* newNode = new Node;
+
+    newNode->data = value;
+    newNode->next = NULL;
+
+    return newNode;
+}
+
+// Insert at end
+void insertEnd(Node*& head, int value)
+{
+    Node* newNode = createNode(value);
+
+    if (head == NULL)
+    {
+        head = newNode;
+        return;
+    }
+
+    Node* temp = head;
+
+    while (temp->next != NULL)
+    {
+        temp = temp->next;
+    }
+
+    temp->next = newNode;
+}
+
+// Detect cycle
+bool detectCycle(Node* head)
+{
     Node* slow = head;
     Node* fast = head;
-    while (fast && fast->next) {
+
+    while (fast != NULL && fast->next != NULL)
+    {
         slow = slow->next;
         fast = fast->next->next;
-        if (slow == fast) return true; // Cycle detected!
+
+        if (slow == fast)
+        {
+            return true;
+        }
     }
+
     return false;
 }
 
-int main() {
-    Node* head = new Node(1);
-    head->next = new Node(2);
-    head->next->next = new Node(3);
-    head->next->next->next = new Node(4);
-    
-    // Create cycle: 4 -> 2
-    head->next->next->next->next = head->next;
+int main()
+{
+    Node* head = NULL;
 
-    cout << "Cycle detected: " << (detectCycle(head) ? "YES" : "NO") << endl;
+    int n, value;
+
+    cout << "Enter number of nodes: ";
+    cin >> n;
+
+    cout << "Enter elements: ";
+
+    for (int i = 0; i < n; i++)
+    {
+        cin >> value;
+        insertEnd(head, value);
+    }
+
+    // Check for cycle
+    if (detectCycle(head))
+    {
+        cout << "Cycle detected";
+    }
+    else
+    {
+        cout << "No cycle detected";
+    }
+
     return 0;
 }

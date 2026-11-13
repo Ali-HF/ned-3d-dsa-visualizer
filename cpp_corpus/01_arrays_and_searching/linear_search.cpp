@@ -1,33 +1,66 @@
-/**
- * NED University - CT-159 Data Structure Algorithms & Applications
- * Week 1: Linear Search (Iterative & Recursive)
- */
 #include <iostream>
 using namespace std;
 
-int linearSearchIterative(int arr[], int n, int target) {
-    for (int i = 0; i < n; i++) {
-        if (arr[i] == target) return i;
+// Iterative Linear Search
+int linearSearch(int arr[], int n, int key)
+{
+    for (int i = 0; i < n; i++)
+    {
+        if (arr[i] == key)
+        {
+            return i;
+        }
     }
+
     return -1;
 }
 
-int linearSearchRecursive(int arr[], int n, int target, int index = 0) {
-    if (index >= n) return -1;
-    if (arr[index] == target) return index;
-    return linearSearchRecursive(arr, n, target, index + 1);
+// Recursive Linear Search
+int recursiveSearch(int arr[], int n, int key, int index)
+{
+    if (index == n)
+    {
+        return -1;
+    }
+
+    if (arr[index] == key)
+    {
+        return index;
+    }
+
+    return recursiveSearch(arr, n, key, index + 1);
 }
 
-int main() {
-    int arr[] = {42, 17, 68, 29, 84, 12};
-    int n = sizeof(arr) / sizeof(arr[0]);
-    int target = 29;
+int main()
+{
+    int arr[100], n, key;
 
-    int idx1 = linearSearchIterative(arr, n, target);
-    cout << "Iterative: Found " << target << " at index " << idx1 << endl;
+    cout << "Enter array size: ";
+    cin >> n;
 
-    int idx2 = linearSearchRecursive(arr, n, target);
-    cout << "Recursive: Found " << target << " at index " << idx2 << endl;
+    cout << "Enter array elements: ";
+
+    for (int i = 0; i < n; i++)
+    {
+        cin >> arr[i];
+    }
+
+    cout << "Enter value to search: ";
+    cin >> key;
+
+    int result = linearSearch(arr, n, key);
+
+    if (result != -1)
+        cout << "Iterative: Found at index " << result << endl;
+    else
+        cout << "Iterative: Not found" << endl;
+
+    result = recursiveSearch(arr, n, key, 0);
+
+    if (result != -1)
+        cout << "Recursive: Found at index " << result;
+    else
+        cout << "Recursive: Not found";
 
     return 0;
 }

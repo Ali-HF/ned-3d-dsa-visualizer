@@ -1,43 +1,73 @@
-/**
- * NED University - CT-159 Data Structure Algorithms & Applications
- * Week 10: Heap Sort (In-Place Max-Heapify)
- */
 #include <iostream>
+#include <vector>
+#include <utility>
+
 using namespace std;
 
-void heapify(int arr[], int n, int i) {
-    int largest = i;
-    int l = 2 * i + 1;
-    int r = 2 * i + 2;
+void siftDown(vector<int>& arr, int heapSize, int index) // restore max-heap property within [0, heapSize)
+{
+    while (true)
+    {
+        int left = 2 * index + 1;
+        int right = 2 * index + 2;
+        int largest = index;
 
-    if (l < n && arr[l] > arr[largest]) largest = l;
-    if (r < n && arr[r] > arr[largest]) largest = r;
+        if (left < heapSize && arr[left] > arr[largest])
+        {
+            largest = left;
+        }
+        if (right < heapSize && arr[right] > arr[largest])
+        {
+            largest = right;
+        }
 
-    if (largest != i) {
-        swap(arr[i], arr[largest]);
-        heapify(arr, n, largest);
+        if (largest == index)
+        {
+            break;
+        }
+
+        swap(arr[index], arr[largest]);
+        index = largest;
     }
 }
 
-void heapSort(int arr[], int n) {
-    // 1. Build heap (rearrange array)
-    for (int i = n / 2 - 1; i >= 0; i--) {
-        heapify(arr, n, i);
+void heapSort(vector<int>& arr) // sort array in-place in ascending order
+{
+    int n = static_cast<int>(arr.size());
+
+    for (int i = n / 2 - 1; i >= 0; i--) // phase 1: build max-heap bottom-up in O(n)
+    {
+        siftDown(arr, n, i);
     }
 
-    // 2. Extract elements one by one from heap
-    for (int i = n - 1; i > 0; i--) {
+    for (int i = n - 1; i > 0; i--) // phase 2: swap max root to sorted suffix and shrink heap
+    {
         swap(arr[0], arr[i]);
-        heapify(arr, i, 0);
+        siftDown(arr, i, 0);
     }
 }
 
-int main() {
-    int arr[] = {12, 11, 13, 5, 6, 7};
-    int n = sizeof(arr) / sizeof(arr[0]);
-    heapSort(arr, n);
-    cout << "Heap Sorted: ";
-    for (int i = 0; i < n; i++) cout << arr[i] << " ";
+void printArray(const vector<int>& arr)
+{
+    for (int val : arr)
+    {
+        cout << val << " ";
+    }
     cout << endl;
+}
+
+int main()
+{
+    vector<int> arr = {12, 11, 13, 5, 6, 7, -3, 13};
+
+    cout << "Original array: ";
+    printArray(arr);
+
+    heapSort(arr);
+
+    cout << "Sorted array:   ";
+    printArray(arr);
+
     return 0;
 }
+

@@ -1,63 +1,145 @@
-/**
- * NED University - CT-159 Data Structure Algorithms & Applications
- * Week 2 Viva Staples: Middle Node (Fast/Slow Pointer) & Merge Two Sorted Lists
- */
+
 #include <iostream>
 using namespace std;
 
-struct Node {
+struct Node
+{
     int data;
     Node* next;
-    Node(int val) : data(val), next(nullptr) {}
 };
 
-Node* findMiddle(Node* head) {
+void insertEnd(Node*& head, int value)
+{
+    Node* newNode = new Node;
+
+    newNode->data = value;
+    newNode->next = NULL;
+
+    if (head == NULL)
+    {
+        head = newNode;
+        return;
+    }
+
+    Node* temp = head;
+
+    while (temp->next != NULL)
+    {
+        temp = temp->next;
+    }
+
+    temp->next = newNode;
+}
+
+// Find middle node
+Node* findMiddle(Node* head)
+{
+    if (head == NULL)
+        return NULL;
+
     Node* slow = head;
     Node* fast = head;
-    while (fast && fast->next) {
+
+    while (fast != NULL && fast->next != NULL)
+    {
         slow = slow->next;
         fast = fast->next->next;
     }
-    return slow; // Points to middle node
+
+    return slow;
 }
 
-Node* mergeSortedLists(Node* l1, Node* l2) {
-    Node dummy(0);
-    Node* tail = &dummy;
-    while (l1 && l2) {
-        if (l1->data <= l2->data) {
-            tail->next = l1;
-            l1 = l1->next;
-        } else {
-            tail->next = l2;
-            l2 = l2->next;
+// Merge two sorted linked lists
+Node* mergeLists(Node* first, Node* second)
+{
+    Node* result = NULL;
+    Node* tail = NULL;
+
+    while (first != NULL && second != NULL)
+    {
+        Node* selected;
+
+        if (first->data <= second->data)
+        {
+            selected = first;
+            first = first->next;
         }
-        tail = tail->next;
+        else
+        {
+            selected = second;
+            second = second->next;
+        }
+
+        if (result == NULL)
+        {
+            result = selected;
+            tail = selected;
+        }
+        else
+        {
+            tail->next = selected;
+            tail = selected;
+        }
     }
-    tail->next = l1 ? l1 : l2;
-    return dummy.next;
+
+    if (first != NULL)
+        tail->next = first;
+
+    if (second != NULL)
+        tail->next = second;
+
+    return result;
 }
 
-int main() {
-    Node* a = new Node(10);
-    a->next = new Node(20);
-    a->next->next = new Node(30);
-    a->next->next->next = new Node(40);
-    a->next->next->next->next = new Node(50);
-
-    Node* mid = findMiddle(a);
-    cout << "Middle node value: " << mid->data << endl;
-
-    Node* b = new Node(15);
-    b->next = new Node(25);
-
-    Node* merged = mergeSortedLists(a, b);
-    cout << "Merged List: ";
-    while (merged) {
-        cout << merged->data << " ";
-        merged = merged->next;
+void display(Node* head)
+{
+    while (head != NULL)
+    {
+        cout << head->data << " -> ";
+        head = head->next;
     }
-    cout << endl;
+
+    cout << "NULL\n";
+}
+
+int main()
+{
+    Node* list1 = NULL;
+    Node* list2 = NULL;
+
+    int n, value;
+
+    cout << "Enter size of first list: ";
+    cin >> n;
+
+    cout << "Enter sorted elements: ";
+
+    for (int i = 0; i < n; i++)
+    {
+        cin >> value;
+        insertEnd(list1, value);
+    }
+
+    cout << "Enter size of second list: ";
+    cin >> n;
+
+    cout << "Enter sorted elements: ";
+
+    for (int i = 0; i < n; i++)
+    {
+        cin >> value;
+        insertEnd(list2, value);
+    }
+
+    Node* middle = findMiddle(list1);
+
+    if (middle != NULL)
+        cout << "\nMiddle of first list: " << middle->data;
+
+    Node* merged = mergeLists(list1, list2);
+
+    cout << "\nMerged List: ";
+    display(merged);
 
     return 0;
 }

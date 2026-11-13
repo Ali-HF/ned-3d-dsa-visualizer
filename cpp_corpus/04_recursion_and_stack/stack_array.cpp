@@ -1,47 +1,126 @@
-/**
- * NED University - CT-159 Data Structure Algorithms & Applications
- * Week 4: Array-based Stack ADT
- */
 #include <iostream>
 using namespace std;
 
-#define MAX 100
+int stackArr[100];
+int topIndex = -1;
 
-class Stack {
-    int topIndex;
-    int arr[MAX];
-
-public:
-    Stack() : topIndex(-1) {}
-
-    bool push(int x) {
-        if (topIndex >= MAX - 1) return false;
-        arr[++topIndex] = x;
-        return true;
+void push(int value)
+{
+    if (topIndex == 99)
+    {
+        cout << "Stack Overflow!\n";
     }
-
-    int pop() {
-        if (topIndex < 0) return -1;
-        return arr[topIndex--];
+    else
+    {
+        topIndex++;
+        stackArr[topIndex] = value;
+        cout << value << " pushed into stack.\n";
     }
+}
 
-    int peek() {
-        if (topIndex < 0) return -1;
-        return arr[topIndex];
+void pop()
+{
+    if (topIndex == -1)
+    {
+        cout << "Stack Underflow!\n";
     }
+    else
+    {
+        cout << stackArr[topIndex] << " popped from stack.\n";
+        topIndex--;
+    }
+}
 
-    bool isEmpty() { return topIndex < 0; }
-};
+void peek()
+{
+    if (topIndex == -1)
+    {
+        cout << "Stack is empty.\n";
+    }
+    else
+    {
+        cout << "Top element: " << stackArr[topIndex] << endl;
+    }
+}
 
-int main() {
-    Stack s;
-    s.push(10);
-    s.push(20);
-    s.push(30);
+void display()
+{
+    if (topIndex == -1)
+    {
+        cout << "Stack is empty.\n";
+    }
+    else
+    {
+        cout << "Stack elements:\n";
 
-    cout << "Top element: " << s.peek() << endl;
-    cout << "Popped: " << s.pop() << endl;
-    cout << "New Top: " << s.peek() << endl;
+        for (int i = topIndex; i >= 0; i--)
+        {
+            cout << stackArr[i] << endl;
+        }
+    }
+}
+
+int main()
+{
+    int choice, value;
+
+    do
+    {
+        cout << "\n--- Stack Using Array ---\n";
+        cout << "1. Push\n";
+        cout << "2. Pop\n";
+        cout << "3. Peek\n";
+        cout << "4. Display\n";
+        cout << "5. Check Empty\n";
+        cout << "6. Check Full\n";
+        cout << "7. Exit\n";
+
+        cout << "Enter choice: ";
+        cin >> choice;
+
+        switch (choice)
+        {
+            case 1:
+                cout << "Enter value: ";
+                cin >> value;
+                push(value);
+                break;
+
+            case 2:
+                pop();
+                break;
+
+            case 3:
+                peek();
+                break;
+
+            case 4:
+                display();
+                break;
+
+            case 5:
+                if (topIndex == -1)
+                    cout << "Stack is empty.\n";
+                else
+                    cout << "Stack is not empty.\n";
+                break;
+
+            case 6:
+                if (topIndex == 99)
+                    cout << "Stack is full.\n";
+                else
+                    cout << "Stack is not full.\n";
+                break;
+
+            case 7:
+                cout << "Exiting...\n";
+                break;
+
+            default:
+                cout << "Invalid choice!\n";
+        }
+
+    } while (choice != 7);
 
     return 0;
 }
