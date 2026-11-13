@@ -483,20 +483,28 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
   },
 ];
 
+function getLinkedListNodeIds(count: number): string[] {
+  if (count <= 0) return [];
+  if (count === 1) return ['node-head'];
+  return [
+    'node-head',
+    ...Array.from({ length: count - 2 }, (_, idx) => `node-${idx + 2}`),
+    'node-tail',
+  ];
+}
+
 function emitBaseLinkedList(events: TraceEvent[], customValues?: number[]) {
   const vals =
-    customValues && customValues.length >= 4
-      ? customValues.slice(0, 4)
+    customValues && customValues.length >= 1
+      ? customValues.slice(0, 24)
       : [10, 25, 40, 55];
-  events.push(
-    { t: 'create', id: 'node-head', kind: 'node', value: vals[0] },
-    { t: 'create', id: 'node-2', kind: 'node', value: vals[1] },
-    { t: 'create', id: 'node-3', kind: 'node', value: vals[2] },
-    { t: 'create', id: 'node-tail', kind: 'node', value: vals[3] },
-    { t: 'link', from: 'node-head', to: 'node-2', label: 'next' },
-    { t: 'link', from: 'node-2', to: 'node-3', label: 'next' },
-    { t: 'link', from: 'node-3', to: 'node-tail', label: 'next' },
-  );
+  const nodeIds = getLinkedListNodeIds(vals.length);
+  for (let i = 0; i < vals.length; i++) {
+    events.push({ t: 'create', id: nodeIds[i], kind: 'node', value: vals[i] });
+  }
+  for (let i = 0; i < nodeIds.length - 1; i++) {
+    events.push({ t: 'link', from: nodeIds[i], to: nodeIds[i + 1], label: 'next' });
+  }
   return vals;
 }
 
@@ -736,7 +744,7 @@ export function runStructureOperation(
     case 'sll-insert-head': {
       const vals = emitBaseLinkedList(events, customValues);
       const val = Number.isFinite(paramValue) ? paramValue : 5;
-      updatedValues = [val, ...vals.slice(0, 3)];
+      updatedValues = [val, ...vals];
       events.push(
         {
           t: 'note',
@@ -767,28 +775,39 @@ export function runStructureOperation(
 
     case 'sll-insert-tail': {
       const vals = emitBaseLinkedList(events, customValues);
+      const nodeIds = getLinkedListNodeIds(vals.length);
+      const tailId = nodeIds[nodeIds.length - 1];
       const val = Number.isFinite(paramValue) ? paramValue : 70;
-      updatedValues = [...vals.slice(1), val];
+      updatedValues = [...vals, val];
       events.push(
         {
           t: 'note',
           text: `Starting at head (${vals[0]}). Walking to the end of the list to add ${val}.`,
         },
         { t: 'line', line: 27 },
-        { t: 'visit', id: 'node-head' },
-        { t: 'note', text: `Checking node ${vals[0]} — it has a next arrow, so move forward.` },
-        { t: 'visit', id: 'node-2' },
-        { t: 'note', text: `Checking node ${vals[1]} — it has a next arrow, so move forward.` },
-        { t: 'visit', id: 'node-3' },
-        { t: 'note', text: `Checking node ${vals[2]} — moving to the last node ${vals[3]}.` },
-        { t: 'visit', id: 'node-tail' },
+      );
+      for (let i = 0; i < nodeIds.length; i++) {
+        events.push({ t: 'visit', id: nodeIds[i] });
+        if (i < nodeIds.length - 2) {
+          events.push({
+            t: 'note',
+            text: `Checking node ${vals[i]} — it has a next arrow, so move forward.`,
+          });
+        } else if (i === nodeIds.length - 2) {
+          events.push({
+            t: 'note',
+            text: `Checking node ${vals[i]} — moving to the last node ${vals[i + 1]}.`,
+          });
+        }
+      }
+      events.push(
         {
           t: 'note',
-          text: `Reached the tail node (${vals[3]}). Creating new node ${val} and linking it at the end.`,
+          text: `Reached the tail node (${vals[vals.length - 1]}). Creating new node ${val} and linking it at the end.`,
         },
         { t: 'line', line: 29 },
         { t: 'create', id: 'node-new-tail', kind: 'node', value: val },
-        { t: 'link', from: 'node-tail', to: 'node-new-tail', label: 'next' },
+        { t: 'link', from: tailId, to: 'node-new-tail', label: 'next' },
         { t: 'visit', id: 'node-new-tail' },
         {
           t: 'note',
@@ -801,8 +820,8 @@ export function runStructureOperation(
 
     case 'sll-delete-val': {
       const vals = emitBaseLinkedList(events, customValues);
-      const nodeIds = ['node-head', 'node-2', 'node-3', 'node-tail'];
-      const target = Number.isFinite(paramValue) ? paramValue : vals[2];
+      const nodeIds = getLinkedListNodeIds(vals.length);
+      const target = Number.isFinite(paramValue) ? paramValue : (vals[2] ?? vals[0]);
       const matchIdx = vals.findIndex((v) => v === target);
 
       events.push({
@@ -812,19 +831,28 @@ export function runStructureOperation(
       events.push({ t: 'line', line: 51 });
 
       if (matchIdx === 0) {
-        events.push(
-          { t: 'visit', id: nodeIds[0] },
-          { t: 'note', text: `Head node holds ${target}! Updating head to point to ${vals[1]}.` },
-          { t: 'line', line: 55 },
-          { t: 'unlink', from: nodeIds[0], to: nodeIds[1] },
-          { t: 'remove', id: nodeIds[0] },
-          { t: 'visit', id: nodeIds[1] },
-          {
-            t: 'note',
-            text: `Deleted head node ${target}. List is now ${vals.slice(1).join(' → ')}.`,
-          },
-          { t: 'done' },
-        );
+        events.push({ t: 'visit', id: nodeIds[0] });
+        if (nodeIds[1]) {
+          events.push(
+            { t: 'note', text: `Head node holds ${target}! Updating head to point to ${vals[1]}.` },
+            { t: 'line', line: 55 },
+            { t: 'unlink', from: nodeIds[0], to: nodeIds[1] },
+            { t: 'remove', id: nodeIds[0] },
+            { t: 'visit', id: nodeIds[1] },
+            {
+              t: 'note',
+              text: `Deleted head node ${target}. List is now ${vals.slice(1).join(' → ')}.`,
+            },
+          );
+        } else {
+          events.push(
+            { t: 'note', text: `Head node holds ${target}! Removing the only node in the list.` },
+            { t: 'line', line: 55 },
+            { t: 'remove', id: nodeIds[0] },
+            { t: 'note', text: `Deleted head node ${target}. List is now empty.` },
+          );
+        }
+        events.push({ t: 'done' });
         updatedValues = vals.slice(1);
       } else if (matchIdx > 0) {
         for (let i = 0; i < matchIdx; i++) {
@@ -890,8 +918,8 @@ export function runStructureOperation(
 
     case 'sll-search': {
       const vals = emitBaseLinkedList(events, customValues);
-      const nodeIds = ['node-head', 'node-2', 'node-3', 'node-tail'];
-      const target = Number.isFinite(paramValue) ? paramValue : vals[2];
+      const nodeIds = getLinkedListNodeIds(vals.length);
+      const target = Number.isFinite(paramValue) ? paramValue : (vals[2] ?? vals[0]);
       events.push({
         t: 'note',
         text: `Searching the Linked List (${vals.join(' → ')}) from head to tail for ${target}.`,
@@ -928,6 +956,7 @@ export function runStructureOperation(
 
     case 'sll-reverse': {
       const vals = emitBaseLinkedList(events, customValues);
+      const nodeIds = getLinkedListNodeIds(vals.length);
       updatedValues = [...vals].reverse();
       events.push(
         {
@@ -935,31 +964,36 @@ export function runStructureOperation(
           text: 'Reversing the Linked List in-place by flipping each arrow backward.',
         },
         { t: 'line', line: 17 },
-        { t: 'visit', id: 'node-head' },
-        { t: 'unlink', from: 'node-head', to: 'node-2' },
+      );
+      if (nodeIds.length > 0) {
+        events.push({ t: 'visit', id: nodeIds[0] });
+        if (nodeIds[1]) {
+          events.push(
+            { t: 'unlink', from: nodeIds[0], to: nodeIds[1] },
+            {
+              t: 'note',
+              text: `Detached ${vals[0]} from ${vals[1]} so ${vals[0]} now points to nothing (it becomes the new tail).`,
+            },
+          );
+        }
+        for (let i = 1; i < nodeIds.length; i++) {
+          events.push({ t: 'visit', id: nodeIds[i] });
+          if (nodeIds[i + 1]) {
+            events.push({ t: 'unlink', from: nodeIds[i], to: nodeIds[i + 1] });
+          }
+          events.push(
+            { t: 'link', from: nodeIds[i], to: nodeIds[i - 1], label: 'next' },
+            {
+              t: 'note',
+              text: `Flipped arrow so ${vals[i]} now points back to ${vals[i - 1]}.`,
+            },
+          );
+        }
+      }
+      events.push(
         {
           t: 'note',
-          text: `Detached ${vals[0]} from ${vals[1]} so ${vals[0]} now points to nothing (it becomes the new tail).`,
-        },
-        { t: 'visit', id: 'node-2' },
-        { t: 'unlink', from: 'node-2', to: 'node-3' },
-        { t: 'link', from: 'node-2', to: 'node-head', label: 'next' },
-        {
-          t: 'note',
-          text: `Flipped arrow so ${vals[1]} now points back to ${vals[0]}.`,
-        },
-        { t: 'visit', id: 'node-3' },
-        { t: 'unlink', from: 'node-3', to: 'node-tail' },
-        { t: 'link', from: 'node-3', to: 'node-2', label: 'next' },
-        {
-          t: 'note',
-          text: `Flipped arrow so ${vals[2]} now points back to ${vals[1]}.`,
-        },
-        { t: 'visit', id: 'node-tail' },
-        { t: 'link', from: 'node-tail', to: 'node-3', label: 'next' },
-        {
-          t: 'note',
-          text: `Flipped arrow so ${vals[3]} points to ${vals[2]}. Done! Reversed list: ${updatedValues.join(' → ')}.`,
+          text: `Done! Reversed list: ${updatedValues.join(' → ')}.`,
         },
         { t: 'done' },
       );
@@ -967,24 +1001,35 @@ export function runStructureOperation(
     }
 
     case 'sll-find-middle': {
-      emitBaseLinkedList(events, customValues);
+      const vals = emitBaseLinkedList(events, customValues);
+      const nodeIds = getLinkedListNodeIds(vals.length);
       events.push(
         {
           t: 'note',
           text: 'Using Slow (1 step) and Fast (2 steps) pointers to find the middle node.',
         },
         { t: 'line', line: 34 },
-        { t: 'compare', a: { id: 'node-head' }, b: { id: 'node-head' } },
+        { t: 'compare', a: { id: nodeIds[0] }, b: { id: nodeIds[0] } },
         { t: 'note', text: 'Both Slow and Fast start at head.' },
-        { t: 'compare', a: { id: 'node-2' }, b: { id: 'node-3' } },
+      );
+      let slow = 0;
+      let fast = 0;
+      while (fast + 1 < nodeIds.length && fast + 2 < nodeIds.length) {
+        slow += 1;
+        fast += 2;
+        events.push(
+          { t: 'compare', a: { id: nodeIds[slow] }, b: { id: nodeIds[fast] } },
+          {
+            t: 'note',
+            text: `Slow moves 1 step to ${vals[slow]}, while Fast jumps 2 steps to ${vals[fast]}.`,
+          },
+        );
+      }
+      events.push(
+        { t: 'visit', id: nodeIds[slow] },
         {
           t: 'note',
-          text: 'Slow moves 1 step forward, while Fast jumps 2 steps ahead.',
-        },
-        { t: 'visit', id: 'node-3' },
-        {
-          t: 'note',
-          text: 'Fast reaches the end, so Slow lands right on the middle node!',
+          text: `Fast reaches the end, so Slow lands right on the middle node (${vals[slow]})!`,
         },
         { t: 'done' },
       );
@@ -992,22 +1037,25 @@ export function runStructureOperation(
     }
 
     case 'dll-traversal': {
-      emitBaseLinkedList(events, customValues);
+      const vals = emitBaseLinkedList(events, customValues);
+      const nodeIds = getLinkedListNodeIds(vals.length);
+      for (let i = 1; i < nodeIds.length; i++) {
+        events.push({ t: 'link', from: nodeIds[i], to: nodeIds[i - 1], label: 'prev' });
+      }
+      events.push({
+        t: 'note',
+        text: 'Doubly Linked List: every node has both a forward (next) and backward (prev) arrow.',
+      });
+      for (let i = 0; i < nodeIds.length; i++) {
+        events.push({ t: 'visit', id: nodeIds[i] });
+        if (i < nodeIds.length - 1) {
+          events.push({
+            t: 'note',
+            text: `Forward walk: visiting ${i === 0 ? 'head' : `node #${i + 1}`} (${vals[i]}) → moving next.`,
+          });
+        }
+      }
       events.push(
-        { t: 'link', from: 'node-2', to: 'node-head', label: 'prev' },
-        { t: 'link', from: 'node-3', to: 'node-2', label: 'prev' },
-        { t: 'link', from: 'node-tail', to: 'node-3', label: 'prev' },
-        {
-          t: 'note',
-          text: 'Doubly Linked List: every node has both a forward (next) and backward (prev) arrow.',
-        },
-        { t: 'visit', id: 'node-head' },
-        { t: 'note', text: 'Forward walk: visiting head → moving next.' },
-        { t: 'visit', id: 'node-2' },
-        { t: 'note', text: 'Forward walk: visiting node #2 → moving next.' },
-        { t: 'visit', id: 'node-3' },
-        { t: 'note', text: 'Forward walk: visiting node #3 → moving next.' },
-        { t: 'visit', id: 'node-tail' },
         {
           t: 'note',
           text: 'Reached tail. Because each node also has a prev arrow, we can walk backward too!',
@@ -1018,25 +1066,23 @@ export function runStructureOperation(
     }
 
     case 'cll-cycle': {
-      emitBaseLinkedList(events, customValues);
+      const vals = emitBaseLinkedList(events, customValues);
+      const nodeIds = getLinkedListNodeIds(vals.length);
+      const tailId = nodeIds[nodeIds.length - 1];
+      const loopTargetId = nodeIds[1] ?? nodeIds[0];
       events.push(
-        { t: 'link', from: 'node-tail', to: 'node-2', label: 'loop' },
+        { t: 'link', from: tailId, to: loopTargetId, label: 'loop' },
         {
           t: 'note',
-          text: 'Tail node loops back to node #2! Running Tortoise & Hare cycle detection.',
+          text: `Tail node loops back to ${vals[1] ?? vals[0]}! Running Tortoise & Hare cycle detection.`,
         },
-        { t: 'compare', a: { id: 'node-2' }, b: { id: 'node-3' } },
+        { t: 'compare', a: { id: loopTargetId }, b: { id: nodeIds[2] ?? loopTargetId } },
         {
           t: 'note',
           text: 'Tortoise steps 1 node while Hare jumps 2 nodes ahead.',
         },
-        { t: 'compare', a: { id: 'node-3' }, b: { id: 'node-2' } },
-        {
-          t: 'note',
-          text: 'Hare follows the loop arrow from tail back to node #2!',
-        },
-        { t: 'compare', a: { id: 'node-tail' }, b: { id: 'node-tail' } },
-        { t: 'visit', id: 'node-tail' },
+        { t: 'compare', a: { id: tailId }, b: { id: tailId } },
+        { t: 'visit', id: tailId },
         {
           t: 'note',
           text: 'Tortoise and Hare meet inside the loop — cycle confirmed!',

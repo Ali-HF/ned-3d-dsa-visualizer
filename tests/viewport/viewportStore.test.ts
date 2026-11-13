@@ -376,4 +376,26 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     expect(newX!).toBeLessThan(headX!);
     expect(headX!).toBeLessThan(tailX!);
   });
+
+  it('renders all custom linked-list nodes when more than 4 values are applied', () => {
+    const store = useViewportStore.getState();
+    store.setPreviewScene('linked-list');
+    store.applyCustomInputValues([10, 20, 30, 40, 50]);
+
+    let state = useViewportStore.getState();
+    expect(Object.keys(state.currentSnapshot.nodes)).toEqual([
+      'node-head',
+      'node-2',
+      'node-3',
+      'node-4',
+      'node-tail',
+    ]);
+    expect(state.currentSnapshot.nodes['node-tail']?.value).toBe(50);
+
+    store.runStructureOperationNow('sll-insert-head', 42);
+    useViewportStore.getState().skipToEnd();
+    state = useViewportStore.getState();
+    expect(Object.keys(state.currentSnapshot.nodes).length).toBe(6);
+    expect(state.workingArray).toEqual([42, 10, 20, 30, 40, 50]);
+  });
 });
