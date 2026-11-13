@@ -329,7 +329,7 @@ function SceneObjectMesh({
           >
             <div className="stitch-under-bar">
               <span className={`stitch-idx-box ${isActiveBar ? 'active' : ''}`}>
-                {isKids ? `#${cellIndex + 1}` : `A[${cellIndex}]`}
+                {isKids ? `#${cellIndex}` : `A[${cellIndex}]`}
               </span>
               {!isKids && <span className="stitch-hex-addr">{hexAddr}</span>}
             </div>
