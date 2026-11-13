@@ -282,6 +282,7 @@ export function App() {
   const [paramIndexText, setParamIndexText] = useState<string>('2');
   const [paramValueText, setParamValueText] = useState<string>('42');
   const [paramText, setParamText] = useState<string>('{[()]}');
+  const [hanoiDisksText, setHanoiDisksText] = useState<string>('10, 20, 30');
   const [customCodeText, setCustomCodeText] = useState<string>(() =>
     getCorpusRawText('06_elementary_sorting/bubble_sort.cpp'),
   );
@@ -472,7 +473,9 @@ export function App() {
     } else {
       setOpError(null);
       if (!activeStructureOp) return;
-      runStructureOperationNow(activeStructureOp, parsedVal, paramText);
+      const activeTextParam =
+        activeStructureOp === 'recursion-hanoi' ? hanoiDisksText : paramText;
+      runStructureOperationNow(activeStructureOp, parsedVal, activeTextParam);
     }
   };
 
@@ -1070,9 +1073,21 @@ export function App() {
                             <span>{selectedStructAction.textLabel ?? 'Expression'}</span>
                             <input
                               type="text"
-                              value={paramText}
-                              placeholder="{[()]}"
-                              onChange={(e) => setParamText(e.target.value)}
+                              value={
+                                selectedStructAction.id === 'recursion-hanoi'
+                                  ? hanoiDisksText
+                                  : paramText
+                              }
+                              placeholder={
+                                selectedStructAction.id === 'recursion-hanoi'
+                                  ? '10, 20, 30'
+                                  : '{[()]}'
+                              }
+                              onChange={(e) =>
+                                selectedStructAction.id === 'recursion-hanoi'
+                                  ? setHanoiDisksText(e.target.value)
+                                  : setParamText(e.target.value)
+                              }
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleRunActiveOperation();
                               }}
@@ -1101,9 +1116,21 @@ export function App() {
                             <span>{selectedStructAction.textLabel ?? 'Expression'}</span>
                             <input
                               type="text"
-                              value={paramText}
-                              placeholder="{[()]}"
-                              onChange={(e) => setParamText(e.target.value)}
+                              value={
+                                selectedStructAction.id === 'recursion-hanoi'
+                                  ? hanoiDisksText
+                                  : paramText
+                              }
+                              placeholder={
+                                selectedStructAction.id === 'recursion-hanoi'
+                                  ? '10, 20, 30'
+                                  : '{[()]}'
+                              }
+                              onChange={(e) =>
+                                selectedStructAction.id === 'recursion-hanoi'
+                                  ? setHanoiDisksText(e.target.value)
+                                  : setParamText(e.target.value)
+                              }
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleRunActiveOperation();
                               }}

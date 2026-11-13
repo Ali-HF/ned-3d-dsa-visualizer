@@ -212,6 +212,8 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     corpusPath: '04_recursion_and_stack/viva_stack_applications.cpp',
     timeComplexity: 'O(2^n)',
     spaceComplexity: 'O(n)',
+    needsText: true,
+    textLabel: 'Disks',
   },
 
   // ==========================================
@@ -1428,10 +1430,19 @@ export function runStructureOperation(
     }
 
     case 'recursion-hanoi': {
+      const parsedTextDisks = (paramText ?? '')
+        .split(/[\s,]+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
+        .map((s) => Number(s))
+        .filter((num) => Number.isFinite(num))
+        .slice(0, 5);
       const rawDisks =
-        customValues && customValues.length >= 1
-          ? customValues.slice(0, 5)
-          : [30, 20, 10];
+        parsedTextDisks.length >= 1
+          ? parsedTextDisks
+          : customValues && customValues.length >= 1
+            ? customValues.slice(0, 5)
+            : [30, 20, 10];
       const diskVals = [...rawDisks].sort((a, b) => b - a);
       const n = diskVals.length;
       const totalMoves = Math.pow(2, n) - 1;
