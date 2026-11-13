@@ -914,14 +914,14 @@ export function App() {
                 </div>
               </section>
 
-              {/* CARD 3: Input Numbers */}
+              {/* CARD 3: Dataset & Params */}
               <section className="st-card" data-tour="input-numbers">
                 <div className="st-card-header">
                   <span className="st-step-circle">3</span>
-                  <span className="st-card-title">Input Numbers</span>
+                  <span className="st-card-title">Dataset &amp; Params</span>
                   <Screentip
-                    title="Apply Custom Numbers"
-                    description="Commit the typed array values into the 3D scene."
+                    title="Apply Dataset"
+                    description="Commit the comma-separated elements into the 3D scene."
                     placement="top"
                   >
                     <button
@@ -936,8 +936,8 @@ export function App() {
 
                 <div className="st-input-well-wrap">
                   <Screentip
-                    title="Edit Dataset Values"
-                    description="Enter comma-separated numbers (press Enter to apply)."
+                    title="Edit Dataset Elements"
+                    description="Enter comma-separated values for the structure (press Enter to apply)."
                     placement="top"
                   >
                     <input
@@ -948,7 +948,7 @@ export function App() {
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleApplyInputNumbers();
                       }}
-                      aria-label="Input Numbers"
+                      aria-label="Dataset Elements"
                     />
                   </Screentip>
 
