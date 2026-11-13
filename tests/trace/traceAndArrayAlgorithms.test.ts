@@ -122,6 +122,14 @@ describe('Phase 2 — Section 4.1 Array Operations & Queue Chaining', () => {
     expect(finalSnap.narration).toContain('Target found at index 5');
   });
 
+  it('throws an error note when binary search is called on an unsorted array', () => {
+    const res = arrayBinarySearchTrace([42, 17, 68, 29], 29);
+    const timeline = new TraceTimeline(res.events);
+    const finalSnap = timeline.getSnapshotAt(timeline.totalSteps);
+    expect(finalSnap.narration).toContain('needs to be sorted first');
+    expect(res.finalArray).toEqual([42, 17, 68, 29]);
+  });
+
   it('reverses and rotates arrays accurately', () => {
     const rev = arrayReverseTrace([1, 2, 3, 4, 5]);
     const revSnap = new TraceTimeline(rev.events).getSnapshotAt(rev.events.length);

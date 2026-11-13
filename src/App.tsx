@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BlenderViewport } from './components/viewport/BlenderViewport';
 import { useViewportStore } from './state/useViewportStore';
-import type { ArrayOperationId } from './algorithms/array/arrayAlgorithms';
+import {
+  isArraySortedAscending,
+  type ArrayOperationId,
+} from './algorithms/array/arrayAlgorithms';
 import { STRUCTURE_OP_CATALOG } from './algorithms/structures/structureAlgorithms';
 import {
   CORPUS_FILE_CATALOG,
@@ -266,6 +269,7 @@ export function App() {
     getCorpusRawText('06_elementary_sorting/bubble_sort.cpp'),
   );
   const [customFileName, setCustomFileName] = useState<string>('custom_code.cpp');
+  const [opError, setOpError] = useState<string | null>(null);
   const [isTourOpen, setIsTourOpen] = useState(() => {
     try {
       return localStorage.getItem('dsa_studio_tour_completed') !== 'true';
@@ -414,6 +418,7 @@ export function App() {
   };
 
   const handleApplyInputNumbers = () => {
+    setOpError(null);
     const nums = parseInputNumbers(arrayInputText);
     setArrayInputText(nums.join(', '));
     applyCustomInputValues(nums);
@@ -439,8 +444,14 @@ export function App() {
     applyCustomInputValues(nums);
     if (previewScene === 'array') {
       if (!activeOperation) return;
+      if (activeOperation === 'binary-search' && !isArraySortedAscending(nums)) {
+        setOpError('Array needs to be sorted first! Run a Sort operation before Binary Search.');
+      } else {
+        setOpError(null);
+      }
       runOperationNow(activeOperation, parsedIdx, parsedVal);
     } else {
+      setOpError(null);
       if (!activeStructureOp) return;
       runStructureOperationNow(activeStructureOp, parsedVal);
     }
@@ -1029,6 +1040,22 @@ export function App() {
                             />
                           </label>
                         )}
+                      </div>
+                    )}
+                    {opError && (
+                      <div
+                        role="alert"
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: '8px',
+                          background: 'rgba(239, 68, 68, 0.12)',
+                          border: '1px solid rgba(239, 68, 68, 0.45)',
+                          color: '#fca5a5',
+                          fontSize: '11.5px',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        {opError}
                       </div>
                     )}
                     <button

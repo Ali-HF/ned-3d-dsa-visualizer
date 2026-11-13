@@ -1035,13 +1035,42 @@ export function arrayLinearSearchTrace(
   };
 }
 
+export function isArraySortedAscending(arr: number[]): boolean {
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i] < arr[i - 1]) return false;
+  }
+  return true;
+}
+
 export function arrayBinarySearchTrace(
   input: number[],
   target: number,
   emitInit: boolean = true,
 ): ArrayTraceResult {
-  const arr = [...input].sort((a, b) => a - b);
+  const arr = [...input];
   const events: TraceEvent[] = [];
+
+  if (!isArraySortedAscending(arr)) {
+    if (emitInit) {
+      emitArrayInit(
+        events,
+        'arr',
+        arr,
+        'Error: The array needs to be sorted first before running Binary Search!',
+      );
+    } else {
+      events.push({
+        t: 'note',
+        text: 'Error: The array needs to be sorted first before running Binary Search!',
+      });
+    }
+    events.push({ t: 'done' });
+    return {
+      events: syncNotesAfterActions(events),
+      finalArray: arr,
+      meta: ARRAY_ALGORITHM_METADATA['binary-search'],
+    };
+  }
 
   if (emitInit) {
     emitArrayInit(
@@ -1050,10 +1079,6 @@ export function arrayBinarySearchTrace(
       arr,
       `Searching for ${target} using Binary Search on sorted numbers: ${arr.join(', ')}.`,
     );
-  } else {
-    for (let i = 0; i < arr.length; i++) {
-      events.push({ t: 'set', target: { id: 'arr', index: i }, value: arr[i] });
-    }
   }
 
   let low = 0;
