@@ -41,15 +41,15 @@ function PointerArrow3D({
 }) {
   return (
     <group position={[0, baseY, 0]}>
-      <mesh position={[0, 0.28, 0]}>
-        <cylinderGeometry args={[0.032, 0.032, 0.36, 12]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.35} />
+      <mesh position={[0, 0.34, 0]}>
+        <cylinderGeometry args={[0.045, 0.045, 0.42, 14]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.4} />
       </mesh>
-      <mesh position={[0, 0.06, 0]} rotation={[Math.PI, 0, 0]}>
-        <coneGeometry args={[0.1, 0.2, 16]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.45} />
+      <mesh position={[0, 0.08, 0]} rotation={[Math.PI, 0, 0]}>
+        <coneGeometry args={[0.13, 0.24, 16]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} />
       </mesh>
-      <Html position={[0, 0.62, 0]} center distanceFactor={14} zIndexRange={[7, 0]}>
+      <Html position={[0, 0.72, 0]} center distanceFactor={14} zIndexRange={[7, 0]}>
         <div
           className="stitch-ptr-badge"
           style={{ background: color, color: '#0b1120' }}
@@ -492,7 +492,7 @@ function SceneObjectMesh({
             </Html>
           )}
           {isTopSlab && !isHashBucket && (
-            <PointerArrow3D label="TOP" color="#f59e0b" baseY={0.34} />
+            <PointerArrow3D label="TOP" color="#f59e0b" baseY={0.42} />
           )}
         </>
       ) : (
