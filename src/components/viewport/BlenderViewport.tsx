@@ -245,11 +245,17 @@ function SceneObjectMesh({
   // Initialize transforms once on mount so React re-renders never snap animated refs
   useLayoutEffect(() => {
     if (groupRef.current) {
-      groupRef.current.position.set(
-        obj.position[0],
-        isArrayCell ? 0 : Math.max(baseMinY, obj.position[1]),
-        obj.position[2],
-      );
+      const startX =
+        isStackSlab && !isHashBucket && !isHanoi && isSpawned
+          ? obj.position[0] - 2.4
+          : obj.position[0];
+      const startY =
+        isStackSlab && !isHashBucket && !isHanoi && isSpawned
+          ? Math.max(baseMinY, obj.position[1]) + 1.85
+          : isArrayCell
+            ? 0
+            : Math.max(baseMinY, obj.position[1]);
+      groupRef.current.position.set(startX, startY, obj.position[2]);
     }
     if (barMeshRef.current) {
       barMeshRef.current.scale.set(1, targetHeight, 1);

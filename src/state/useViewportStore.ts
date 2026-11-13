@@ -502,7 +502,15 @@ export function buildSceneObjectsForScene(
     } else if (scene === 'stack') {
       // Vertical 3D Stack along Y axis (or 3-peg Tower of Hanoi layout)
       const slabSpacing = 0.58;
-      pos = hanoiCoords[node.id] ?? [0, 0.24 + idx * slabSpacing, 0];
+      const isPoppingTop =
+        !isHanoiScene &&
+        idx === nodeEntries.length - 1 &&
+        snapshot.narration.toLowerCase().includes('lifting and sliding');
+      pos =
+        hanoiCoords[node.id] ??
+        (isPoppingTop
+          ? [2.6, 0.24 + idx * slabSpacing + 1.85, 0]
+          : [0, 0.24 + idx * slabSpacing, 0]);
       kind = 'stack-slab';
     } else if (scene === 'queue') {
       if (node.id.startsWith('cq-')) {

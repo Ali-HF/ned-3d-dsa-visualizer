@@ -1212,6 +1212,10 @@ export function runStructureOperation(
         const nextTopId = `stk-${topIdx - 1}`;
         events.push(
           { t: 'unlink', from: topId, to: nextTopId },
+          {
+            t: 'note',
+            text: `Lifting and sliding top plate ${topVal} off the stack...`,
+          },
           { t: 'remove', id: topId },
           { t: 'visit', id: nextTopId },
           {
@@ -1221,6 +1225,10 @@ export function runStructureOperation(
         );
       } else {
         events.push(
+          {
+            t: 'note',
+            text: `Lifting and sliding plate ${topVal} off the stack...`,
+          },
           { t: 'remove', id: topId },
           { t: 'note', text: `Popped ${topVal}! The stack is now empty.` },
         );
