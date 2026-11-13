@@ -14,6 +14,8 @@ import {
   type ArrayOperationId,
 } from '../algorithms/array/arrayAlgorithms';
 import {
+  STRUCTURE_OP_CATALOG,
+  buildStaticStructureTrace,
   runStructureOperation,
   type StructureOperationId,
 } from '../algorithms/structures/structureAlgorithms';
@@ -46,19 +48,6 @@ const ARRAY_CORPUS_MAP: Record<ArrayOperationId, string> = {
   'binary-search': '01_arrays_and_searching/binary_search.cpp',
 };
 
-const DEFAULT_STRUCTURE_OP: Record<
-  Exclude<PreviewSceneKind, 'array'>,
-  StructureOperationId
-> = {
-  'linked-list': 'sll-search',
-  stack: 'stack-push',
-  queue: 'queue-enqueue',
-  bst: 'tree-inorder',
-  heap: 'heap-insert',
-  graph: 'graph-bfs',
-  'hash-table': 'hash-linear',
-};
-
 interface ViewportState {
   /** UI complexity mode: 'kids' (friendly), 'standard' (CAD HUD), or 'pro' (full developer inspector) */
   uiMode: 'kids' | 'standard' | 'pro';
@@ -83,8 +72,8 @@ interface ViewportState {
 
   /** Trace Playback & Operations State */
   workingArray: number[];
-  activeOperation: ArrayOperationId;
-  activeStructureOp: StructureOperationId;
+  activeOperation: ArrayOperationId | null;
+  activeStructureOp: StructureOperationId | null;
   selectedCorpusFile: string;
   activeMetadata: AlgorithmMetadata;
   timeline: TraceTimeline;
@@ -96,6 +85,7 @@ interface ViewportState {
   autoPlayOnRun: boolean;
   autoFollowCamera: boolean;
   operationHistory: QueuedOperationEntry[];
+  hasPendingOperationRun: boolean;
 
   setUiMode: (mode: 'kids' | 'standard' | 'pro') => void;
   toggleUiMode: () => void;
@@ -125,9 +115,14 @@ interface ViewportState {
 
   /** Array, Structure & Corpus actions */
   setCustomArray: (values: number[]) => void;
+  applyCustomInputValues: (values: number[]) => void;
+  selectArrayOperation: (op: ArrayOperationId) => void;
+  selectStructureOperation: (op: StructureOperationId) => void;
   runOperationNow: (op: ArrayOperationId, paramIndex?: number, paramValue?: number) => void;
   runStructureOperationNow: (op: StructureOperationId, paramValue?: number) => void;
+  selectCorpusFile: (relativePath: string) => void;
   selectAndRunCorpusFile: (relativePath: string) => void;
+  previewCustomCode: (sourceCode: string, fileName?: string) => void;
   runCustomCodeNow: (sourceCode: string, fileName?: string) => void;
   queueOperation: (op: ArrayOperationId, paramIndex?: number, paramValue?: number) => void;
   clearOperationQueue: () => void;
@@ -196,7 +191,6 @@ const TREE_NODE_COORDS: Record<string, [number, number, number]> = {
   'bst-40': [-1.4, 0.6, 0.1],
   'bst-60': [1.4, 0.6, -0.1],
   'bst-85': [4.2, 0.6, -1.0],
-  'bst-new': [-0.5, -0.5, 0.4],
 };
 
 const GRAPH_NODE_COORDS: Record<string, [number, number, number]> = {
@@ -509,12 +503,26 @@ function formatOperationLabel(
   }
 }
 
+function buildStaticArrayState(arr: number[]) {
+  const initEvents: TraceEvent[] = [
+    { t: 'create', id: 'arr', kind: 'array', value: arr.length },
+    ...arr.map((v, idx) => ({
+      t: 'set' as const,
+      target: { id: 'arr', index: idx },
+      value: v,
+    })),
+    { t: 'note', text: `Loaded array: ${arr.join(', ')}. Pick an operation to run!` },
+    { t: 'done' },
+  ];
+  const timeline = new TraceTimeline(initEvents);
+  const snapshot = timeline.getSnapshotAt(timeline.totalSteps);
+  const objs = buildArraySceneObjectsFromSnapshot(snapshot);
+  return { timeline, snapshot, objs };
+}
+
 const INITIAL_ARRAY = [42, 17, 68, 29, 84, 12];
-const initialTraceResult = runArrayOperation('bubble-sort', INITIAL_ARRAY, 0, 42, true);
-const initialTimeline = new TraceTimeline(initialTraceResult.events);
-const initialStartStep = Math.min(INITIAL_ARRAY.length + 7, initialTimeline.totalSteps);
-const initialSnapshot = initialTimeline.getSnapshotAt(initialStartStep);
-const initialArrayObjects = buildArraySceneObjectsFromSnapshot(initialSnapshot);
+const initialArrayMeta = ARRAY_ALGORITHM_METADATA['bubble-sort'];
+const initialStatic = buildStaticArrayState(INITIAL_ARRAY);
 
 export const useViewportStore = create<ViewportState>((set, get) => ({
   uiMode: 'standard',
@@ -522,34 +530,31 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
   appMode: 'library',
   previewScene: 'array',
   selectedId: 'arr[0]',
-  sceneObjects: toObjectMap(initialArrayObjects),
+  sceneObjects: toObjectMap(initialStatic.objs),
   cameraPreset: 'isometric',
   cameraCommandVersion: 0,
   showGrid: true,
   wireframe: false,
 
   workingArray: INITIAL_ARRAY,
-  activeOperation: 'bubble-sort',
-  activeStructureOp: 'sll-search',
-  selectedCorpusFile: '06_elementary_sorting/bubble_sort.cpp',
-  activeMetadata: initialTraceResult.meta,
-  timeline: initialTimeline,
-  currentStep: initialStartStep,
-  totalSteps: initialTimeline.totalSteps,
-  currentSnapshot: initialSnapshot,
+  activeOperation: null,
+  activeStructureOp: null,
+  selectedCorpusFile: '01_arrays_and_searching/array_operations.cpp',
+  activeMetadata: {
+    ...initialArrayMeta,
+    title: 'Array (Select an Operation)',
+    code: getCorpusCodeLines('01_arrays_and_searching/array_operations.cpp', initialArrayMeta.code),
+  },
+  timeline: initialStatic.timeline,
+  currentStep: initialStatic.timeline.totalSteps,
+  totalSteps: initialStatic.timeline.totalSteps,
+  currentSnapshot: initialStatic.snapshot,
   isPlaying: false,
   playbackSpeed: 1,
   autoPlayOnRun: true,
   autoFollowCamera: false,
-  operationHistory: [
-    {
-      uid: 'init-op-1',
-      label: 'Bubble Sort',
-      op: 'bubble-sort',
-      startStep: initialStartStep,
-      endStep: initialTimeline.totalSteps,
-    },
-  ],
+  operationHistory: [],
+  hasPendingOperationRun: false,
 
   setUiMode: (mode) => set({ uiMode: mode }),
   toggleUiMode: () =>
@@ -563,35 +568,35 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
   setPreviewScene: (scene) => {
     if (scene === 'array') {
       const state = get();
-      const result = runArrayOperation(
-        state.activeOperation,
-        state.workingArray,
-        0,
-        42,
-        true,
+      const { timeline, snapshot, objs } = buildStaticArrayState(state.workingArray);
+      const corpusLines = getCorpusCodeLines(
+        '01_arrays_and_searching/array_operations.cpp',
+        ARRAY_ALGORITHM_METADATA['bubble-sort'].code,
       );
-      const timeline = new TraceTimeline(result.events);
-      const startStep = Math.min(state.workingArray.length + 2, timeline.totalSteps);
-      const snap = timeline.getSnapshotAt(startStep);
-      const objs = buildArraySceneObjectsFromSnapshot(snap);
       set({
         previewScene: 'array',
+        activeOperation: null,
+        selectedCorpusFile: '01_arrays_and_searching/array_operations.cpp',
         timeline,
-        currentStep: startStep,
+        currentStep: timeline.totalSteps,
         totalSteps: timeline.totalSteps,
-        currentSnapshot: snap,
-        activeMetadata: result.meta,
+        currentSnapshot: snapshot,
+        activeMetadata: {
+          ...ARRAY_ALGORITHM_METADATA['bubble-sort'],
+          title: 'Array (Select an Operation)',
+          code: corpusLines,
+        },
         sceneObjects: toObjectMap(objs),
         selectedId: objs[0]?.id ?? null,
         isPlaying: false,
+        operationHistory: [],
+        hasPendingOperationRun: false,
       });
       return;
     }
 
-    const defaultOp = DEFAULT_STRUCTURE_OP[scene];
-    const result = runStructureOperation(defaultOp, 40);
+    const result = buildStaticStructureTrace(scene, get().workingArray);
     const timeline = new TraceTimeline(result.events);
-    // Advance past the initial node/edge creation events so the full structure is immediately on stage
     const firstNoteIdx = result.events.findIndex((e) => e.t === 'note');
     const startStep = firstNoteIdx >= 0 ? firstNoteIdx + 1 : timeline.totalSteps;
     const snapshot = timeline.getSnapshotAt(startStep);
@@ -599,7 +604,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
 
     set({
       previewScene: scene,
-      activeStructureOp: defaultOp,
+      activeStructureOp: null,
       activeMetadata: result.meta,
       timeline,
       currentStep: startStep,
@@ -608,6 +613,8 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       isPlaying: false,
       sceneObjects: toObjectMap(objects),
       selectedId: objects[0]?.id ?? null,
+      operationHistory: [],
+      hasPendingOperationRun: false,
     });
   },
 
@@ -739,19 +746,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       .slice(0, 24)
       .map((n) => Math.round(n));
     const arr = sanitized.length > 0 ? sanitized : [10, 20, 30];
-    const initEvents: TraceEvent[] = [
-      { t: 'create', id: 'arr', kind: 'array', value: arr.length },
-      ...arr.map((v, idx) => ({
-        t: 'set' as const,
-        target: { id: 'arr', index: idx },
-        value: v,
-      })),
-      { t: 'note', text: `Loaded numbers: ${arr.join(', ')}. Ready to run!` },
-      { t: 'done' },
-    ];
-    const timeline = new TraceTimeline(initEvents);
-    const snapshot = timeline.getSnapshotAt(timeline.totalSteps);
-    const objs = buildArraySceneObjectsFromSnapshot(snapshot);
+    const { timeline, snapshot, objs } = buildStaticArrayState(arr);
     set({
       previewScene: 'array',
       workingArray: arr,
@@ -764,6 +759,89 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       isPlaying: false,
       operationHistory: [],
     });
+  },
+
+  applyCustomInputValues: (values) => {
+    const state = get();
+    const sanitized = values
+      .filter((n) => Number.isFinite(n))
+      .slice(0, 24)
+      .map((n) => Math.round(n));
+    const arr = sanitized.length > 0 ? sanitized : [10, 20, 30];
+
+    if (state.previewScene === 'array') {
+      const { timeline, snapshot, objs } = buildStaticArrayState(arr);
+      set({
+        workingArray: arr,
+        timeline,
+        currentStep: timeline.totalSteps,
+        totalSteps: timeline.totalSteps,
+        currentSnapshot: snapshot,
+        sceneObjects: toObjectMap(objs),
+        selectedId: objs[0]?.id ?? null,
+        isPlaying: false,
+        operationHistory: [],
+        hasPendingOperationRun: state.activeOperation !== null,
+      });
+      return;
+    }
+
+    const result = buildStaticStructureTrace(state.previewScene, arr);
+    const timeline = new TraceTimeline(result.events);
+    const firstNoteIdx = result.events.findIndex((e) => e.t === 'note');
+    const startStep = firstNoteIdx >= 0 ? firstNoteIdx + 1 : timeline.totalSteps;
+    const snapshot = timeline.getSnapshotAt(startStep);
+    const objs = buildSceneObjectsForScene(state.previewScene, snapshot);
+    set({
+      workingArray: arr,
+      timeline,
+      currentStep: startStep,
+      totalSteps: timeline.totalSteps,
+      currentSnapshot: snapshot,
+      sceneObjects: toObjectMap(objs),
+      selectedId: objs[0]?.id ?? null,
+      isPlaying: false,
+      operationHistory: [],
+      hasPendingOperationRun: state.activeStructureOp !== null,
+    });
+  },
+
+  selectArrayOperation: (op) => {
+    const corpusPath = ARRAY_CORPUS_MAP[op];
+    const baseMeta = ARRAY_ALGORITHM_METADATA[op];
+    const corpusLines = getCorpusCodeLines(corpusPath, baseMeta.code);
+    set({
+      activeOperation: op,
+      selectedCorpusFile: corpusPath,
+      activeMetadata: {
+        ...baseMeta,
+        code: corpusLines,
+      },
+      isPlaying: false,
+      hasPendingOperationRun: true,
+    });
+  },
+
+  selectStructureOperation: (op) => {
+    const def = STRUCTURE_OP_CATALOG.find((item) => item.id === op);
+    if (!def) {
+      set({ activeStructureOp: op, isPlaying: false, hasPendingOperationRun: true });
+      return;
+    }
+    const corpusLines = getCorpusCodeLines(def.corpusPath, []);
+    set((s) => ({
+      activeStructureOp: op,
+      selectedCorpusFile: def.corpusPath,
+      activeMetadata: {
+        ...s.activeMetadata,
+        title: def.label,
+        timeComplexity: def.timeComplexity,
+        spaceComplexity: def.spaceComplexity,
+        code: corpusLines.length > 0 ? corpusLines : s.activeMetadata.code,
+      },
+      isPlaying: false,
+      hasPendingOperationRun: true,
+    }));
   },
 
   runOperationNow: (op, paramIndex = 0, paramValue = 42) => {
@@ -795,6 +873,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       sceneObjects: toObjectMap(objs),
       selectedId: objs[0]?.id ?? null,
       isPlaying: state.autoPlayOnRun,
+      hasPendingOperationRun: false,
       operationHistory: [
         {
           uid: `op-${Date.now()}`,
@@ -828,6 +907,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       sceneObjects: toObjectMap(objs),
       selectedId: objs[0]?.id ?? null,
       isPlaying: state.autoPlayOnRun,
+      hasPendingOperationRun: false,
       operationHistory: [
         {
           uid: `op-${Date.now()}`,
@@ -838,6 +918,23 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
         },
       ],
     });
+  },
+
+  selectCorpusFile: (relativePath) => {
+    const entry = CORPUS_FILE_CATALOG.find((c) => c.relativePath === relativePath);
+    if (!entry) return;
+    get().setPreviewScene(entry.scene);
+    const lines = getCorpusCodeLines(relativePath, get().activeMetadata.code);
+    set((s) => ({
+      selectedCorpusFile: relativePath,
+      activeMetadata: {
+        ...s.activeMetadata,
+        title: `${entry.title} (${relativePath.split('/')[1]})`,
+        code: lines,
+      },
+      isPlaying: false,
+      hasPendingOperationRun: false,
+    }));
   },
 
   selectAndRunCorpusFile: (relativePath) => {
@@ -858,6 +955,18 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
         title: `${entry.title} (${relativePath.split('/')[1]})`,
         code: lines,
       },
+    }));
+  },
+
+  previewCustomCode: (sourceCode, fileName) => {
+    const lines = sourceCode.replace(/\r\n/g, '\n').split('\n');
+    set((s) => ({
+      activeMetadata: {
+        ...s.activeMetadata,
+        title: fileName ? `${fileName} (Ready — click Visualize)` : 'Custom Code (Ready)',
+        code: lines,
+      },
+      isPlaying: false,
     }));
   },
 
@@ -886,6 +995,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       sceneObjects: toObjectMap(objs),
       selectedId: objs[0]?.id ?? null,
       isPlaying: state.autoPlayOnRun,
+      hasPendingOperationRun: false,
       detailsOpen: true,
     });
   },

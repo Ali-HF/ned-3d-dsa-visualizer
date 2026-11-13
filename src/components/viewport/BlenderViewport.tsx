@@ -15,6 +15,7 @@ import type { SceneObjectInfo, TraceStateSnapshot } from '../../types/trace';
 import { CameraController } from './CameraController';
 import { DirectedEdge3D } from './DirectedEdge3D';
 import { formatRefLabel } from '../../engine/traceEngine';
+import { IconPause, IconPlay } from '../icons/StudioIcons';
 
 interface NodeMeshProps {
   obj: SceneObjectInfo;
@@ -824,6 +825,8 @@ export function BlenderViewport() {
   const selectObject = useViewportStore((s) => s.selectObject);
   const currentStep = useViewportStore((s) => s.currentStep);
   const currentSnapshot = useViewportStore((s) => s.currentSnapshot);
+  const isPlaying = useViewportStore((s) => s.isPlaying);
+  const togglePlay = useViewportStore((s) => s.togglePlay);
 
   const isKids = uiMode === 'kids';
   const sceneFileName = `${activeMetadata.title.replace(/[^a-zA-Z0-9]/g, '')}.scene`;
@@ -917,6 +920,24 @@ export function BlenderViewport() {
             )}
           </div>
         </div>
+
+        {/* Bottom-Right Floating Play / Pause Control */}
+        <button
+          type="button"
+          className={`viewport-play-fab ${isPlaying ? 'playing' : 'paused'}`}
+          onClick={togglePlay}
+          title={isPlaying ? 'Pause simulation (Space)' : 'Play simulation (Space)'}
+          aria-label={isPlaying ? 'Pause simulation' : 'Play simulation'}
+        >
+          <span className="viewport-play-icon">
+            {isPlaying ? <IconPause /> : <IconPlay />}
+          </span>
+          <span className="viewport-play-text">
+            <strong>{isPlaying ? 'Pause' : 'Play'}</strong>
+            <small>{isPlaying ? 'Playing' : 'Paused'}</small>
+          </span>
+          <span className="viewport-play-status-dot" />
+        </button>
       </div>
     </div>
   );

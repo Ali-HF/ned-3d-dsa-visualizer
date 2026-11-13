@@ -238,6 +238,8 @@ export function App() {
   const currentSnapshot = useViewportStore((s) => s.currentSnapshot);
   const isPlaying = useViewportStore((s) => s.isPlaying);
   const playbackSpeed = useViewportStore((s) => s.playbackSpeed);
+  const operationHistory = useViewportStore((s) => s.operationHistory);
+  const hasPendingOperationRun = useViewportStore((s) => s.hasPendingOperationRun);
 
   const togglePlay = useViewportStore((s) => s.togglePlay);
   const stepForward = useViewportStore((s) => s.stepForward);
@@ -246,20 +248,24 @@ export function App() {
   const skipToEnd = useViewportStore((s) => s.skipToEnd);
   const seekToStep = useViewportStore((s) => s.seekToStep);
   const setPlaybackSpeed = useViewportStore((s) => s.setPlaybackSpeed);
-  const setCustomArray = useViewportStore((s) => s.setCustomArray);
+  const applyCustomInputValues = useViewportStore((s) => s.applyCustomInputValues);
+  const selectArrayOperation = useViewportStore((s) => s.selectArrayOperation);
+  const selectStructureOperation = useViewportStore((s) => s.selectStructureOperation);
   const runOperationNow = useViewportStore((s) => s.runOperationNow);
   const runStructureOperationNow = useViewportStore((s) => s.runStructureOperationNow);
-  const selectAndRunCorpusFile = useViewportStore((s) => s.selectAndRunCorpusFile);
+  const selectCorpusFile = useViewportStore((s) => s.selectCorpusFile);
+  const previewCustomCode = useViewportStore((s) => s.previewCustomCode);
   const runCustomCodeNow = useViewportStore((s) => s.runCustomCodeNow);
 
-  const [structPickerOpen, setStructPickerOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState<StitchCategoryTab>('Sort');
+  const [structPickerOpen, setStructPickerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<StitchCategoryTab | null>(null);
   const [arrayInputText, setArrayInputText] = useState(workingArray.join(', '));
-  const [paramIndex, setParamIndex] = useState<number>(2);
-  const [paramValue, setParamValue] = useState<number>(42);
+  const [paramIndexText, setParamIndexText] = useState<string>('2');
+  const [paramValueText, setParamValueText] = useState<string>('42');
   const [customCodeText, setCustomCodeText] = useState<string>(() =>
     getCorpusRawText('06_elementary_sorting/bubble_sort.cpp'),
   );
+  const [customFileName, setCustomFileName] = useState<string>('custom_code.cpp');
   const [isTourOpen, setIsTourOpen] = useState(() => {
     try {
       return localStorage.getItem('dsa_studio_tour_completed') !== 'true';
@@ -267,6 +273,26 @@ export function App() {
       return false;
     }
   });
+
+  // Sync the Input Numbers text box whenever the store's workingArray changes from an operation or randomize
+  useEffect(() => {
+    setArrayInputText(workingArray.join(', '));
+  }, [workingArray]);
+
+  // Clear category tab filter if the newly selected structure has no operations under that tab
+  useEffect(() => {
+    if (activeTab === null || previewScene === 'array') return;
+    const hasMatches = STRUCTURE_OP_CATALOG.some(
+      (a) =>
+        a.scene === previewScene &&
+        (activeTab === 'Walk'
+          ? a.group === 'Sort' || a.group === 'Find'
+          : mapGroupToTab(a.group) === activeTab),
+    );
+    if (!hasMatches) {
+      setActiveTab(null);
+    }
+  }, [previewScene, activeTab]);
 
   // Compute live comparisons & swaps executed up to currentStep
   const liveStats = useMemo(() => {
@@ -279,16 +305,19 @@ export function App() {
       else if (ev.t === 'swap') swaps++;
     }
     const totalPasses = Math.max(1, workingArray.length - 1);
-    const currentPass = Math.min(
-      totalPasses,
-      Math.max(1, Math.ceil((currentStep / Math.max(1, totalSteps)) * totalPasses)),
-    );
+    const currentPass =
+      operationHistory.length === 0
+        ? 0
+        : Math.min(
+            totalPasses,
+            Math.max(1, Math.ceil((currentStep / Math.max(1, totalSteps)) * totalPasses)),
+          );
     return {
       comparisons: String(comparisons).padStart(2, '0'),
       swaps: String(swaps).padStart(2, '0'),
       passStr: `${String(currentPass).padStart(2, '0')} / ${String(totalPasses).padStart(2, '0')}`,
     };
-  }, [currentStep, totalSteps, timeline.events, workingArray.length]);
+  }, [currentStep, totalSteps, timeline.events, workingArray.length, operationHistory.length]);
 
   const codeViewerRef = useRef<HTMLPreElement>(null);
   const activeLineRef = useRef<HTMLDivElement>(null);
@@ -347,11 +376,12 @@ export function App() {
     }
   }, [currentSnapshot.activeLine, detailsOpen]);
 
-  const currentArrayAction =
-    ARRAY_GUIDE_ACTIONS.find((a) => a.id === activeOperation) ?? ARRAY_GUIDE_ACTIONS[0];
-  const currentStructAction =
-    STRUCTURE_OP_CATALOG.find((a) => a.id === activeStructureOp) ??
-    STRUCTURE_OP_CATALOG[0];
+  const selectedArrayAction = activeOperation
+    ? (ARRAY_GUIDE_ACTIONS.find((a) => a.id === activeOperation) ?? null)
+    : null;
+  const selectedStructAction = activeStructureOp
+    ? (STRUCTURE_OP_CATALOG.find((a) => a.id === activeStructureOp) ?? null)
+    : null;
 
   const selectedObj = selectedId ? sceneObjects[selectedId] : null;
   const displayedCodeMeta = activeMetadata;
@@ -365,6 +395,71 @@ export function App() {
     }, intervalMs);
     return () => window.clearInterval(timer);
   }, [isPlaying, playbackSpeed]);
+
+  const parseInputNumbers = (text: string): number[] => {
+    const parsed = text
+      .split(/[\s,]+/)
+      .map((s) => s.trim())
+      .filter((s) => s !== '')
+      .map((s) => Number(s))
+      .filter((n) => !Number.isNaN(n) && Number.isFinite(n));
+    return parsed.length > 0 ? parsed : [42, 17, 68, 29, 84, 12];
+  };
+
+  const parseParamInt = (text: string, fallback: number): number => {
+    const trimmed = text.trim();
+    if (trimmed === '' || trimmed === '-') return fallback;
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? Math.round(parsed) : fallback;
+  };
+
+  const handleApplyInputNumbers = () => {
+    const nums = parseInputNumbers(arrayInputText);
+    setArrayInputText(nums.join(', '));
+    applyCustomInputValues(nums);
+  };
+
+  const handleRunActiveOperation = () => {
+    const nums = parseInputNumbers(arrayInputText);
+    const maxIndex =
+      selectedArrayAction?.id === 'insert-at'
+        ? nums.length
+        : selectedArrayAction?.id === 'rotate'
+          ? Math.max(1, nums.length)
+          : Math.max(0, nums.length - 1);
+    const minIndex = selectedArrayAction?.id === 'rotate' ? 1 : 0;
+    const parsedIdx = Math.max(
+      minIndex,
+      Math.min(maxIndex, parseParamInt(paramIndexText, minIndex)),
+    );
+    const parsedVal = parseParamInt(paramValueText, 42);
+    setParamIndexText(String(parsedIdx));
+    setParamValueText(String(parsedVal));
+
+    applyCustomInputValues(nums);
+    if (previewScene === 'array') {
+      if (!activeOperation) return;
+      runOperationNow(activeOperation, parsedIdx, parsedVal);
+    } else {
+      if (!activeStructureOp) return;
+      runStructureOperationNow(activeStructureOp, parsedVal);
+    }
+  };
+
+  const handleTogglePlayOrRun = () => {
+    if (
+      appMode === 'library' &&
+      hasPendingOperationRun &&
+      (previewScene === 'array' ? activeOperation !== null : activeStructureOp !== null)
+    ) {
+      handleRunActiveOperation();
+      return;
+    }
+    togglePlay();
+  };
+
+  const handleTogglePlayRef = useRef(handleTogglePlayOrRun);
+  handleTogglePlayRef.current = handleTogglePlayOrRun;
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -380,7 +475,7 @@ export function App() {
       }
       if (e.code === 'Space') {
         e.preventDefault();
-        togglePlay();
+        handleTogglePlayRef.current();
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
         useViewportStore.getState().pause();
@@ -415,7 +510,6 @@ export function App() {
     window.addEventListener('keydown', handleKeyDown, { capture: true });
     return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
   }, [
-    togglePlay,
     stepForward,
     stepBackward,
     restart,
@@ -423,35 +517,10 @@ export function App() {
     triggerCameraPreset,
   ]);
 
-  const parseInputNumbers = (text: string): number[] => {
-    const parsed = text
-      .split(/[\s,]+/)
-      .map((s) => Number(s.trim()))
-      .filter((n) => !Number.isNaN(n));
-    return parsed.length > 0 ? parsed : [42, 17, 68, 29, 84, 12];
-  };
-
-  const handleCommitArrayInput = () => {
-    const nums = parseInputNumbers(arrayInputText);
-    setCustomArray(nums);
-    if (previewScene === 'array') {
-      runOperationNow(activeOperation, paramIndex, paramValue);
-    } else {
-      runStructureOperationNow(activeStructureOp, paramValue);
-    }
-  };
-
   const handleRandomizeNumbers = () => {
-    const rndVal = Math.floor(Math.random() * 80) + 12;
     const rnd = Array.from({ length: 6 }, () => Math.floor(Math.random() * 85) + 10);
-    setParamValue(rndVal);
     setArrayInputText(rnd.join(', '));
-    setCustomArray(rnd);
-    if (previewScene === 'array') {
-      runOperationNow(activeOperation, paramIndex, rndVal);
-    } else {
-      runStructureOperationNow(activeStructureOp, rndVal);
-    }
+    applyCustomInputValues(rnd);
   };
 
   const currentStructureCard =
@@ -459,24 +528,30 @@ export function App() {
 
   const activeBreadcrumbOp =
     previewScene === 'array'
-      ? currentArrayAction.label.replace(/\s+/g, '')
-      : currentStructAction.label.replace(/\s+/g, '');
+      ? (selectedArrayAction?.label.replace(/\s+/g, '') ?? 'Ready')
+      : (selectedStructAction?.label.replace(/\s+/g, '') ?? 'Ready');
 
   const progressPct =
     totalSteps > 0 ? ((currentStep / totalSteps) * 100).toFixed(1) : '0.0';
 
   const showRightDrawer = uiMode === 'pro' || detailsOpen;
 
-  const filteredArrayActions = ARRAY_GUIDE_ACTIONS.filter((a) =>
-    activeTab === 'Walk' ? a.tab === 'Sort' : a.tab === activeTab,
-  );
-  const filteredStructActions = STRUCTURE_OP_CATALOG.filter(
-    (a) =>
-      a.scene === previewScene &&
-      (activeTab === 'Walk'
-        ? a.group === 'Sort' || a.group === 'Find'
-        : mapGroupToTab(a.group) === activeTab),
-  );
+  const filteredArrayActions =
+    activeTab === null
+      ? ARRAY_GUIDE_ACTIONS
+      : ARRAY_GUIDE_ACTIONS.filter((a) =>
+          activeTab === 'Walk' ? a.tab === 'Sort' : a.tab === activeTab,
+        );
+  const filteredStructActions =
+    activeTab === null
+      ? STRUCTURE_OP_CATALOG.filter((a) => a.scene === previewScene)
+      : STRUCTURE_OP_CATALOG.filter(
+          (a) =>
+            a.scene === previewScene &&
+            (activeTab === 'Walk'
+              ? a.group === 'Sort' || a.group === 'Find'
+              : mapGroupToTab(a.group) === activeTab),
+        );
   const displayedStructActions =
     filteredStructActions.length > 0
       ? filteredStructActions
@@ -753,6 +828,7 @@ export function App() {
                         }`}
                         onClick={() => {
                           setPreviewScene(card.id);
+                          setActiveTab(null);
                           setStructPickerOpen(false);
                         }}
                       >
@@ -779,7 +855,7 @@ export function App() {
                       key={tab}
                       type="button"
                       className={`st-pill-tab ${activeTab === tab ? 'active' : ''}`}
-                      onClick={() => setActiveTab(tab)}
+                      onClick={() => setActiveTab((prev) => (prev === tab ? null : tab))}
                     >
                       {tab}
                     </button>
@@ -801,9 +877,7 @@ export function App() {
                             <button
                               type="button"
                               className={`st-algo-row ${isSelected ? 'active' : ''}`}
-                              onClick={() =>
-                                runOperationNow(item.id, paramIndex, paramValue)
-                              }
+                              onClick={() => selectArrayOperation(item.id)}
                             >
                               <span className="st-algo-name">
                                 {isSelected && <i className="st-blue-dot" />}
@@ -820,15 +894,13 @@ export function App() {
                           <Screentip
                             key={item.id}
                             title={item.label}
-                            description={`Execute ${item.label} in 3D with Big-O time complexity ${item.timeComplexity}.`}
+                            description={`Select ${item.label} (Big-O time complexity ${item.timeComplexity}), then click Run.`}
                             placement="right"
                           >
                             <button
                               type="button"
                               className={`st-algo-row ${isSelected ? 'active' : ''}`}
-                              onClick={() =>
-                                runStructureOperationNow(item.id, paramValue)
-                              }
+                              onClick={() => selectStructureOperation(item.id)}
                             >
                               <span className="st-algo-name">
                                 {isSelected && <i className="st-blue-dot" />}
@@ -855,7 +927,7 @@ export function App() {
                     <button
                       type="button"
                       className="st-edit-link"
-                      onClick={handleCommitArrayInput}
+                      onClick={handleApplyInputNumbers}
                     >
                       Apply
                     </button>
@@ -865,7 +937,7 @@ export function App() {
                 <div className="st-input-well-wrap">
                   <Screentip
                     title="Edit Dataset Values"
-                    description="Enter comma-separated numbers (press Enter to run)."
+                    description="Enter comma-separated numbers (press Enter to apply)."
                     placement="top"
                   >
                     <input
@@ -874,7 +946,7 @@ export function App() {
                       value={arrayInputText}
                       onChange={(e) => setArrayInputText(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleCommitArrayInput();
+                        if (e.key === 'Enter') handleApplyInputNumbers();
                       }}
                       aria-label="Input Numbers"
                     />
@@ -897,42 +969,82 @@ export function App() {
                   </Screentip>
                 </div>
 
-                {((previewScene === 'array' &&
-                  (currentArrayAction.needsPosition ||
-                    currentArrayAction.needsNumber)) ||
-                  previewScene !== 'array') && (
-                  <div className="st-extra-params">
-                    {previewScene === 'array' && currentArrayAction.needsPosition && (
-                      <label className="st-mini-param">
-                        <span>{currentArrayAction.positionLabel ?? 'Idx'}</span>
-                        <input
-                          type="number"
-                          value={paramIndex}
-                          min={0}
-                          max={20}
-                          onChange={(e) => setParamIndex(Number(e.target.value))}
-                        />
-                      </label>
-                    )}
-                    <label className="st-mini-param">
-                      <span>
+                {(previewScene === 'array' ? selectedArrayAction !== null : selectedStructAction !== null) ? (
+                  <div className="st-extra-params-block">
+                    <div className="st-selected-op-pill">
+                      <span className="st-selected-op-dot" />
+                      <span className="st-selected-op-label">
                         {previewScene === 'array'
-                          ? (currentArrayAction.numberLabel ?? 'Val')
-                          : (currentStructAction.numberLabel ?? 'Val')}
+                          ? selectedArrayAction?.label
+                          : selectedStructAction?.label}
                       </span>
-                      <input
-                        type="number"
-                        value={paramValue}
-                        onChange={(e) => setParamValue(Number(e.target.value))}
-                      />
-                    </label>
+                    </div>
+                    {(selectedArrayAction?.needsPosition ||
+                      selectedArrayAction?.needsNumber ||
+                      selectedStructAction?.needsNumber) && (
+                      <div className="st-extra-params">
+                        {previewScene === 'array' && selectedArrayAction?.needsPosition && (
+                          <label className="st-mini-param">
+                            <span>{selectedArrayAction.positionLabel ?? 'Index'}</span>
+                            <input
+                              type="number"
+                              value={paramIndexText}
+                              min={selectedArrayAction.id === 'rotate' ? 1 : 0}
+                              max={
+                                selectedArrayAction.id === 'insert-at'
+                                  ? workingArray.length
+                                  : Math.max(0, workingArray.length - 1)
+                              }
+                              onChange={(e) => setParamIndexText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleRunActiveOperation();
+                              }}
+                              aria-label={selectedArrayAction.positionLabel ?? 'Index'}
+                            />
+                          </label>
+                        )}
+                        {(previewScene === 'array'
+                          ? selectedArrayAction?.needsNumber
+                          : selectedStructAction?.needsNumber) && (
+                          <label className="st-mini-param">
+                            <span>
+                              {previewScene === 'array'
+                                ? (selectedArrayAction?.numberLabel ?? 'Value')
+                                : (selectedStructAction?.numberLabel ?? 'Value')}
+                            </span>
+                            <input
+                              type="number"
+                              value={paramValueText}
+                              min={selectedStructAction?.id === 'recursion-factorial' ? 1 : undefined}
+                              max={selectedStructAction?.id === 'recursion-factorial' ? 6 : undefined}
+                              onChange={(e) => setParamValueText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleRunActiveOperation();
+                              }}
+                              aria-label={
+                                previewScene === 'array'
+                                  ? (selectedArrayAction?.numberLabel ?? 'Value')
+                                  : (selectedStructAction?.numberLabel ?? 'Value')
+                              }
+                            />
+                          </label>
+                        )}
+                      </div>
+                    )}
                     <button
                       type="button"
                       className="st-mini-run-btn"
-                      onClick={handleCommitArrayInput}
+                      onClick={handleRunActiveOperation}
                     >
-                      Run
+                      ▶ Run{' '}
+                      {previewScene === 'array'
+                        ? selectedArrayAction?.label
+                        : selectedStructAction?.label}
                     </button>
+                  </div>
+                ) : (
+                  <div className="st-extra-params-empty">
+                    <span>Select an operation in Step 2, set values above, then click Run.</span>
                   </div>
                 )}
               </section>
@@ -957,8 +1069,9 @@ export function App() {
                         reader.onload = () => {
                           const text = String(reader.result ?? '');
                           setCustomCodeText(text);
+                          setCustomFileName(file.name);
                           setDetailsOpen(true);
-                          runCustomCodeNow(text, file.name);
+                          previewCustomCode(text, file.name);
                         };
                         reader.readAsText(file);
                       }}
@@ -970,8 +1083,11 @@ export function App() {
                   value={selectedCorpusFile}
                   onChange={(e) => {
                     const path = e.target.value;
-                    selectAndRunCorpusFile(path);
-                    setCustomCodeText(getCorpusRawText(path));
+                    selectCorpusFile(path);
+                    const raw = getCorpusRawText(path);
+                    setCustomCodeText(raw);
+                    setCustomFileName(path.split('/').pop() ?? 'custom_code.cpp');
+                    setDetailsOpen(true);
                   }}
                 >
                   {CORPUS_FILE_CATALOG.map((file) => (
@@ -989,8 +1105,9 @@ export function App() {
                       title={`Load ${tpl.fileName}`}
                       onClick={() => {
                         setCustomCodeText(tpl.code);
+                        setCustomFileName(tpl.fileName);
                         setDetailsOpen(true);
-                        runCustomCodeNow(tpl.code, tpl.fileName);
+                        previewCustomCode(tpl.code, tpl.fileName);
                       }}
                     >
                       {tpl.label}
@@ -1009,7 +1126,7 @@ export function App() {
                   className="st-corpus-run-btn"
                   onClick={() => {
                     setDetailsOpen(true);
-                    runCustomCodeNow(customCodeText, 'custom_code.cpp');
+                    runCustomCodeNow(customCodeText, customFileName);
                   }}
                 >
                   <IconPlay />
@@ -1330,7 +1447,7 @@ export function App() {
             <button
               type="button"
               className={`st-tr-play ${isPlaying ? 'playing' : ''}`}
-              onClick={togglePlay}
+              onClick={handleTogglePlayOrRun}
               aria-label={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? <IconPause /> : <IconPlay />}

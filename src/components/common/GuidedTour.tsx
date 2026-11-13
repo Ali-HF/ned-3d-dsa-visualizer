@@ -40,7 +40,7 @@ const TOUR_STEPS: TourStep[] = [
     ],
     targetSelector: '[data-tour="algorithm-picker"]',
     placement: 'right',
-    shortcutHint: 'Selecting an item generates its 3D execution trace',
+    shortcutHint: 'Select an operation, set values/index in Step 3, then click Run',
   },
   {
     category: 'STEP 03',
@@ -325,6 +325,15 @@ export function GuidedTour({ isOpen, onClose }: GuidedTourProps) {
           </label>
 
           <div className="tour-btn-group">
+            {!isLast && (
+              <button
+                type="button"
+                className="tour-btn secondary"
+                onClick={handleFinish}
+              >
+                Skip all
+              </button>
+            )}
             {!isFirst && (
               <button
                 type="button"
