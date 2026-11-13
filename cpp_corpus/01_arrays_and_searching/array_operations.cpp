@@ -16,10 +16,11 @@ int main()
     }
 
     cout << "\n1. Insert";
-    cout << "\n2. Delete";
+    cout << "\n2. Delete by Index";
     cout << "\n3. Update";
     cout << "\n4. Reverse";
     cout << "\n5. Rotate Right";
+    cout << "\n6. Delete by Value";
 
     cout << "\nEnter choice: ";
     cin >> choice;
@@ -101,6 +102,36 @@ int main()
 
             arr[0] = value;
             break;
+
+        case 6:
+        {
+            cout << "Enter value to delete: ";
+            cin >> value;
+
+            int foundIdx = -1;
+            for (int i = 0; i < n; i++)
+            {
+                if (arr[i] == value)
+                {
+                    foundIdx = i;
+                    break;
+                }
+            }
+
+            if (foundIdx == -1)
+            {
+                cout << "Value not found";
+                break;
+            }
+
+            for (int i = foundIdx; i < n - 1; i++)
+            {
+                arr[i] = arr[i + 1];
+            }
+
+            n--;
+            break;
+        }
 
         default:
             cout << "Invalid choice";

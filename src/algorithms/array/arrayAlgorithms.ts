@@ -8,11 +8,13 @@ export type ArrayOperationId =
   | 'quick-sort'
   | 'insert-at'
   | 'delete-at'
+  | 'delete-val'
   | 'update-at'
   | 'linear-search'
   | 'binary-search'
   | 'reverse'
-  | 'rotate';
+  | 'rotate'
+  | 'rotate-right';
 
 export interface AlgorithmMetadata {
   id: ArrayOperationId;
@@ -236,6 +238,42 @@ export const ARRAY_ALGORITHM_METADATA: Record<ArrayOperationId, AlgorithmMetadat
       '    arr[i] = arr[i + 1];',
       '  }',
       '  arr[n - 1] = first;',
+      '}',
+    ],
+  },
+  'rotate-right': {
+    id: 'rotate-right',
+    title: 'Shift Right',
+    category: 'operation',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    code: [
+      'void rotateRightByOne(int arr[], int n) {',
+      '  int last = arr[n - 1];',
+      '  for (int i = n - 1; i > 0; i--) {',
+      '    arr[i] = arr[i - 1];',
+      '  }',
+      '  arr[0] = last;',
+      '}',
+    ],
+  },
+  'delete-val': {
+    id: 'delete-val',
+    title: 'Delete by Value',
+    category: 'operation',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    code: [
+      'void deleteByValue(int arr[], int& n, int value) {',
+      '  int foundIdx = -1;',
+      '  for (int i = 0; i < n; i++) {',
+      '    if (arr[i] == value) { foundIdx = i; break; }',
+      '  }',
+      '  if (foundIdx == -1) return;',
+      '  for (int i = foundIdx; i < n - 1; i++) {',
+      '    arr[i] = arr[i + 1];',
+      '  }',
+      '  n--;',
       '}',
     ],
   },
@@ -1268,6 +1306,151 @@ export function arrayRotateTrace(
   };
 }
 
+export function arrayDeleteByValueTrace(
+  input: number[],
+  target: number,
+  emitInit: boolean = true,
+): ArrayTraceResult {
+  const arr = [...input];
+  const events: TraceEvent[] = [];
+
+  if (emitInit) {
+    emitArrayInit(
+      events,
+      'arr',
+      arr,
+      `Searching for ${target} in the array to delete it.`,
+    );
+  }
+
+  if (arr.length === 0) {
+    events.push({ t: 'note', text: 'The array is empty, so there is nothing to remove.' });
+    events.push({ t: 'done' });
+    return { events, finalArray: arr, meta: ARRAY_ALGORITHM_METADATA['delete-val'] };
+  }
+
+  let foundIdx = -1;
+  events.push({ t: 'line', line: 2 });
+  for (let i = 0; i < arr.length; i++) {
+    events.push({ t: 'line', line: 3 });
+    events.push({ t: 'visit', id: `arr[${i}]` });
+    events.push({
+      t: 'note',
+      text: `Checking index ${i} (${arr[i]} == ${target}?).`,
+    });
+    if (arr[i] === target) {
+      foundIdx = i;
+      events.push({ t: 'line', line: 4 });
+      events.push({
+        t: 'note',
+        text: `Found ${target} at index ${i}! Preparing to remove it and shift remaining elements left.`,
+      });
+      break;
+    }
+  }
+
+  if (foundIdx === -1) {
+    events.push({ t: 'line', line: 6 });
+    events.push({
+      t: 'note',
+      text: `Value ${target} was not found in the array — no elements removed.`,
+    });
+    events.push({ t: 'done' });
+    return {
+      events: syncNotesAfterActions(events),
+      finalArray: arr,
+      meta: ARRAY_ALGORITHM_METADATA['delete-val'],
+    };
+  }
+
+  for (let i = foundIdx; i < arr.length - 1; i++) {
+    arr[i] = arr[i + 1];
+    events.push({ t: 'line', line: 8 });
+    events.push({
+      t: 'note',
+      text: `Shifting ${arr[i]} left from index ${i + 1} into index ${i}.`,
+    });
+    events.push({ t: 'set', target: { id: 'arr', index: i }, value: arr[i] });
+  }
+
+  arr.pop();
+  events.push({ t: 'line', line: 10 });
+  events.push({
+    t: 'note',
+    text: `Removed ${target} and shrunk the array size to ${arr.length}.`,
+  });
+  events.push({ t: 'remove', id: `arr[${arr.length}]` });
+  events.push({ t: 'done' });
+
+  return {
+    events: syncNotesAfterActions(events),
+    finalArray: arr,
+    meta: ARRAY_ALGORITHM_METADATA['delete-val'],
+  };
+}
+
+export function arrayRotateRightTrace(
+  input: number[],
+  steps: number = 1,
+  emitInit: boolean = true,
+): ArrayTraceResult {
+  const arr = [...input];
+  const events: TraceEvent[] = [];
+
+  if (emitInit) {
+    emitArrayInit(
+      events,
+      'arr',
+      arr,
+      `Shifting all numbers right by ${steps} step(s), wrapping the end around to the front.`,
+    );
+  }
+
+  const n = arr.length;
+  if (n <= 1) {
+    events.push({ t: 'done' });
+    return { events, finalArray: arr, meta: ARRAY_ALGORITHM_METADATA['rotate-right'] };
+  }
+
+  const k = ((Math.floor(steps) % n) + n) % n;
+  for (let rot = 0; rot < k; rot++) {
+    const last = arr[n - 1];
+    events.push({ t: 'line', line: 2 });
+    events.push({
+      t: 'note',
+      text: `Shift ${rot + 1} of ${k}: saving the last number (${last}) so it can wrap around to the front.`,
+    });
+    for (let i = n - 1; i > 0; i--) {
+      arr[i] = arr[i - 1];
+      events.push({ t: 'line', line: 4 });
+      events.push({
+        t: 'note',
+        text: `Moving ${arr[i]} one step right into index ${i}.`,
+      });
+      events.push({ t: 'set', target: { id: 'arr', index: i }, value: arr[i] });
+    }
+    arr[0] = last;
+    events.push({ t: 'line', line: 6 });
+    events.push({
+      t: 'note',
+      text: `Placing ${last} at the front (index 0).`,
+    });
+    events.push({ t: 'set', target: { id: 'arr', index: 0 }, value: last });
+    events.push({ t: 'visit', id: 'arr[0]' });
+  }
+
+  events.push({
+    t: 'note',
+    text: `Right shift complete! The new order is ${arr.join(', ')}.`,
+  });
+  events.push({ t: 'done' });
+  return {
+    events: syncNotesAfterActions(events),
+    finalArray: arr,
+    meta: ARRAY_ALGORITHM_METADATA['rotate-right'],
+  };
+}
+
 export function runArrayOperation(
   op: ArrayOperationId,
   input: number[],
@@ -1290,6 +1473,8 @@ export function runArrayOperation(
       return arrayInsertAtTrace(input, paramIndex, paramValue, emitInit);
     case 'delete-at':
       return arrayDeleteAtTrace(input, paramIndex, emitInit);
+    case 'delete-val':
+      return arrayDeleteByValueTrace(input, paramValue, emitInit);
     case 'update-at':
       return arrayUpdateAtTrace(input, paramIndex, paramValue, emitInit);
     case 'linear-search':
@@ -1300,5 +1485,7 @@ export function runArrayOperation(
       return arrayReverseTrace(input, emitInit);
     case 'rotate':
       return arrayRotateTrace(input, Math.max(0, Math.floor(paramIndex)), emitInit);
+    case 'rotate-right':
+      return arrayRotateRightTrace(input, Math.max(0, Math.floor(paramIndex)), emitInit);
   }
 }

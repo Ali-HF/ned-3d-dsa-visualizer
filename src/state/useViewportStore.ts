@@ -41,9 +41,11 @@ const ARRAY_CORPUS_MAP: Record<ArrayOperationId, string> = {
   'quick-sort': '07_advanced_sorting/quick_sort.cpp',
   'insert-at': '01_arrays_and_searching/array_operations.cpp',
   'delete-at': '01_arrays_and_searching/array_operations.cpp',
+  'delete-val': '01_arrays_and_searching/array_operations.cpp',
   'update-at': '01_arrays_and_searching/array_operations.cpp',
   reverse: '01_arrays_and_searching/array_operations.cpp',
   rotate: '01_arrays_and_searching/array_operations.cpp',
+  'rotate-right': '01_arrays_and_searching/array_operations.cpp',
   'linear-search': '01_arrays_and_searching/linear_search.cpp',
   'binary-search': '01_arrays_and_searching/binary_search.cpp',
 };
@@ -490,6 +492,8 @@ function formatOperationLabel(
       return `Insert ${paramValue} @ [${paramIndex}]`;
     case 'delete-at':
       return `Delete @ [${paramIndex}]`;
+    case 'delete-val':
+      return `Delete Value (${paramValue})`;
     case 'update-at':
       return `Update [${paramIndex}] = ${paramValue}`;
     case 'linear-search':
@@ -498,6 +502,8 @@ function formatOperationLabel(
       return `Binary Search (${paramValue})`;
     case 'rotate':
       return `Rotate Left (k=${paramIndex || 1})`;
+    case 'rotate-right':
+      return `Rotate Right (k=${paramIndex || 1})`;
     default:
       return ARRAY_ALGORITHM_METADATA[op].title;
   }

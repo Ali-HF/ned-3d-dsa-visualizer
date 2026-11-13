@@ -55,6 +55,14 @@ const ARRAY_GUIDE_ACTIONS: ArrayActionOption[] = [
     positionLabel: 'Shift steps (k)',
   },
   {
+    id: 'rotate-right',
+    label: 'Shift Right',
+    complexity: 'O(n)',
+    tab: 'Sort',
+    needsPosition: true,
+    positionLabel: 'Shift steps (k)',
+  },
+  {
     id: 'insert-at',
     label: 'Insert a Number',
     complexity: 'O(n)',
@@ -76,11 +84,19 @@ const ARRAY_GUIDE_ACTIONS: ArrayActionOption[] = [
   },
   {
     id: 'delete-at',
-    label: 'Remove a Number',
+    label: 'Delete by Index',
     complexity: 'O(n)',
     tab: 'Del',
     needsPosition: true,
     positionLabel: 'Index',
+  },
+  {
+    id: 'delete-val',
+    label: 'Delete by Value',
+    complexity: 'O(n)',
+    tab: 'Del',
+    needsNumber: true,
+    numberLabel: 'Value',
   },
   {
     id: 'linear-search',
@@ -426,13 +442,15 @@ export function App() {
 
   const handleRunActiveOperation = () => {
     const nums = parseInputNumbers(arrayInputText);
+    const isShiftOp =
+      selectedArrayAction?.id === 'rotate' || selectedArrayAction?.id === 'rotate-right';
     const maxIndex =
       selectedArrayAction?.id === 'insert-at'
         ? nums.length
-        : selectedArrayAction?.id === 'rotate'
+        : isShiftOp
           ? Math.max(1, nums.length)
           : Math.max(0, nums.length - 1);
-    const minIndex = selectedArrayAction?.id === 'rotate' ? 1 : 0;
+    const minIndex = isShiftOp ? 1 : 0;
     const parsedIdx = Math.max(
       minIndex,
       Math.min(maxIndex, parseParamInt(paramIndexText, minIndex)),
@@ -1000,7 +1018,12 @@ export function App() {
                             <input
                               type="number"
                               value={paramIndexText}
-                              min={selectedArrayAction.id === 'rotate' ? 1 : 0}
+                              min={
+                                selectedArrayAction.id === 'rotate' ||
+                                selectedArrayAction.id === 'rotate-right'
+                                  ? 1
+                                  : 0
+                              }
                               max={
                                 selectedArrayAction.id === 'insert-at'
                                   ? workingArray.length

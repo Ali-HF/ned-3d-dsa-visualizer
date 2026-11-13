@@ -8,11 +8,13 @@ import {
   quickSortTrace,
   arrayInsertAtTrace,
   arrayDeleteAtTrace,
+  arrayDeleteByValueTrace,
   arrayUpdateAtTrace,
   arrayLinearSearchTrace,
   arrayBinarySearchTrace,
   arrayReverseTrace,
   arrayRotateTrace,
+  arrayRotateRightTrace,
 } from '../../src/algorithms/array/arrayAlgorithms';
 import { useViewportStore } from '../../src/state/useViewportStore';
 
@@ -138,6 +140,21 @@ describe('Phase 2 — Section 4.1 Array Operations & Queue Chaining', () => {
     const rot = arrayRotateTrace([10, 20, 30, 40], 2);
     const rotSnap = new TraceTimeline(rot.events).getSnapshotAt(rot.events.length);
     expect(rotSnap.arrays['arr']?.values).toEqual([30, 40, 10, 20]);
+
+    const rotRight = arrayRotateRightTrace([10, 20, 30, 40], 1);
+    const rotRightSnap = new TraceTimeline(rotRight.events).getSnapshotAt(rotRight.events.length);
+    expect(rotRightSnap.arrays['arr']?.values).toEqual([40, 10, 20, 30]);
+  });
+
+  it('deletes by value when found and reports not found when absent', () => {
+    const found = arrayDeleteByValueTrace([10, 20, 30, 40], 20);
+    const foundSnap = new TraceTimeline(found.events).getSnapshotAt(found.events.length);
+    expect(foundSnap.arrays['arr']?.values).toEqual([10, 30, 40]);
+
+    const missing = arrayDeleteByValueTrace([10, 20, 30], 99);
+    const missingSnap = new TraceTimeline(missing.events).getSnapshotAt(missing.events.length);
+    expect(missingSnap.arrays['arr']?.values).toEqual([10, 20, 30]);
+    expect(missingSnap.narration.toLowerCase()).toContain('not found');
   });
 
   it('chains multiple operations in the store queue and replays the full sequence', () => {
