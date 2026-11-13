@@ -33,14 +33,41 @@ interface NodeMeshProps {
 function PointerArrow3D({
   label,
   color,
-  baseY,
+  baseY = 0,
+  offsetX = 0,
+  direction = 'down',
 }: {
   label: string;
   color: string;
-  baseY: number;
+  baseY?: number;
+  offsetX?: number;
+  direction?: 'down' | 'left';
 }) {
+  if (direction === 'left') {
+    return (
+      <group position={[offsetX, baseY, 0]}>
+        <mesh position={[0.45, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.045, 0.045, 0.48, 14]} />
+          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.4} />
+        </mesh>
+        <mesh position={[0.14, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <coneGeometry args={[0.13, 0.24, 16]} />
+          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} />
+        </mesh>
+        <Html position={[0.98, 0, 0]} center distanceFactor={14} zIndexRange={[7, 0]}>
+          <div
+            className="stitch-ptr-badge"
+            style={{ background: color, color: '#0b1120' }}
+          >
+            {label}
+          </div>
+        </Html>
+      </group>
+    );
+  }
+
   return (
-    <group position={[0, baseY, 0]}>
+    <group position={[offsetX, baseY, 0]}>
       <mesh position={[0, 0.34, 0]}>
         <cylinderGeometry args={[0.045, 0.045, 0.42, 14]} />
         <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.4} />
@@ -492,7 +519,12 @@ function SceneObjectMesh({
             </Html>
           )}
           {isTopSlab && !isHashBucket && (
-            <PointerArrow3D label="TOP" color="#f59e0b" baseY={0.42} />
+            <PointerArrow3D
+              label="TOP"
+              color="#f59e0b"
+              offsetX={slabRadius + 0.16}
+              direction="left"
+            />
           )}
         </>
       ) : (
