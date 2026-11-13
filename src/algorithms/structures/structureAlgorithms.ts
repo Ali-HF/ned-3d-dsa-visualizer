@@ -1428,58 +1428,75 @@ export function runStructureOperation(
     }
 
     case 'recursion-hanoi': {
+      const rawDisks =
+        customValues && customValues.length >= 1
+          ? customValues.slice(0, 5)
+          : [30, 20, 10];
+      const diskVals = [...rawDisks].sort((a, b) => b - a);
+      const n = diskVals.length;
+      const totalMoves = Math.pow(2, n) - 1;
+      for (let i = 0; i < n; i++) {
+        events.push(
+          { t: 'create', id: `stk-${i}`, kind: 'node', value: diskVals[i] },
+          { t: 'link', from: `stk-${i}`, to: 'peg-A', label: 'peg' },
+        );
+      }
       events.push(
-        { t: 'create', id: 'stk-0', kind: 'node', value: 30 },
-        { t: 'create', id: 'stk-1', kind: 'node', value: 20 },
-        { t: 'create', id: 'stk-2', kind: 'node', value: 10 },
-        { t: 'link', from: 'stk-0', to: 'peg-A', label: 'peg' },
-        { t: 'link', from: 'stk-1', to: 'peg-A', label: 'peg' },
-        { t: 'link', from: 'stk-2', to: 'peg-A', label: 'peg' },
-        { t: 'call', fn: 'hanoi', args: [3, 'A', 'C', 'B'], depth: 1 },
+        { t: 'call', fn: 'hanoi', args: [n, 'A', 'C', 'B'], depth: 1 },
         {
           t: 'note',
-          text: 'Tower of Hanoi: 3 graduated disks on Peg A (10 smallest on top, 20 middle, 30 largest at base).',
+          text: `Tower of Hanoi (${n} disks): [${diskVals.slice().reverse().join(', ')}] on Peg A (smallest on top, largest at base).`,
         },
-        { t: 'call', fn: 'hanoi', args: [2, 'A', 'B', 'C'], depth: 2 },
-        { t: 'call', fn: 'hanoi', args: [1, 'A', 'C', 'B'], depth: 3 },
-        { t: 'visit', id: 'stk-2' },
-        { t: 'link', from: 'stk-2', to: 'peg-C', label: 'peg' },
-        { t: 'note', text: 'Move 1/7: Move smallest disk (10) from Peg A → Peg C.' },
-        { t: 'return', fn: 'hanoi', value: 10 },
-        { t: 'visit', id: 'stk-1' },
-        { t: 'link', from: 'stk-1', to: 'peg-B', label: 'peg' },
-        { t: 'note', text: 'Move 2/7: Move middle disk (20) from Peg A → Peg B.' },
-        { t: 'call', fn: 'hanoi', args: [1, 'C', 'B', 'A'], depth: 3 },
-        { t: 'visit', id: 'stk-2' },
-        { t: 'link', from: 'stk-2', to: 'peg-B', label: 'peg' },
-        { t: 'note', text: 'Move 3/7: Move smallest disk (10) from Peg C → Peg B (on top of 20).' },
-        { t: 'return', fn: 'hanoi', value: 10 },
-        { t: 'return', fn: 'hanoi', value: 20 },
-        { t: 'visit', id: 'stk-0' },
-        { t: 'link', from: 'stk-0', to: 'peg-C', label: 'peg' },
+      );
+
+      let moveNum = 0;
+      const solveHanoi = (
+        k: number,
+        fromPeg: string,
+        toPeg: string,
+        auxPeg: string,
+        depth: number,
+      ) => {
+        if (k === 0) return;
+        if (k > 1) {
+          events.push({
+            t: 'call',
+            fn: 'hanoi',
+            args: [k - 1, fromPeg, auxPeg, toPeg],
+            depth: depth + 1,
+          });
+          solveHanoi(k - 1, fromPeg, auxPeg, toPeg, depth + 1);
+        }
+        const diskIdx = n - k;
+        const diskId = `stk-${diskIdx}`;
+        const diskVal = diskVals[diskIdx];
+        moveNum += 1;
+        events.push(
+          { t: 'visit', id: diskId },
+          { t: 'link', from: diskId, to: `peg-${toPeg}`, label: 'peg' },
+          {
+            t: 'note',
+            text: `Move ${moveNum}/${totalMoves}: Move disk ${diskVal} from Peg ${fromPeg} → Peg ${toPeg}.`,
+          },
+        );
+        if (k > 1) {
+          events.push({
+            t: 'call',
+            fn: 'hanoi',
+            args: [k - 1, auxPeg, toPeg, fromPeg],
+            depth: depth + 1,
+          });
+          solveHanoi(k - 1, auxPeg, toPeg, fromPeg, depth + 1);
+        }
+        events.push({ t: 'return', fn: 'hanoi', value: diskVal });
+      };
+
+      solveHanoi(n, 'A', 'C', 'B', 1);
+      events.push(
         {
           t: 'note',
-          text: 'Move 4/7: Move largest disk (30) from Peg A → destination Peg C!',
+          text: `Done! All ${n} disks moved to Peg C in ${totalMoves} moves.`,
         },
-        { t: 'call', fn: 'hanoi', args: [2, 'B', 'C', 'A'], depth: 2 },
-        { t: 'call', fn: 'hanoi', args: [1, 'B', 'A', 'C'], depth: 3 },
-        { t: 'visit', id: 'stk-2' },
-        { t: 'link', from: 'stk-2', to: 'peg-A', label: 'peg' },
-        { t: 'note', text: 'Move 5/7: Move smallest disk (10) from Peg B → Peg A.' },
-        { t: 'return', fn: 'hanoi', value: 10 },
-        { t: 'visit', id: 'stk-1' },
-        { t: 'link', from: 'stk-1', to: 'peg-C', label: 'peg' },
-        { t: 'note', text: 'Move 6/7: Move middle disk (20) from Peg B → Peg C (on top of 30).' },
-        { t: 'call', fn: 'hanoi', args: [1, 'A', 'C', 'B'], depth: 3 },
-        { t: 'visit', id: 'stk-2' },
-        { t: 'link', from: 'stk-2', to: 'peg-C', label: 'peg' },
-        {
-          t: 'note',
-          text: 'Move 7/7: Move smallest disk (10) from Peg A → Peg C! All 3 disks are now stacked on Peg C.',
-        },
-        { t: 'return', fn: 'hanoi', value: 10 },
-        { t: 'return', fn: 'hanoi', value: 20 },
-        { t: 'return', fn: 'hanoi', value: 30 },
         { t: 'done' },
       );
       break;

@@ -435,4 +435,18 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     state = useViewportStore.getState();
     expect(state.currentSnapshot.narration).toContain('NOT balanced');
   });
+
+  it('solves Tower of Hanoi dynamically for custom stack disk values', () => {
+    const store = useViewportStore.getState();
+    store.setPreviewScene('stack');
+    store.applyCustomInputValues([10, 25, 40, 60]);
+    store.runStructureOperationNow('recursion-hanoi');
+    useViewportStore.getState().skipToEnd();
+
+    const state = useViewportStore.getState();
+    expect(state.currentSnapshot.narration).toContain('15 moves');
+    const pegEdges = state.currentSnapshot.edges.filter((e) => e.label === 'peg');
+    expect(pegEdges.length).toBe(4);
+    expect(pegEdges.every((e) => e.to === 'peg-C')).toBe(true);
+  });
 });

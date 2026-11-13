@@ -159,7 +159,7 @@ function SceneObjectMesh({
   const isHanoiDisk =
     Boolean(obj.fields.isHanoi) && typeof numericVal === 'number';
   const slabRadius = isHanoiDisk
-    ? 0.95 + (Math.min(30, Math.max(10, numericVal)) / 30) * 0.75
+    ? 0.85 + (Math.min(100, Math.max(5, numericVal)) / 100) * 0.95
     : 1.45;
   const baseMinY = isStackSlab ? 0.2 : 0.55;
   const targetHeight = isArrayCell
