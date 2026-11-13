@@ -61,6 +61,8 @@ export interface StructureOpDefinition {
   spaceComplexity: string;
   needsNumber?: boolean;
   numberLabel?: string;
+  needsText?: boolean;
+  textLabel?: string;
 }
 
 export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
@@ -188,6 +190,8 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     corpusPath: '04_recursion_and_stack/viva_stack_applications.cpp',
     timeComplexity: 'O(n)',
     spaceComplexity: 'O(n)',
+    needsText: true,
+    textLabel: 'Expression',
   },
   {
     id: 'recursion-factorial',
@@ -726,6 +730,7 @@ export function runStructureOperation(
   opId: StructureOperationId,
   paramValue = 35,
   customValues?: number[],
+  paramText?: string,
 ): {
   events: TraceEvent[];
   meta: AlgorithmMetadata;
@@ -1258,35 +1263,96 @@ export function runStructureOperation(
     }
 
     case 'stack-brackets': {
-      events.push(
-        {
-          t: 'note',
-          text: 'Checking if "{ [ ( ) ] }" has balanced brackets using a Stack.',
-        },
-        { t: 'create', id: 'stk-0', kind: 'node', value: '{' },
-        { t: 'note', text: 'Read "{": opening bracket, so push "{" onto the stack.' },
-        { t: 'create', id: 'stk-1', kind: 'node', value: '[' },
-        { t: 'link', from: 'stk-1', to: 'stk-0', label: 'below' },
-        { t: 'note', text: 'Read "[": opening bracket, so push "[" onto the stack.' },
-        { t: 'create', id: 'stk-2', kind: 'node', value: '(' },
-        { t: 'link', from: 'stk-2', to: 'stk-1', label: 'below' },
-        { t: 'note', text: 'Read "(": opening bracket, so push "(" onto the stack.' },
-        { t: 'visit', id: 'stk-2' },
-        { t: 'unlink', from: 'stk-2', to: 'stk-1' },
-        { t: 'remove', id: 'stk-2' },
-        { t: 'note', text: 'Read ")": matches "(" on top of the stack! Pop "(".' },
-        { t: 'visit', id: 'stk-1' },
-        { t: 'unlink', from: 'stk-1', to: 'stk-0' },
-        { t: 'remove', id: 'stk-1' },
-        { t: 'note', text: 'Read "]": matches "[" on top of the stack! Pop "[".' },
-        { t: 'visit', id: 'stk-0' },
-        { t: 'remove', id: 'stk-0' },
-        {
-          t: 'note',
-          text: 'Read "}": matches "{"! Stack is now completely empty — brackets are balanced!',
-        },
-        { t: 'done' },
-      );
+      const expr = (paramText ?? '').trim().slice(0, 24) || '{[()]}';
+      const openBrackets = new Set(['(', '[', '{']);
+      const matchingOpen: Record<string, string> = {
+        ')': '(',
+        ']': '[',
+        '}': '{',
+      };
+      const stack: { id: string; ch: string }[] = [];
+      let nextPlateId = 0;
+      let balanced = true;
+
+      events.push({
+        t: 'note',
+        text: `Checking if "${expr}" has balanced brackets using a Stack.`,
+      });
+
+      for (const ch of expr) {
+        if (openBrackets.has(ch)) {
+          const id = `stk-${nextPlateId++}`;
+          const prevId = stack.length > 0 ? stack[stack.length - 1].id : null;
+          events.push({ t: 'create', id, kind: 'node', value: ch });
+          if (prevId) {
+            events.push({ t: 'link', from: id, to: prevId, label: 'below' });
+          }
+          events.push({
+            t: 'note',
+            text: `Read "${ch}": opening bracket, so push "${ch}" onto the stack.`,
+          });
+          stack.push({ id, ch });
+        } else if (ch in matchingOpen) {
+          const expected = matchingOpen[ch];
+          if (stack.length === 0) {
+            events.push({
+              t: 'note',
+              text: `Read "${ch}": stack is empty — no matching "${expected}"! Expression is NOT balanced.`,
+            });
+            balanced = false;
+            break;
+          }
+          const top = stack[stack.length - 1];
+          events.push({ t: 'visit', id: top.id });
+          if (top.ch !== expected) {
+            events.push({
+              t: 'note',
+              text: `Read "${ch}": mismatch! Top is "${top.ch}", expected "${expected}". Expression is NOT balanced.`,
+            });
+            balanced = false;
+            break;
+          }
+          if (stack.length > 1) {
+            events.push({
+              t: 'unlink',
+              from: top.id,
+              to: stack[stack.length - 2].id,
+            });
+          }
+          events.push(
+            {
+              t: 'note',
+              text: `Lifting and sliding top plate "${top.ch}" off the stack...`,
+            },
+            { t: 'remove', id: top.id },
+            {
+              t: 'note',
+              text: `Read "${ch}": matches "${top.ch}" on top of the stack! Pop "${top.ch}".`,
+            },
+          );
+          stack.pop();
+        } else if (ch.trim() !== '') {
+          events.push({
+            t: 'note',
+            text: `Read "${ch}": not a bracket — skip.`,
+          });
+        }
+      }
+
+      if (balanced) {
+        if (stack.length === 0) {
+          events.push({
+            t: 'note',
+            text: `Done! Stack is completely empty — "${expr}" has balanced brackets!`,
+          });
+        } else {
+          events.push({
+            t: 'note',
+            text: `Reached end of "${expr}", but ${stack.length} unclosed bracket(s) remain on the stack — NOT balanced!`,
+          });
+        }
+      }
+      events.push({ t: 'done' });
       break;
     }
 

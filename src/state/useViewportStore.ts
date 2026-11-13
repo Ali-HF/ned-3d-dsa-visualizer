@@ -121,7 +121,7 @@ interface ViewportState {
   selectArrayOperation: (op: ArrayOperationId) => void;
   selectStructureOperation: (op: StructureOperationId) => void;
   runOperationNow: (op: ArrayOperationId, paramIndex?: number, paramValue?: number) => void;
-  runStructureOperationNow: (op: StructureOperationId, paramValue?: number) => void;
+  runStructureOperationNow: (op: StructureOperationId, paramValue?: number, paramText?: string) => void;
   selectCorpusFile: (relativePath: string) => void;
   selectAndRunCorpusFile: (relativePath: string) => void;
   previewCustomCode: (sourceCode: string, fileName?: string) => void;
@@ -966,9 +966,9 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
     });
   },
 
-  runStructureOperationNow: (op, paramValue = 40) => {
+  runStructureOperationNow: (op, paramValue = 40, paramText) => {
     const state = get();
-    const result = runStructureOperation(op, paramValue, state.workingArray);
+    const result = runStructureOperation(op, paramValue, state.workingArray, paramText);
     const timeline = new TraceTimeline(result.events);
     const firstNoteIdx = result.events.findIndex((e) => e.t === 'note');
     const startStep = firstNoteIdx >= 0 ? firstNoteIdx + 1 : 1;

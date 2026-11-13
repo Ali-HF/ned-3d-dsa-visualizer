@@ -281,6 +281,7 @@ export function App() {
   const [arrayInputText, setArrayInputText] = useState(workingArray.join(', '));
   const [paramIndexText, setParamIndexText] = useState<string>('2');
   const [paramValueText, setParamValueText] = useState<string>('42');
+  const [paramText, setParamText] = useState<string>('{[()]}');
   const [customCodeText, setCustomCodeText] = useState<string>(() =>
     getCorpusRawText('06_elementary_sorting/bubble_sort.cpp'),
   );
@@ -471,7 +472,7 @@ export function App() {
     } else {
       setOpError(null);
       if (!activeStructureOp) return;
-      runStructureOperationNow(activeStructureOp, parsedVal);
+      runStructureOperationNow(activeStructureOp, parsedVal, paramText);
     }
   };
 
@@ -1010,7 +1011,8 @@ export function App() {
                     </div>
                     {(selectedArrayAction?.needsPosition ||
                       selectedArrayAction?.needsNumber ||
-                      selectedStructAction?.needsNumber) && (
+                      selectedStructAction?.needsNumber ||
+                      selectedStructAction?.needsText) && (
                       <div className="st-extra-params">
                         {previewScene === 'array' && selectedArrayAction?.needsPosition && (
                           <label className="st-mini-param">
@@ -1063,6 +1065,21 @@ export function App() {
                             />
                           </label>
                         )}
+                        {previewScene !== 'array' && selectedStructAction?.needsText && (
+                          <label className="st-mini-param">
+                            <span>{selectedStructAction.textLabel ?? 'Expression'}</span>
+                            <input
+                              type="text"
+                              value={paramText}
+                              placeholder="{[()]}"
+                              onChange={(e) => setParamText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleRunActiveOperation();
+                              }}
+                              aria-label={selectedStructAction.textLabel ?? 'Expression'}
+                            />
+                          </label>
+                        )}
                       </div>
                     )}
                     {opError && (
@@ -1079,6 +1096,21 @@ export function App() {
                         }}
                       >
                         {opError}
+                        {previewScene !== 'array' && selectedStructAction?.needsText && (
+                          <label className="st-mini-param">
+                            <span>{selectedStructAction.textLabel ?? 'Expression'}</span>
+                            <input
+                              type="text"
+                              value={paramText}
+                              placeholder="{[()]}"
+                              onChange={(e) => setParamText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleRunActiveOperation();
+                              }}
+                              aria-label={selectedStructAction.textLabel ?? 'Expression'}
+                            />
+                          </label>
+                        )}
                       </div>
                     )}
                     <button

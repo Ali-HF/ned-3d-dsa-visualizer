@@ -419,4 +419,20 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     expect(Object.keys(state.currentSnapshot.nodes).length).toBe(6);
     expect(state.workingArray).toEqual([10, 20, 30, 40, 50, 60]);
   });
+
+  it('checks custom balanced and unbalanced bracket strings in stack-brackets', () => {
+    const store = useViewportStore.getState();
+    store.setPreviewScene('stack');
+
+    store.runStructureOperationNow('stack-brackets', 42, '([{}])');
+    useViewportStore.getState().skipToEnd();
+    let state = useViewportStore.getState();
+    expect(state.currentSnapshot.narration).toContain('balanced brackets');
+    expect(Object.keys(state.currentSnapshot.nodes).length).toBe(0);
+
+    store.runStructureOperationNow('stack-brackets', 42, '([)]');
+    useViewportStore.getState().skipToEnd();
+    state = useViewportStore.getState();
+    expect(state.currentSnapshot.narration).toContain('NOT balanced');
+  });
 });
