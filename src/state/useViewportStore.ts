@@ -385,10 +385,18 @@ function computeDynamicLinkedListLayout(
 
   const spacing = 2.8;
   const startX = -((ordered.length - 1) * spacing) / 2;
+  const isTempDisconnect =
+    snapshot.narration.toLowerCase().includes('temp') &&
+    snapshot.edges.some((e) => e.label === 'next' || !e.label);
   const out: Record<string, [number, number, number]> = {};
   ordered.forEach((id, idx) => {
     const zOffset = idx % 2 === 1 ? 0.35 : -0.15;
-    out[id] = [startX + idx * spacing, 1.0, zOffset];
+    const isIsolatedTemp =
+      isTempDisconnect &&
+      !incomingNext.has(id) &&
+      !(id in nextMap) &&
+      snapshot.visitedOrder.includes(id);
+    out[id] = [startX + idx * spacing, isIsolatedTemp ? 2.05 : 1.0, zOffset];
   });
   return out;
 }

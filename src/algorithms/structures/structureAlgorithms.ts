@@ -831,70 +831,96 @@ export function runStructureOperation(
       events.push({ t: 'line', line: 51 });
 
       if (matchIdx === 0) {
-        events.push({ t: 'visit', id: nodeIds[0] });
+        events.push(
+          { t: 'visit', id: nodeIds[0] },
+          {
+            t: 'note',
+            text: `Head node holds ${target}! Copying head into temp (Node* temp = head).`,
+          },
+        );
         if (nodeIds[1]) {
           events.push(
-            { t: 'note', text: `Head node holds ${target}! Updating head to point to ${vals[1]}.` },
             { t: 'line', line: 55 },
             { t: 'unlink', from: nodeIds[0], to: nodeIds[1] },
-            { t: 'remove', id: nodeIds[0] },
             { t: 'visit', id: nodeIds[1] },
             {
               t: 'note',
-              text: `Deleted head node ${target}. List is now ${vals.slice(1).join(' → ')}.`,
+              text: `Moved head to ${vals[1]} (head = head->next) and disconnected temp (${target}).`,
+            },
+            { t: 'line', line: 56 },
+            { t: 'remove', id: nodeIds[0] },
+            {
+              t: 'note',
+              text: `Freed temp (${target}) from memory. List is now ${vals.slice(1).join(' → ')}.`,
             },
           );
         } else {
           events.push(
-            { t: 'note', text: `Head node holds ${target}! Removing the only node in the list.` },
             { t: 'line', line: 55 },
             { t: 'remove', id: nodeIds[0] },
-            { t: 'note', text: `Deleted head node ${target}. List is now empty.` },
+            { t: 'note', text: `Freed temp (${target}) from memory. List is now empty.` },
           );
         }
         events.push({ t: 'done' });
         updatedValues = vals.slice(1);
       } else if (matchIdx > 0) {
-        for (let i = 0; i < matchIdx; i++) {
+        for (let i = 0; i <= matchIdx; i++) {
           events.push({ t: 'visit', id: nodeIds[i] });
-          if (i < matchIdx - 1) {
+          if (i < matchIdx) {
             events.push({
               t: 'note',
-              text: `At node ${vals[i]}. Next node is ${vals[i + 1]} (not ${target}) — step forward.`,
+              text: `At node ${vals[i]} (not ${target}) — advancing prev and curr forward.`,
             });
           } else {
             events.push({
               t: 'note',
-              text: `At node ${vals[i]}. Its next node is ${target} — found the node to remove!`,
+              text: `Found ${target}! prev is at ${vals[matchIdx - 1]} and curr is at ${target}.`,
             });
           }
         }
         const prevId = nodeIds[matchIdx - 1];
         const delId = nodeIds[matchIdx];
         const nextId = nodeIds[matchIdx + 1];
-        events.push({ t: 'line', line: 55 });
-        events.push({ t: 'unlink', from: prevId, to: delId });
-        if (nextId) {
-          events.push({ t: 'unlink', from: delId, to: nextId });
-          events.push({ t: 'link', from: prevId, to: nextId, label: 'next' });
-          events.push({
+        events.push(
+          { t: 'line', line: 55 },
+          {
             t: 'note',
-            text: `Bypassed ${target} by linking ${vals[matchIdx - 1]} directly to ${vals[matchIdx + 1]}.`,
-          });
+            text: `Copying target node (${target}) into temp: Node* temp = curr;`,
+          },
+          { t: 'unlink', from: prevId, to: delId },
+          {
+            t: 'note',
+            text: `Disconnected prev (${vals[matchIdx - 1]})->next from temp (${target}).`,
+          },
+        );
+        if (nextId) {
+          events.push(
+            { t: 'unlink', from: delId, to: nextId },
+            {
+              t: 'note',
+              text: `Disconnected temp (${target})->next from ${vals[matchIdx + 1]}.`,
+            },
+            { t: 'link', from: prevId, to: nextId, label: 'next' },
+            {
+              t: 'note',
+              text: `Linked prev (${vals[matchIdx - 1]}) directly to ${vals[matchIdx + 1]} (prev->next = temp->next).`,
+            },
+          );
         } else {
           events.push({
             t: 'note',
-            text: `Unlinked tail node ${target} from ${vals[matchIdx - 1]}.`,
+            text: `temp (${target}) was the tail, so prev (${vals[matchIdx - 1]})->next is now NULL.`,
           });
         }
         events.push({ t: 'line', line: 56 });
         events.push({ t: 'remove', id: delId });
+        events.push({ t: 'visit', id: prevId });
         const remaining = vals.filter((_, idx) => idx !== matchIdx);
         updatedValues = remaining;
         events.push(
           {
             t: 'note',
-            text: `Deleted node ${target} from memory. List is now ${remaining.join(' → ')}.`,
+            text: `Freed temp (${target}) from memory (delete temp). List is now ${remaining.join(' → ')}.`,
           },
           { t: 'done' },
         );

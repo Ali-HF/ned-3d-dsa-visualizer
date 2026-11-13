@@ -179,18 +179,31 @@ function SceneObjectMesh({
     }
   }
   const isPrevPtr = isListNode && prevVisitId === obj.id;
-  const isCurrPtr = isListNode && isActiveVisit && !isSlowPtr && !isFastPtr;
+  const isTempPhase =
+    isListNode &&
+    activeOperation === 'sll-delete-val' &&
+    snapshot.narration.toLowerCase().includes('temp');
+  const isDisconnectedTemp =
+    isTempPhase &&
+    !isActiveVisit &&
+    snapshot.visitedOrder.includes(obj.id) &&
+    !hasIncomingNext &&
+    !hasOutgoingNext;
+  const isTempPtr = (isTempPhase && isActiveVisit) || isDisconnectedTemp;
+  const isCurrPtr = isListNode && isActiveVisit && !isSlowPtr && !isFastPtr && !isTempPtr;
   const listPointer = isSlowPtr && isFastPtr
     ? { label: 'SLOW / FAST', color: '#34d399' }
     : isSlowPtr
       ? { label: 'SLOW', color: '#34d399' }
       : isFastPtr
         ? { label: 'FAST', color: '#fbbf24' }
-        : isCurrPtr
-          ? { label: 'CURR', color: '#38bdf8' }
-          : isPrevPtr
-            ? { label: 'PREV', color: '#c084fc' }
-            : null;
+        : isTempPtr
+          ? { label: 'TEMP', color: '#fb7185' }
+          : isCurrPtr
+            ? { label: 'CURR', color: '#38bdf8' }
+            : isPrevPtr
+              ? { label: 'PREV', color: '#c084fc' }
+              : null;
   const visitOrderIndex = snapshot.visitedOrder.indexOf(obj.id);
   const isDoneItem = snapshot.isDone;
 
