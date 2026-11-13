@@ -508,6 +508,24 @@ function emitBaseLinkedList(events: TraceEvent[], customValues?: number[]) {
   return vals;
 }
 
+function emitBaseStack(
+  events: TraceEvent[],
+  customValues?: number[],
+  fallback: number[] = [15, 30, 45],
+) {
+  const vals =
+    customValues && customValues.length >= 1
+      ? customValues.slice(0, 24)
+      : fallback;
+  for (let i = 0; i < vals.length; i++) {
+    events.push({ t: 'create', id: `stk-${i}`, kind: 'node', value: vals[i] });
+    if (i > 0) {
+      events.push({ t: 'link', from: `stk-${i}`, to: `stk-${i - 1}`, label: 'below' });
+    }
+  }
+  return vals;
+}
+
 function emitBaseBst(events: TraceEvent[], customValues?: number[]) {
   let sorted = [20, 30, 40, 50, 60, 70, 85];
   if (customValues && customValues.length >= 3) {
@@ -619,17 +637,12 @@ export function buildStaticStructureTrace(
       break;
     }
     case 'stack': {
-      const stkVals =
-        customValues && customValues.length >= 3
-          ? customValues.slice(0, 3)
-          : [15, 30, 45];
+      const stkVals = emitBaseStack(events, customValues, [15, 30, 45]);
       events.push(
-        { t: 'create', id: 'stk-0', kind: 'node', value: stkVals[0] },
-        { t: 'create', id: 'stk-1', kind: 'node', value: stkVals[1] },
-        { t: 'create', id: 'stk-2', kind: 'node', value: stkVals[2] },
-        { t: 'link', from: 'stk-1', to: 'stk-0', label: 'below' },
-        { t: 'link', from: 'stk-2', to: 'stk-1', label: 'below' },
-        { t: 'note', text: `Loaded Stack: [${stkVals.join(', ')}] (top is ${stkVals[2]}).` },
+        {
+          t: 'note',
+          text: `Loaded Stack: [${stkVals.join(', ')}] (top is ${stkVals[stkVals.length - 1]}).`,
+        },
         { t: 'note', text: 'Select an operation, set Value if needed, then click Run.' },
         { t: 'done' },
       );
@@ -1156,26 +1169,21 @@ export function runStructureOperation(
     // STACK & RECURSION OPERATIONS (Week 4)
     // ==========================================
     case 'stack-push': {
-      const stkVals =
-        customValues && customValues.length >= 3
-          ? customValues.slice(0, 3)
-          : [15, 30, 45];
+      const stkVals = emitBaseStack(events, customValues, [15, 30, 45]);
       const val = Number.isFinite(paramValue) ? paramValue : 50;
+      const newIdx = stkVals.length;
+      const newId = `stk-${newIdx}`;
+      const prevTopId = `stk-${newIdx - 1}`;
       updatedValues = [...stkVals, val];
       events.push(
-        { t: 'create', id: 'stk-0', kind: 'node', value: stkVals[0] },
-        { t: 'create', id: 'stk-1', kind: 'node', value: stkVals[1] },
-        { t: 'create', id: 'stk-2', kind: 'node', value: stkVals[2] },
-        { t: 'link', from: 'stk-1', to: 'stk-0', label: 'below' },
-        { t: 'link', from: 'stk-2', to: 'stk-1', label: 'below' },
         {
           t: 'note',
-          text: `Stack currently has ${stkVals[0]}, ${stkVals[1]}, and ${stkVals[2]} on top. Pushing ${val} onto the top of the stack.`,
+          text: `Stack currently has [${stkVals.join(', ')}] (${stkVals[stkVals.length - 1]} on top). Pushing ${val} onto the top of the stack.`,
         },
         { t: 'line', line: 17 },
-        { t: 'create', id: 'stk-3', kind: 'node', value: val },
-        { t: 'link', from: 'stk-3', to: 'stk-2', label: 'below' },
-        { t: 'visit', id: 'stk-3' },
+        { t: 'create', id: newId, kind: 'node', value: val },
+        { t: 'link', from: newId, to: prevTopId, label: 'below' },
+        { t: 'visit', id: newId },
         {
           t: 'note',
           text: `Done! ${val} is now sitting at the TOP of the stack (Last-In, First-Out).`,
@@ -1186,58 +1194,55 @@ export function runStructureOperation(
     }
 
     case 'stack-pop': {
-      const stkVals =
-        customValues && customValues.length >= 4
-          ? customValues.slice(0, 4)
-          : [15, 30, 45, 60];
-      updatedValues = stkVals.slice(0, 3);
+      const stkVals = emitBaseStack(events, customValues, [15, 30, 45, 60]);
+      const topIdx = stkVals.length - 1;
+      const topId = `stk-${topIdx}`;
+      const topVal = stkVals[topIdx];
+      updatedValues = stkVals.slice(0, topIdx);
       events.push(
-        { t: 'create', id: 'stk-0', kind: 'node', value: stkVals[0] },
-        { t: 'create', id: 'stk-1', kind: 'node', value: stkVals[1] },
-        { t: 'create', id: 'stk-2', kind: 'node', value: stkVals[2] },
-        { t: 'create', id: 'stk-3', kind: 'node', value: stkVals[3] },
-        { t: 'link', from: 'stk-1', to: 'stk-0', label: 'below' },
-        { t: 'link', from: 'stk-2', to: 'stk-1', label: 'below' },
-        { t: 'link', from: 'stk-3', to: 'stk-2', label: 'below' },
         {
           t: 'note',
-          text: `The top of the stack is ${stkVals[3]}. Pop removes the top item first (LIFO).`,
+          text: `The top of the stack is ${topVal}. Pop removes the top item first (LIFO).`,
         },
         { t: 'line', line: 21 },
-        { t: 'visit', id: 'stk-3' },
-        { t: 'note', text: `Inspecting top element ${stkVals[3]} before popping it off.` },
-        { t: 'unlink', from: 'stk-3', to: 'stk-2' },
-        { t: 'remove', id: 'stk-3' },
-        { t: 'visit', id: 'stk-2' },
-        {
-          t: 'note',
-          text: `Popped ${stkVals[3]}! Now ${stkVals[2]} becomes the new TOP of the stack.`,
-        },
-        { t: 'done' },
+        { t: 'visit', id: topId },
+        { t: 'note', text: `Inspecting top element ${topVal} before popping it off.` },
       );
+      if (topIdx > 0) {
+        const nextTopId = `stk-${topIdx - 1}`;
+        events.push(
+          { t: 'unlink', from: topId, to: nextTopId },
+          { t: 'remove', id: topId },
+          { t: 'visit', id: nextTopId },
+          {
+            t: 'note',
+            text: `Popped ${topVal}! Now ${stkVals[topIdx - 1]} becomes the new TOP of the stack.`,
+          },
+        );
+      } else {
+        events.push(
+          { t: 'remove', id: topId },
+          { t: 'note', text: `Popped ${topVal}! The stack is now empty.` },
+        );
+      }
+      events.push({ t: 'done' });
       break;
     }
 
     case 'stack-peek': {
-      const stkVals =
-        customValues && customValues.length >= 3
-          ? customValues.slice(0, 3)
-          : [15, 30, 45];
+      const stkVals = emitBaseStack(events, customValues, [15, 30, 45]);
+      const topIdx = stkVals.length - 1;
+      const topId = `stk-${topIdx}`;
       events.push(
-        { t: 'create', id: 'stk-0', kind: 'node', value: stkVals[0] },
-        { t: 'create', id: 'stk-1', kind: 'node', value: stkVals[1] },
-        { t: 'create', id: 'stk-2', kind: 'node', value: stkVals[2] },
-        { t: 'link', from: 'stk-1', to: 'stk-0', label: 'below' },
-        { t: 'link', from: 'stk-2', to: 'stk-1', label: 'below' },
         {
           t: 'note',
           text: 'Checking the top of the stack without removing anything (peek).',
         },
         { t: 'line', line: 25 },
-        { t: 'visit', id: 'stk-2' },
+        { t: 'visit', id: topId },
         {
           t: 'note',
-          text: `Top of stack is ${stkVals[2]}! The stack remains unchanged.`,
+          text: `Top of stack is ${stkVals[topIdx]}! The stack remains unchanged.`,
         },
         { t: 'done' },
       );

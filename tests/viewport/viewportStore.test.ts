@@ -398,4 +398,25 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     expect(Object.keys(state.currentSnapshot.nodes).length).toBe(6);
     expect(state.workingArray).toEqual([42, 10, 20, 30, 40, 50]);
   });
+
+  it('supports more than 4 stacked plates in stack scene and push', () => {
+    const store = useViewportStore.getState();
+    store.setPreviewScene('stack');
+    store.applyCustomInputValues([10, 20, 30, 40, 50]);
+
+    let state = useViewportStore.getState();
+    expect(Object.keys(state.currentSnapshot.nodes)).toEqual([
+      'stk-0',
+      'stk-1',
+      'stk-2',
+      'stk-3',
+      'stk-4',
+    ]);
+
+    store.runStructureOperationNow('stack-push', 60);
+    useViewportStore.getState().skipToEnd();
+    state = useViewportStore.getState();
+    expect(Object.keys(state.currentSnapshot.nodes).length).toBe(6);
+    expect(state.workingArray).toEqual([10, 20, 30, 40, 50, 60]);
+  });
 });
