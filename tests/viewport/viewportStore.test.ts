@@ -358,4 +358,22 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     state = useViewportStore.getState();
     expect(state.currentSnapshot.arrays['arr']?.values[0]).toBe(21);
   });
+
+  it('positions new head node on the left when inserting at front of linked list', () => {
+    const store = useViewportStore.getState();
+    store.setPreviewScene('linked-list');
+    store.applyCustomInputValues([10, 20, 30, 40]);
+    store.runStructureOperationNow('sll-insert-head', 68);
+    useViewportStore.getState().skipToEnd();
+
+    const state = useViewportStore.getState();
+    const newX = state.sceneObjects['node-new']?.position[0];
+    const headX = state.sceneObjects['node-head']?.position[0];
+    const tailX = state.sceneObjects['node-tail']?.position[0];
+    expect(newX).toBeDefined();
+    expect(headX).toBeDefined();
+    expect(tailX).toBeDefined();
+    expect(newX!).toBeLessThan(headX!);
+    expect(headX!).toBeLessThan(tailX!);
+  });
 });

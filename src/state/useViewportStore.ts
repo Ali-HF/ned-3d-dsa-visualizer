@@ -335,6 +335,65 @@ function computeDynamicTreeLayout(
 }
 
 /**
+ * Orders linked-list nodes by following `next` edges from head to tail so
+ * front insertions (`node-new` / `node-h*`) appear on the left rather than
+ * at the end of insertion order.
+ */
+function computeDynamicLinkedListLayout(
+  snapshot: TraceStateSnapshot,
+): Record<string, [number, number, number]> {
+  const ids = Object.keys(snapshot.nodes);
+  const nextMap: Record<string, string> = {};
+  const incomingNext = new Set<string>();
+
+  for (const e of snapshot.edges) {
+    if (!snapshot.nodes[e.from] || !snapshot.nodes[e.to]) continue;
+    if (e.label === 'next' || !e.label) {
+      if (!(e.from in nextMap)) {
+        nextMap[e.from] = e.to;
+      }
+      incomingNext.add(e.to);
+    }
+  }
+
+  const ordered: string[] = [];
+  const visited = new Set<string>();
+  const walkChain = (startId: string) => {
+    let curr: string | undefined = startId;
+    while (curr && !visited.has(curr)) {
+      visited.add(curr);
+      ordered.push(curr);
+      curr = nextMap[curr];
+    }
+  };
+
+  for (const id of ids) {
+    if (!incomingNext.has(id) && nextMap[id]) {
+      walkChain(id);
+    }
+  }
+  for (const id of ids) {
+    if (!visited.has(id)) {
+      if (id === 'node-new' || id.startsWith('node-h')) {
+        ordered.unshift(id);
+        visited.add(id);
+      } else {
+        walkChain(id);
+      }
+    }
+  }
+
+  const spacing = 2.8;
+  const startX = -((ordered.length - 1) * spacing) / 2;
+  const out: Record<string, [number, number, number]> = {};
+  ordered.forEach((id, idx) => {
+    const zOffset = idx % 2 === 1 ? 0.35 : -0.15;
+    out[id] = [startX + idx * spacing, 1.0, zOffset];
+  });
+  return out;
+}
+
+/**
  * Universal 3D Scene Builder: converts any TraceStateSnapshot into 3D SceneObjectInfo[]
  * based on the active structure scene.
  */
@@ -362,6 +421,8 @@ export function buildSceneObjectsForScene(
     scene === 'graph' ? computeDynamicGraphLayout(snapshot) : null;
   const dynamicHashCoords =
     scene === 'hash-table' ? computeDynamicHashChainLayout(snapshot) : null;
+  const dynamicLinkedListCoords =
+    scene === 'linked-list' ? computeDynamicLinkedListLayout(snapshot) : null;
   const heapIndexMap: Record<string, number> = {};
   if (scene === 'heap') {
     const hasParent = new Set<string>();
@@ -428,10 +489,7 @@ export function buildSceneObjectsForScene(
     let kind: SceneObjectInfo['kind'] = 'list-node';
 
     if (scene === 'linked-list') {
-      const spacing = 2.8;
-      const startX = -((count - 1) * spacing) / 2;
-      const zOffset = idx % 2 === 1 ? 0.35 : -0.15;
-      pos = [startX + idx * spacing, 1.0, zOffset];
+      pos = dynamicLinkedListCoords?.[node.id] ?? [idx * 2.8, 1.0, 0];
       kind = 'list-node';
     } else if (scene === 'stack') {
       // Vertical 3D Stack along Y axis (or 3-peg Tower of Hanoi layout)
