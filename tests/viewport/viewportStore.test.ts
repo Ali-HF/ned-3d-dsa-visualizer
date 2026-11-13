@@ -96,7 +96,7 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     const state = useViewportStore.getState();
     expect(state.previewScene).toBe('bst');
     expect(state.selectedCorpusFile).toBe('12_avl_tree/avl_tree.cpp');
-    expect(state.activeMetadata.code.join('\n')).toContain('rightRotate');
+    expect(state.activeMetadata.code.join('\n')).toContain('rotateRight');
   });
 
   it('steps forward and backward cleanly between visual note events', () => {
@@ -265,5 +265,97 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     expect(state.previewScene).toBe('linked-list');
     expect(state.workingArray[0]).toBe(5);
     expect(state.workingArray[state.workingArray.length - 1]).toBe(99);
+  });
+
+  it('waits for the user to configure values and click Run instead of auto-running on selection', () => {
+    const store = useViewportStore.getState();
+    store.setCustomArray([10, 20, 30, 40]);
+    store.setPreviewScene('array');
+
+    store.selectArrayOperation('insert-at');
+    let state = useViewportStore.getState();
+    expect(state.activeOperation).toBe('insert-at');
+    expect(state.hasPendingOperationRun).toBe(true);
+    expect(state.isPlaying).toBe(false);
+    expect(state.workingArray).toEqual([10, 20, 30, 40]);
+    expect(state.operationHistory.length).toBe(0);
+
+    // User sets custom array values while keeping operation selected
+    store.applyCustomInputValues([5, 15, 25]);
+    state = useViewportStore.getState();
+    expect(state.workingArray).toEqual([5, 15, 25]);
+    expect(state.activeOperation).toBe('insert-at');
+    expect(state.hasPendingOperationRun).toBe(true);
+    expect(state.isPlaying).toBe(false);
+
+    // User explicitly clicks Run with index=1, value=99
+    store.runOperationNow('insert-at', 1, 99);
+    state = useViewportStore.getState();
+    expect(state.workingArray).toEqual([5, 99, 15, 25]);
+    expect(state.hasPendingOperationRun).toBe(false);
+    expect(state.operationHistory.length).toBe(1);
+
+    // Structure selection & custom values also wait for Run
+    store.setPreviewScene('linked-list');
+    store.selectStructureOperation('sll-delete-val');
+    state = useViewportStore.getState();
+    expect(state.previewScene).toBe('linked-list');
+    expect(state.activeStructureOp).toBe('sll-delete-val');
+    expect(state.hasPendingOperationRun).toBe(true);
+    expect(state.isPlaying).toBe(false);
+
+    // Selecting a corpus file in Run Code mode loads without auto-running
+    store.selectCorpusFile('07_advanced_sorting/quick_sort.cpp');
+    state = useViewportStore.getState();
+    expect(state.selectedCorpusFile).toBe('07_advanced_sorting/quick_sort.cpp');
+    expect(state.isPlaying).toBe(false);
+    expect(state.operationHistory.length).toBe(0);
+    expect(state.activeMetadata.title).toContain('quick_sort.cpp');
+  });
+
+  it('honors user-supplied values across Linked List, BST, Heap, and Hash Table operations', () => {
+    const store = useViewportStore.getState();
+
+    // Linked list search & delete with custom target
+    store.applyCustomInputValues([10, 25, 40, 55]);
+    store.runStructureOperationNow('sll-delete-val', 25);
+    let state = useViewportStore.getState();
+    expect(state.workingArray).toEqual([10, 40, 55]);
+
+    store.applyCustomInputValues([10, 25, 40, 55]);
+    store.runStructureOperationNow('sll-search', 55);
+    state = useViewportStore.getState();
+    state.skipToEnd();
+    expect(useViewportStore.getState().currentSnapshot.narration).toContain('Found 55 at node #4');
+
+    // BST search for root or missing value, and BST insert on right branch
+    store.applyCustomInputValues([20, 30, 40, 50, 60, 70, 85]);
+    store.runStructureOperationNow('bst-search', 999);
+    useViewportStore.getState().skipToEnd();
+    expect(useViewportStore.getState().currentSnapshot.narration).toContain('999 is not in this BST');
+
+    store.runStructureOperationNow('bst-insert', 95);
+    useViewportStore.getState().skipToEnd();
+    state = useViewportStore.getState();
+    expect(state.currentSnapshot.nodes['bst-new']?.value).toBe(95);
+    expect(
+      state.currentSnapshot.edges.some(
+        (e) => e.from === 'bst-85' && e.to === 'bst-new' && e.label === 'right',
+      ),
+    ).toBe(true);
+
+    // Heap insert of a small number should NOT falsely swap to root
+    store.applyCustomInputValues([90, 70, 80, 40, 50]);
+    store.runStructureOperationNow('heap-insert', 15);
+    useViewportStore.getState().skipToEnd();
+    state = useViewportStore.getState();
+    expect(state.currentSnapshot.nodes['bst-50']?.value).toBe(90);
+    expect(state.currentSnapshot.narration).toContain('no swap is needed');
+
+    // Hash table linear probing uses actual key % 7 (e.g. 21 % 7 = 0, empty!)
+    store.runStructureOperationNow('hash-linear', 21);
+    useViewportStore.getState().skipToEnd();
+    state = useViewportStore.getState();
+    expect(state.currentSnapshot.arrays['arr']?.values[0]).toBe(21);
   });
 });

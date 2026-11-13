@@ -837,10 +837,18 @@ function inferOperationFromCode(
 } {
   const src = sourceCode.toLowerCase();
 
-  // Check structure-specific signatures first so files like `sll_sorting.cpp` (which have `Node*` + `mergeSort`)
+  // Check Hash Tables before generic Node* linked-list signatures (Separate Chaining uses Node* prev = nullptr)
+  if (src.includes('linearprobing') || src.includes('linear probing')) {
+    return { kind: 'structure', structOp: 'hash-linear' };
+  }
+  if (src.includes('hashtable') || src.includes('hashfunction') || src.includes('chaining')) {
+    return { kind: 'structure', structOp: 'hash-chaining' };
+  }
+
+  // Check structure-specific signatures first so files like `linked_list_sort.cpp` (which have `Node*` + `mergeSort`)
   // stay on their Linked List / Tree / Graph / Hash structure scene!
   if (
-    src.includes('floyd') ||
+    (src.includes('floyd') && (src.includes('cycle') || src.includes('->next'))) ||
     src.includes('hascycle') ||
     src.includes('circularlinkedlist')
   ) {
@@ -861,7 +869,14 @@ function inferOperationFromCode(
   if (src.includes('inserttail') || src.includes('singlylinkedlist')) {
     return { kind: 'structure', structOp: 'sll-insert-tail' };
   }
-  if (src.includes('rightrotate') || src.includes('leftrotate') || src.includes('avl')) {
+  if (
+    src.includes('rightrotate') ||
+    src.includes('leftrotate') ||
+    src.includes('rotateright') ||
+    src.includes('rotateleft') ||
+    /\bavl\b/.test(src) ||
+    src.includes('avltree')
+  ) {
     return { kind: 'structure', structOp: 'avl-rotation' };
   }
   if (src.includes('siftdown') || src.includes('extractmax') || src.includes('heapsort')) {
@@ -876,16 +891,31 @@ function inferOperationFromCode(
   if (src.includes('kruskal')) {
     return { kind: 'structure', structOp: 'graph-kruskal' };
   }
-  if (src.includes('prim') || src.includes('mst')) {
+  if (/\bprim\b/.test(src) || /\bmst\b/.test(src)) {
     return { kind: 'structure', structOp: 'graph-prim' };
   }
   if (src.includes('topological')) {
     return { kind: 'structure', structOp: 'graph-toposort' };
   }
-  if (src.includes('bfs')) {
+  if (src.includes('inorder')) {
+    return { kind: 'structure', structOp: 'tree-inorder' };
+  }
+  if (src.includes('preorder')) {
+    return { kind: 'structure', structOp: 'tree-preorder' };
+  }
+  if (src.includes('postorder')) {
+    return { kind: 'structure', structOp: 'tree-postorder' };
+  }
+  if (src.includes('levelorder')) {
+    return { kind: 'structure', structOp: 'tree-levelorder' };
+  }
+  if (src.includes('isvalidbst') || src.includes('lowestcommonancestor')) {
+    return { kind: 'structure', structOp: 'bst-search' };
+  }
+  if (/\bbfs\b/.test(src) || src.includes('matrixgraph') || src.includes('listgraph') || src.includes('adjacency matrix')) {
     return { kind: 'structure', structOp: 'graph-bfs' };
   }
-  if (src.includes('dfs')) {
+  if (/\bdfs\b/.test(src)) {
     return { kind: 'structure', structOp: 'graph-dfs' };
   }
   if (src.includes('hashtable') || src.includes('hashfunction') || src.includes('chaining')) {
@@ -911,21 +941,6 @@ function inferOperationFromCode(
   }
   if (src.includes('isbalanced') || src.includes('infixtopostfix')) {
     return { kind: 'structure', structOp: 'stack-brackets' };
-  }
-  if (src.includes('inorder')) {
-    return { kind: 'structure', structOp: 'tree-inorder' };
-  }
-  if (src.includes('preorder')) {
-    return { kind: 'structure', structOp: 'tree-preorder' };
-  }
-  if (src.includes('postorder')) {
-    return { kind: 'structure', structOp: 'tree-postorder' };
-  }
-  if (src.includes('levelorder')) {
-    return { kind: 'structure', structOp: 'tree-levelorder' };
-  }
-  if (src.includes('isvalidbst') || src.includes('lowestcommonancestor')) {
-    return { kind: 'structure', structOp: 'bst-search' };
   }
   if (src.includes('bst') || (src.includes('->left') && src.includes('->right'))) {
     return { kind: 'structure', structOp: 'bst-insert' };

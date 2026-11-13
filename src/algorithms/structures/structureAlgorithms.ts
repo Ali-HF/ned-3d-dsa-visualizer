@@ -72,51 +72,51 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'linked-list',
     label: 'Add at Front (Head)',
     group: 'Add',
-    corpusPath: '02_singly_linked_list/sll_operations.cpp',
+    corpusPath: '02_singly_linked_list/singly_linked_list.cpp',
     timeComplexity: 'O(1)',
     spaceComplexity: 'O(1)',
     needsNumber: true,
-    numberLabel: 'Number to add at front',
+    numberLabel: 'Value',
   },
   {
     id: 'sll-insert-tail',
     scene: 'linked-list',
     label: 'Add at End (Tail)',
     group: 'Add',
-    corpusPath: '02_singly_linked_list/sll_operations.cpp',
+    corpusPath: '02_singly_linked_list/singly_linked_list.cpp',
     timeComplexity: 'O(n)',
     spaceComplexity: 'O(1)',
     needsNumber: true,
-    numberLabel: 'Number to add at end',
+    numberLabel: 'Value',
   },
   {
     id: 'sll-delete-val',
     scene: 'linked-list',
     label: 'Remove a Node',
     group: 'Remove',
-    corpusPath: '02_singly_linked_list/sll_operations.cpp',
+    corpusPath: '02_singly_linked_list/singly_linked_list.cpp',
     timeComplexity: 'O(n)',
     spaceComplexity: 'O(1)',
     needsNumber: true,
-    numberLabel: 'Node value to remove',
+    numberLabel: 'Value',
   },
   {
     id: 'sll-search',
     scene: 'linked-list',
     label: 'Find a Number',
     group: 'Find',
-    corpusPath: '02_singly_linked_list/sll_operations.cpp',
+    corpusPath: '02_singly_linked_list/singly_linked_list.cpp',
     timeComplexity: 'O(n)',
     spaceComplexity: 'O(1)',
     needsNumber: true,
-    numberLabel: 'Number to find',
+    numberLabel: 'Target',
   },
   {
     id: 'sll-find-middle',
     scene: 'linked-list',
     label: 'Find Middle Node (Slow/Fast)',
     group: 'Find',
-    corpusPath: '02_singly_linked_list/sll_reverse_middle_merge.cpp',
+    corpusPath: '02_singly_linked_list/viva_middle_and_merge.cpp',
     timeComplexity: 'O(n)',
     spaceComplexity: 'O(1)',
   },
@@ -125,7 +125,7 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'linked-list',
     label: 'Detect Loop (Floyd Cycle)',
     group: 'Find',
-    corpusPath: '03_doubly_circular_linked_list/circular_linked_list_and_cycle.cpp',
+    corpusPath: '03_doubly_circular_linked_list/floyd_cycle_detection.cpp',
     timeComplexity: 'O(n)',
     spaceComplexity: 'O(1)',
   },
@@ -134,7 +134,7 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'linked-list',
     label: 'Reverse List Links',
     group: 'Sort',
-    corpusPath: '02_singly_linked_list/sll_reverse_middle_merge.cpp',
+    corpusPath: '02_singly_linked_list/singly_linked_list.cpp',
     timeComplexity: 'O(n)',
     spaceComplexity: 'O(1)',
   },
@@ -156,18 +156,18 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'stack',
     label: 'Push Number on Top',
     group: 'Add',
-    corpusPath: '04_recursion_and_stack/stack_array_and_ll.cpp',
+    corpusPath: '04_recursion_and_stack/stack_array.cpp',
     timeComplexity: 'O(1)',
     spaceComplexity: 'O(1)',
     needsNumber: true,
-    numberLabel: 'Number to push',
+    numberLabel: 'Value',
   },
   {
     id: 'stack-pop',
     scene: 'stack',
     label: 'Pop Top Number',
     group: 'Remove',
-    corpusPath: '04_recursion_and_stack/stack_array_and_ll.cpp',
+    corpusPath: '04_recursion_and_stack/stack_linked_list.cpp',
     timeComplexity: 'O(1)',
     spaceComplexity: 'O(1)',
   },
@@ -176,7 +176,7 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'stack',
     label: 'Peek at Top Number',
     group: 'Find',
-    corpusPath: '04_recursion_and_stack/stack_array_and_ll.cpp',
+    corpusPath: '04_recursion_and_stack/stack_array.cpp',
     timeComplexity: 'O(1)',
     spaceComplexity: 'O(1)',
   },
@@ -185,7 +185,7 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'stack',
     label: 'Check Balanced Brackets',
     group: 'Find',
-    corpusPath: '04_recursion_and_stack/stack_applications_expressions.cpp',
+    corpusPath: '04_recursion_and_stack/viva_stack_applications.cpp',
     timeComplexity: 'O(n)',
     spaceComplexity: 'O(n)',
   },
@@ -194,16 +194,18 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'stack',
     label: 'Recursive Factorial Call Stack',
     group: 'Sort',
-    corpusPath: '04_recursion_and_stack/recursion_and_tower_of_hanoi.cpp',
+    corpusPath: '04_recursion_and_stack/viva_stack_applications.cpp',
     timeComplexity: 'O(n)',
     spaceComplexity: 'O(n)',
+    needsNumber: true,
+    numberLabel: 'N (1-6)',
   },
   {
     id: 'recursion-hanoi',
     scene: 'stack',
     label: 'Tower of Hanoi Recursion',
     group: 'Sort',
-    corpusPath: '04_recursion_and_stack/recursion_and_tower_of_hanoi.cpp',
+    corpusPath: '04_recursion_and_stack/viva_stack_applications.cpp',
     timeComplexity: 'O(2^n)',
     spaceComplexity: 'O(n)',
   },
@@ -216,18 +218,18 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'queue',
     label: 'Enqueue at Back (Rear)',
     group: 'Add',
-    corpusPath: '05_queues_and_deque/linear_queue_array_and_ll.cpp',
+    corpusPath: '05_queues_and_deque/queue_array_and_circular.cpp',
     timeComplexity: 'O(1)',
     spaceComplexity: 'O(1)',
     needsNumber: true,
-    numberLabel: 'Number to enqueue',
+    numberLabel: 'Value',
   },
   {
     id: 'queue-dequeue',
     scene: 'queue',
     label: 'Dequeue from Front',
     group: 'Remove',
-    corpusPath: '05_queues_and_deque/linear_queue_array_and_ll.cpp',
+    corpusPath: '05_queues_and_deque/queue_array_and_circular.cpp',
     timeComplexity: 'O(1)',
     spaceComplexity: 'O(1)',
   },
@@ -236,7 +238,7 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'queue',
     label: 'Circular Queue Wrap-Around',
     group: 'Sort',
-    corpusPath: '05_queues_and_deque/circular_queue.cpp',
+    corpusPath: '05_queues_and_deque/queue_array_and_circular.cpp',
     timeComplexity: 'O(1)',
     spaceComplexity: 'O(1)',
   },
@@ -245,7 +247,7 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'queue',
     label: 'Deque Add & Remove Both Ends',
     group: 'Add',
-    corpusPath: '05_queues_and_deque/double_ended_queue_deque.cpp',
+    corpusPath: '05_queues_and_deque/deque.cpp',
     timeComplexity: 'O(1)',
     spaceComplexity: 'O(1)',
   },
@@ -258,31 +260,33 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'bst',
     label: 'Insert a Number into BST',
     group: 'Add',
-    corpusPath: '11_binary_search_tree/bst_insert_search_delete.cpp',
+    corpusPath: '11_binary_search_tree/binary_search_tree.cpp',
     timeComplexity: 'O(log n)',
     spaceComplexity: 'O(h)',
     needsNumber: true,
-    numberLabel: 'Number to insert',
+    numberLabel: 'Value',
   },
   {
     id: 'bst-search',
     scene: 'bst',
     label: 'Find a Number in BST',
     group: 'Find',
-    corpusPath: '11_binary_search_tree/bst_insert_search_delete.cpp',
+    corpusPath: '11_binary_search_tree/binary_search_tree.cpp',
     timeComplexity: 'O(log n)',
     spaceComplexity: 'O(h)',
     needsNumber: true,
-    numberLabel: 'Number to find',
+    numberLabel: 'Target',
   },
   {
     id: 'bst-delete',
     scene: 'bst',
     label: 'Remove a Node from BST',
     group: 'Remove',
-    corpusPath: '11_binary_search_tree/bst_insert_search_delete.cpp',
+    corpusPath: '11_binary_search_tree/binary_search_tree.cpp',
     timeComplexity: 'O(log n)',
     spaceComplexity: 'O(h)',
+    needsNumber: true,
+    numberLabel: 'Value',
   },
   {
     id: 'tree-inorder',
@@ -338,18 +342,18 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'heap',
     label: 'Insert & Bubble Up (siftUp)',
     group: 'Add',
-    corpusPath: '10_heap_and_priority_queue/max_min_heap.cpp',
+    corpusPath: '10_heap_and_priority_queue/max_heap.cpp',
     timeComplexity: 'O(log n)',
     spaceComplexity: 'O(1)',
     needsNumber: true,
-    numberLabel: 'Number to insert into heap',
+    numberLabel: 'Value',
   },
   {
     id: 'heap-extract',
     scene: 'heap',
     label: 'Extract Max & Bubble Down',
     group: 'Remove',
-    corpusPath: '10_heap_and_priority_queue/max_min_heap.cpp',
+    corpusPath: '10_heap_and_priority_queue/max_heap.cpp',
     timeComplexity: 'O(log n)',
     spaceComplexity: 'O(1)',
   },
@@ -358,7 +362,7 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'heap',
     label: 'Build Max-Heap in O(n)',
     group: 'Sort',
-    corpusPath: '10_heap_and_priority_queue/max_min_heap.cpp',
+    corpusPath: '10_heap_and_priority_queue/max_heap.cpp',
     timeComplexity: 'O(n)',
     spaceComplexity: 'O(1)',
   },
@@ -367,7 +371,7 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'heap',
     label: 'Heap Sort (Extract Max Loop)',
     group: 'Sort',
-    corpusPath: '10_heap_and_priority_queue/heap_sort_and_pq.cpp',
+    corpusPath: '10_heap_and_priority_queue/heap_sort.cpp',
     timeComplexity: 'O(n log n)',
     spaceComplexity: 'O(1)',
   },
@@ -380,7 +384,7 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'graph',
     label: 'Breadth-First Search (BFS)',
     group: 'Find',
-    corpusPath: '13_graph_traversal/bfs_and_dfs.cpp',
+    corpusPath: '13_graph_traversal/bfs_dfs_traversal.cpp',
     timeComplexity: 'O(V + E)',
     spaceComplexity: 'O(V)',
   },
@@ -389,7 +393,7 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'graph',
     label: 'Depth-First Search (DFS)',
     group: 'Find',
-    corpusPath: '13_graph_traversal/bfs_and_dfs.cpp',
+    corpusPath: '13_graph_traversal/bfs_dfs_traversal.cpp',
     timeComplexity: 'O(V + E)',
     spaceComplexity: 'O(V)',
   },
@@ -398,7 +402,7 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'graph',
     label: "Dijkstra's Shortest Path",
     group: 'Find',
-    corpusPath: '14_graph_mst_toposort/topological_sort_and_dijkstra.cpp',
+    corpusPath: '14_graph_mst_toposort/dijkstra.cpp',
     timeComplexity: 'O((V + E) log V)',
     spaceComplexity: 'O(V)',
   },
@@ -407,7 +411,7 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'graph',
     label: "Prim's Minimum Spanning Tree",
     group: 'Sort',
-    corpusPath: '14_graph_mst_toposort/prim_and_kruskal_mst.cpp',
+    corpusPath: '14_graph_mst_toposort/kruskal_mst.cpp',
     timeComplexity: 'O(E log V)',
     spaceComplexity: 'O(V)',
   },
@@ -416,7 +420,7 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'graph',
     label: "Kruskal's Minimum Spanning Tree",
     group: 'Sort',
-    corpusPath: '14_graph_mst_toposort/prim_and_kruskal_mst.cpp',
+    corpusPath: '14_graph_mst_toposort/kruskal_mst.cpp',
     timeComplexity: 'O(E log E)',
     spaceComplexity: 'O(V)',
   },
@@ -425,7 +429,7 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'graph',
     label: 'Topological Sort (Dependency Order)',
     group: 'Sort',
-    corpusPath: '14_graph_mst_toposort/topological_sort_and_dijkstra.cpp',
+    corpusPath: '14_graph_mst_toposort/topological_sort.cpp',
     timeComplexity: 'O(V + E)',
     spaceComplexity: 'O(V)',
   },
@@ -438,44 +442,44 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     scene: 'hash-table',
     label: 'Linear Probing (Step +1 on Collision)',
     group: 'Add',
-    corpusPath: '15_hashing/open_addressing_hash_table.cpp',
+    corpusPath: '15_hashing/linear_probing.cpp',
     timeComplexity: 'O(1) avg',
     spaceComplexity: 'O(m)',
     needsNumber: true,
-    numberLabel: 'Key to hash & insert',
+    numberLabel: 'Key',
   },
   {
     id: 'hash-quadratic',
     scene: 'hash-table',
     label: 'Quadratic Probing (+1², +2², +3²)',
     group: 'Add',
-    corpusPath: '15_hashing/open_addressing_hash_table.cpp',
+    corpusPath: '15_hashing/linear_probing.cpp',
     timeComplexity: 'O(1) avg',
     spaceComplexity: 'O(m)',
     needsNumber: true,
-    numberLabel: 'Key to hash & insert',
+    numberLabel: 'Key',
   },
   {
     id: 'hash-double',
     scene: 'hash-table',
     label: 'Double Hashing (Second Hash Step)',
     group: 'Add',
-    corpusPath: '15_hashing/open_addressing_hash_table.cpp',
+    corpusPath: '15_hashing/linear_probing.cpp',
     timeComplexity: 'O(1) avg',
     spaceComplexity: 'O(m)',
     needsNumber: true,
-    numberLabel: 'Key to hash & insert',
+    numberLabel: 'Key',
   },
   {
     id: 'hash-chaining',
     scene: 'hash-table',
     label: 'Separate Chaining (Bucket Chains)',
     group: 'Add',
-    corpusPath: '15_hashing/separate_chaining_and_rehashing.cpp',
+    corpusPath: '15_hashing/separate_chaining.cpp',
     timeComplexity: 'O(1 + α)',
     spaceComplexity: 'O(n + m)',
     needsNumber: true,
-    numberLabel: 'Key to chain into bucket',
+    numberLabel: 'Key',
   },
 ];
 
@@ -543,6 +547,160 @@ function emitBaseGraph(events: TraceEvent[]) {
   );
 }
 
+const STRUCTURE_LABELS: Record<Exclude<PreviewSceneKind, 'array'>, { title: string; defaultCorpus: string }> = {
+  'linked-list': {
+    title: 'Linked List (Select an Operation)',
+    defaultCorpus: '02_singly_linked_list/singly_linked_list.cpp',
+  },
+  stack: {
+    title: 'Stack (Select an Operation)',
+    defaultCorpus: '04_recursion_and_stack/stack_array.cpp',
+  },
+  queue: {
+    title: 'Queue (Select an Operation)',
+    defaultCorpus: '05_queues_and_deque/queue_array_and_circular.cpp',
+  },
+  bst: {
+    title: 'Binary Search Tree (Select an Operation)',
+    defaultCorpus: '11_binary_search_tree/binary_search_tree.cpp',
+  },
+  heap: {
+    title: 'Binary Max-Heap (Select an Operation)',
+    defaultCorpus: '10_heap_and_priority_queue/max_heap.cpp',
+  },
+  graph: {
+    title: 'Graph (Select an Operation)',
+    defaultCorpus: '13_graph_traversal/bfs_dfs_traversal.cpp',
+  },
+  'hash-table': {
+    title: 'Hash Table (Select an Operation)',
+    defaultCorpus: '15_hashing/linear_probing.cpp',
+  },
+};
+
+export function buildStaticStructureTrace(
+  scene: Exclude<PreviewSceneKind, 'array'>,
+  customValues?: number[],
+): {
+  events: TraceEvent[];
+  meta: AlgorithmMetadata;
+  scene: Exclude<PreviewSceneKind, 'array'>;
+} {
+  const info = STRUCTURE_LABELS[scene];
+  const codeLines = getCorpusCodeLines(info.defaultCorpus, [
+    '// Loaded from cpp_corpus/' + info.defaultCorpus,
+  ]);
+  const meta: AlgorithmMetadata = {
+    id: 'bubble-sort',
+    title: info.title,
+    category: 'operation',
+    timeComplexity: 'O(1)',
+    spaceComplexity: 'O(n)',
+    code: codeLines,
+  };
+  const events: TraceEvent[] = [];
+
+  switch (scene) {
+    case 'linked-list': {
+      const vals = emitBaseLinkedList(events, customValues);
+      events.push(
+        { t: 'note', text: `Loaded Linked List: ${vals.join(' → ')}.` },
+        { t: 'note', text: 'Select an operation, configure Value if needed, then click Run.' },
+        { t: 'done' },
+      );
+      break;
+    }
+    case 'stack': {
+      const stkVals =
+        customValues && customValues.length >= 3
+          ? customValues.slice(0, 3)
+          : [15, 30, 45];
+      events.push(
+        { t: 'create', id: 'stk-0', kind: 'node', value: stkVals[0] },
+        { t: 'create', id: 'stk-1', kind: 'node', value: stkVals[1] },
+        { t: 'create', id: 'stk-2', kind: 'node', value: stkVals[2] },
+        { t: 'link', from: 'stk-1', to: 'stk-0', label: 'below' },
+        { t: 'link', from: 'stk-2', to: 'stk-1', label: 'below' },
+        { t: 'note', text: `Loaded Stack: [${stkVals.join(', ')}] (top is ${stkVals[2]}).` },
+        { t: 'note', text: 'Select an operation, set Value if needed, then click Run.' },
+        { t: 'done' },
+      );
+      break;
+    }
+    case 'queue': {
+      const qVals =
+        customValues && customValues.length >= 3
+          ? customValues.slice(0, 3)
+          : [10, 20, 30];
+      events.push(
+        { t: 'create', id: 'q-0', kind: 'node', value: qVals[0] },
+        { t: 'create', id: 'q-1', kind: 'node', value: qVals[1] },
+        { t: 'create', id: 'q-2', kind: 'node', value: qVals[2] },
+        { t: 'link', from: 'q-0', to: 'q-1', label: 'next' },
+        { t: 'link', from: 'q-1', to: 'q-2', label: 'next' },
+        { t: 'note', text: `Loaded Queue: ${qVals.join(' → ')} (front is ${qVals[0]}).` },
+        { t: 'note', text: 'Select an operation, set Value if needed, then click Run.' },
+        { t: 'done' },
+      );
+      break;
+    }
+    case 'bst': {
+      const sorted = emitBaseBst(events, customValues);
+      events.push(
+        { t: 'note', text: `Loaded Binary Search Tree with root ${sorted[3]} (${sorted.join(', ')}).` },
+        { t: 'note', text: 'Select an operation, set Value/Target if needed, then click Run.' },
+        { t: 'done' },
+      );
+      break;
+    }
+    case 'heap': {
+      const heapVals =
+        customValues && customValues.length >= 5
+          ? [...customValues].slice(0, 5).sort((a, b) => b - a)
+          : [90, 70, 80, 40, 50];
+      events.push(
+        { t: 'create', id: 'bst-50', kind: 'node', value: heapVals[0] },
+        { t: 'create', id: 'bst-30', kind: 'node', value: heapVals[1] },
+        { t: 'create', id: 'bst-70', kind: 'node', value: heapVals[2] },
+        { t: 'create', id: 'bst-20', kind: 'node', value: heapVals[3] },
+        { t: 'create', id: 'bst-40', kind: 'node', value: heapVals[4] },
+        { t: 'link', from: 'bst-50', to: 'bst-30', label: 'left' },
+        { t: 'link', from: 'bst-50', to: 'bst-70', label: 'right' },
+        { t: 'link', from: 'bst-30', to: 'bst-20', label: 'left' },
+        { t: 'link', from: 'bst-30', to: 'bst-40', label: 'right' },
+        { t: 'note', text: `Loaded Max-Heap with root max ${heapVals[0]}.` },
+        { t: 'note', text: 'Select an operation, set Value if needed, then click Run.' },
+        { t: 'done' },
+      );
+      break;
+    }
+    case 'graph': {
+      emitBaseGraph(events);
+      events.push(
+        { t: 'note', text: 'Loaded weighted directed Graph with 6 vertices (0..5).' },
+        { t: 'note', text: 'Select a traversal or MST algorithm above and click Run.' },
+        { t: 'done' },
+      );
+      break;
+    }
+    case 'hash-table': {
+      const buckets = [null, 15, 22, null, 18, null, null];
+      events.push({ t: 'create', id: 'arr', kind: 'array', value: 7 });
+      buckets.forEach((v, idx) => {
+        events.push({ t: 'set', target: { id: 'arr', index: idx }, value: v ?? 0 });
+      });
+      events.push(
+        { t: 'note', text: 'Loaded 7-bucket Hash Table (occupied indices: 1→15, 2→22, 4→18).' },
+        { t: 'note', text: 'Select a probing/chaining method, set Key, then click Run.' },
+        { t: 'done' },
+      );
+      break;
+    }
+  }
+
+  return { events, meta, scene };
+}
+
 export function runStructureOperation(
   opId: StructureOperationId,
   paramValue = 35,
@@ -577,7 +735,7 @@ export function runStructureOperation(
     // ==========================================
     case 'sll-insert-head': {
       const vals = emitBaseLinkedList(events, customValues);
-      const val = paramValue || 5;
+      const val = Number.isFinite(paramValue) ? paramValue : 5;
       updatedValues = [val, ...vals.slice(0, 3)];
       events.push(
         {
@@ -609,7 +767,7 @@ export function runStructureOperation(
 
     case 'sll-insert-tail': {
       const vals = emitBaseLinkedList(events, customValues);
-      const val = paramValue || 70;
+      const val = Number.isFinite(paramValue) ? paramValue : 70;
       updatedValues = [...vals.slice(1), val];
       events.push(
         {
@@ -643,57 +801,128 @@ export function runStructureOperation(
 
     case 'sll-delete-val': {
       const vals = emitBaseLinkedList(events, customValues);
-      events.push(
-        {
-          t: 'note',
-          text: `Walking along the Linked List (${vals.join(' → ')}) to remove node ${vals[2]}.`,
-        },
-        { t: 'line', line: 51 },
-        { t: 'visit', id: 'node-head' },
-        { t: 'note', text: `At head (${vals[0]}). Next node is ${vals[1]}, not ${vals[2]} — step forward.` },
-        { t: 'visit', id: 'node-2' },
-        {
-          t: 'note',
-          text: `At node ${vals[1]}. Its next node is ${vals[2]} — found the node to remove!`,
-        },
-        { t: 'line', line: 55 },
-        { t: 'unlink', from: 'node-2', to: 'node-3' },
-        { t: 'link', from: 'node-2', to: 'node-tail', label: 'next' },
-        {
-          t: 'note',
-          text: `Bypassed ${vals[2]} by linking ${vals[1]} directly to ${vals[3]}.`,
-        },
-        { t: 'line', line: 56 },
-        { t: 'remove', id: 'node-3' },
-        {
-          t: 'note',
-          text: `Deleted node ${vals[2]} from memory. List is now ${vals[0]} → ${vals[1]} → ${vals[3]}.`,
-        },
-        { t: 'done' },
-      );
+      const nodeIds = ['node-head', 'node-2', 'node-3', 'node-tail'];
+      const target = Number.isFinite(paramValue) ? paramValue : vals[2];
+      const matchIdx = vals.findIndex((v) => v === target);
+
+      events.push({
+        t: 'note',
+        text: `Walking along the Linked List (${vals.join(' → ')}) to remove value ${target}.`,
+      });
+      events.push({ t: 'line', line: 51 });
+
+      if (matchIdx === 0) {
+        events.push(
+          { t: 'visit', id: nodeIds[0] },
+          { t: 'note', text: `Head node holds ${target}! Updating head to point to ${vals[1]}.` },
+          { t: 'line', line: 55 },
+          { t: 'unlink', from: nodeIds[0], to: nodeIds[1] },
+          { t: 'remove', id: nodeIds[0] },
+          { t: 'visit', id: nodeIds[1] },
+          {
+            t: 'note',
+            text: `Deleted head node ${target}. List is now ${vals.slice(1).join(' → ')}.`,
+          },
+          { t: 'done' },
+        );
+        updatedValues = vals.slice(1);
+      } else if (matchIdx > 0) {
+        for (let i = 0; i < matchIdx; i++) {
+          events.push({ t: 'visit', id: nodeIds[i] });
+          if (i < matchIdx - 1) {
+            events.push({
+              t: 'note',
+              text: `At node ${vals[i]}. Next node is ${vals[i + 1]} (not ${target}) — step forward.`,
+            });
+          } else {
+            events.push({
+              t: 'note',
+              text: `At node ${vals[i]}. Its next node is ${target} — found the node to remove!`,
+            });
+          }
+        }
+        const prevId = nodeIds[matchIdx - 1];
+        const delId = nodeIds[matchIdx];
+        const nextId = nodeIds[matchIdx + 1];
+        events.push({ t: 'line', line: 55 });
+        events.push({ t: 'unlink', from: prevId, to: delId });
+        if (nextId) {
+          events.push({ t: 'unlink', from: delId, to: nextId });
+          events.push({ t: 'link', from: prevId, to: nextId, label: 'next' });
+          events.push({
+            t: 'note',
+            text: `Bypassed ${target} by linking ${vals[matchIdx - 1]} directly to ${vals[matchIdx + 1]}.`,
+          });
+        } else {
+          events.push({
+            t: 'note',
+            text: `Unlinked tail node ${target} from ${vals[matchIdx - 1]}.`,
+          });
+        }
+        events.push({ t: 'line', line: 56 });
+        events.push({ t: 'remove', id: delId });
+        const remaining = vals.filter((_, idx) => idx !== matchIdx);
+        updatedValues = remaining;
+        events.push(
+          {
+            t: 'note',
+            text: `Deleted node ${target} from memory. List is now ${remaining.join(' → ')}.`,
+          },
+          { t: 'done' },
+        );
+      } else {
+        for (let i = 0; i < vals.length; i++) {
+          events.push(
+            { t: 'visit', id: nodeIds[i] },
+            { t: 'note', text: `Checked node #${i + 1} (${vals[i]}) — not ${target}.` },
+          );
+        }
+        events.push(
+          {
+            t: 'note',
+            text: `Reached NULL — value ${target} was not found in the Linked List. Nothing removed.`,
+          },
+          { t: 'done' },
+        );
+      }
       break;
     }
 
     case 'sll-search': {
       const vals = emitBaseLinkedList(events, customValues);
-      events.push(
-        {
+      const nodeIds = ['node-head', 'node-2', 'node-3', 'node-tail'];
+      const target = Number.isFinite(paramValue) ? paramValue : vals[2];
+      events.push({
+        t: 'note',
+        text: `Searching the Linked List (${vals.join(' → ')}) from head to tail for ${target}.`,
+      });
+      events.push({ t: 'line', line: 62 });
+
+      let found = false;
+      for (let i = 0; i < vals.length; i++) {
+        events.push({ t: 'visit', id: nodeIds[i] });
+        if (vals[i] === target) {
+          events.push({ t: 'line', line: 64 });
+          events.push({
+            t: 'note',
+            text: `Found ${target} at node #${i + 1}!`,
+          });
+          found = true;
+          break;
+        }
+        events.push({
           t: 'note',
-          text: `Searching the Linked List (${vals.join(' → ')}) from head to tail for ${vals[2]}.`,
-        },
-        { t: 'line', line: 62 },
-        { t: 'visit', id: 'node-head' },
-        { t: 'note', text: `Checking position 1: value is ${vals[0]} (not ${vals[2]}). Follow next arrow.` },
-        { t: 'visit', id: 'node-2' },
-        { t: 'note', text: `Checking position 2: value is ${vals[1]} (not ${vals[2]}). Follow next arrow.` },
-        { t: 'visit', id: 'node-3' },
-        { t: 'line', line: 64 },
-        {
+          text: `Checking node #${i + 1}: value is ${vals[i]} (not ${target}). Follow next arrow.`,
+        });
+      }
+
+      if (!found) {
+        events.push({
           t: 'note',
-          text: `Found ${vals[2]} at node #3!`,
-        },
-        { t: 'done' },
-      );
+          text: `Reached NULL — ${target} is not in this Linked List.`,
+        });
+      }
+      events.push({ t: 'done' });
       break;
     }
 
@@ -825,7 +1054,7 @@ export function runStructureOperation(
         customValues && customValues.length >= 3
           ? customValues.slice(0, 3)
           : [15, 30, 45];
-      const val = paramValue || 50;
+      const val = Number.isFinite(paramValue) ? paramValue : 50;
       updatedValues = [...stkVals, val];
       events.push(
         { t: 'create', id: 'stk-0', kind: 'node', value: stkVals[0] },
@@ -943,46 +1172,61 @@ export function runStructureOperation(
     }
 
     case 'recursion-factorial': {
+      const n = Math.max(1, Math.min(6, Math.floor(Number.isFinite(paramValue) ? paramValue : 4)));
+      const factors = Array.from({ length: n }, (_, i) => i + 1);
+      events.push({
+        t: 'note',
+        text: `Calculating ${n}! (${factors.slice().reverse().join(' × ')}) by pushing each recursive call onto the Call Stack.`,
+      });
+      for (let k = n, depth = 1; k >= 1; k--, depth++) {
+        const frameId = `stk-${n - k}`;
+        const prevId = n - k > 0 ? `stk-${n - k - 1}` : null;
+        events.push(
+          { t: 'call', fn: 'factorial', args: [k], depth },
+          { t: 'create', id: frameId, kind: 'node', value: k === 1 ? '1=1' : `${k}!` },
+        );
+        if (prevId) {
+          events.push({ t: 'link', from: frameId, to: prevId, label: 'calls' });
+        }
+        if (k > 1) {
+          events.push({
+            t: 'note',
+            text: `factorial(${k}) needs factorial(${k - 1}), so push frame ${k}! and call factorial(${k - 1}).`,
+          });
+        } else {
+          events.push(
+            { t: 'visit', id: frameId },
+            { t: 'note', text: 'Base case reached! factorial(1) returns 1. Now we unwind the stack.' },
+          );
+        }
+      }
+      let acc = 1;
+      for (let k = 1; k <= n; k++) {
+        const frameId = `stk-${n - k}`;
+        const prevId = n - k > 0 ? `stk-${n - k - 1}` : null;
+        if (k === 1) {
+          events.push({ t: 'return', fn: 'factorial', value: 1 });
+          if (prevId) {
+            events.push({ t: 'unlink', from: frameId, to: prevId });
+            events.push({ t: 'remove', id: frameId });
+          }
+        } else {
+          const prevAcc = acc;
+          acc *= k;
+          events.push(
+            { t: 'set', target: { id: frameId }, value: acc },
+            { t: 'visit', id: frameId },
+            { t: 'note', text: `factorial(${k}) computes ${k} × ${prevAcc} = ${acc} and returns ${acc}.` },
+            { t: 'return', fn: 'factorial', value: acc },
+          );
+          if (prevId) {
+            events.push({ t: 'unlink', from: frameId, to: prevId });
+            events.push({ t: 'remove', id: frameId });
+          }
+        }
+      }
       events.push(
-        {
-          t: 'note',
-          text: 'Calculating 4! (4 × 3 × 2 × 1) by pushing each recursive call onto the Call Stack.',
-        },
-        { t: 'call', fn: 'factorial', args: [4], depth: 1 },
-        { t: 'create', id: 'stk-0', kind: 'node', value: '4!' },
-        { t: 'note', text: 'factorial(4) needs factorial(3), so push frame 4! and call factorial(3).' },
-        { t: 'call', fn: 'factorial', args: [3], depth: 2 },
-        { t: 'create', id: 'stk-1', kind: 'node', value: '3!' },
-        { t: 'link', from: 'stk-1', to: 'stk-0', label: 'calls' },
-        { t: 'note', text: 'factorial(3) needs factorial(2), so push frame 3! and call factorial(2).' },
-        { t: 'call', fn: 'factorial', args: [2], depth: 3 },
-        { t: 'create', id: 'stk-2', kind: 'node', value: '2!' },
-        { t: 'link', from: 'stk-2', to: 'stk-1', label: 'calls' },
-        { t: 'note', text: 'factorial(2) needs factorial(1), so push frame 2! and call factorial(1).' },
-        { t: 'call', fn: 'factorial', args: [1], depth: 4 },
-        { t: 'create', id: 'stk-3', kind: 'node', value: '1=1' },
-        { t: 'link', from: 'stk-3', to: 'stk-2', label: 'calls' },
-        { t: 'visit', id: 'stk-3' },
-        { t: 'note', text: 'Base case reached! factorial(1) returns 1. Now we unwind the stack.' },
-        { t: 'return', fn: 'factorial', value: 1 },
-        { t: 'unlink', from: 'stk-3', to: 'stk-2' },
-        { t: 'remove', id: 'stk-3' },
-        { t: 'set', target: { id: 'stk-2' }, value: 2 },
-        { t: 'visit', id: 'stk-2' },
-        { t: 'note', text: 'factorial(2) computes 2 × 1 = 2 and returns 2.' },
-        { t: 'return', fn: 'factorial', value: 2 },
-        { t: 'unlink', from: 'stk-2', to: 'stk-1' },
-        { t: 'remove', id: 'stk-2' },
-        { t: 'set', target: { id: 'stk-1' }, value: 6 },
-        { t: 'visit', id: 'stk-1' },
-        { t: 'note', text: 'factorial(3) computes 3 × 2 = 6 and returns 6.' },
-        { t: 'return', fn: 'factorial', value: 6 },
-        { t: 'unlink', from: 'stk-1', to: 'stk-0' },
-        { t: 'remove', id: 'stk-1' },
-        { t: 'set', target: { id: 'stk-0' }, value: 24 },
-        { t: 'visit', id: 'stk-0' },
-        { t: 'return', fn: 'factorial', value: 24 },
-        { t: 'note', text: 'factorial(4) computes 4 × 6 = 24. Final answer: 24!' },
+        { t: 'note', text: `Recursion complete! Final answer: ${n}! = ${acc}.` },
         { t: 'done' },
       );
       break;
@@ -1054,7 +1298,7 @@ export function runStructureOperation(
         customValues && customValues.length >= 3
           ? customValues.slice(0, 3)
           : [10, 20, 30];
-      const val = paramValue || 50;
+      const val = Number.isFinite(paramValue) ? paramValue : 50;
       updatedValues = [...qVals, val];
       events.push(
         { t: 'create', id: 'q-0', kind: 'node', value: qVals[0] },
@@ -1172,92 +1416,211 @@ export function runStructureOperation(
     // ==========================================
     case 'bst-insert': {
       const sorted = emitBaseBst(events, customValues);
-      const val = paramValue || 45;
+      const val = Number.isFinite(paramValue) ? paramValue : 45;
       updatedValues = [...sorted.slice(0, 6), val];
+
+      const treeNodes: Record<string, { val: number; left?: string; right?: string }> = {
+        'bst-50': { val: sorted[3], left: 'bst-30', right: 'bst-70' },
+        'bst-30': { val: sorted[1], left: 'bst-20', right: 'bst-40' },
+        'bst-70': { val: sorted[5], left: 'bst-60', right: 'bst-85' },
+        'bst-20': { val: sorted[0] },
+        'bst-40': { val: sorted[2] },
+        'bst-60': { val: sorted[4] },
+        'bst-85': { val: sorted[6] },
+      };
+
       events.push(
         {
           t: 'note',
           text: `Inserting ${val} into the Binary Search Tree. Smaller numbers go left; bigger go right.`,
         },
         { t: 'line', line: 17 },
-        { t: 'visit', id: 'bst-50' },
-        {
-          t: 'note',
-          text: `Comparing ${val} with root ${sorted[3]}: ${val} is smaller, so go LEFT to ${sorted[1]}.`,
-        },
-        { t: 'visit', id: 'bst-30' },
-        {
-          t: 'note',
-          text: `Comparing ${val} with ${sorted[1]}: ${val} is bigger, so go RIGHT to ${sorted[2]}.`,
-        },
-        { t: 'visit', id: 'bst-40' },
-        {
-          t: 'note',
-          text: `Comparing ${val} with ${sorted[2]}: ${sorted[2]}'s child slot is open!`,
-        },
-        { t: 'create', id: 'bst-new', kind: 'node', value: val },
-        { t: 'link', from: 'bst-40', to: 'bst-new', label: 'right' },
-        { t: 'visit', id: 'bst-new' },
-        {
-          t: 'note',
-          text: `Placed ${val} as the right child of ${sorted[2]}!`,
-        },
-        { t: 'done' },
       );
+
+      let curId = 'bst-50';
+      while (curId) {
+        const node = treeNodes[curId];
+        events.push({ t: 'visit', id: curId });
+        const goLeft = val < node.val;
+        const nextId = goLeft ? node.left : node.right;
+        if (nextId) {
+          events.push({
+            t: 'note',
+            text: `Comparing ${val} with ${node.val}: ${val} is ${goLeft ? 'smaller' : 'greater or equal'}, so go ${goLeft ? 'LEFT' : 'RIGHT'} to ${treeNodes[nextId].val}.`,
+          });
+          curId = nextId;
+        } else {
+          events.push(
+            {
+              t: 'note',
+              text: `Comparing ${val} with ${node.val}: ${goLeft ? 'left' : 'right'} child slot is open!`,
+            },
+            { t: 'create', id: 'bst-new', kind: 'node', value: val },
+            { t: 'link', from: curId, to: 'bst-new', label: goLeft ? 'left' : 'right' },
+            { t: 'visit', id: 'bst-new' },
+            {
+              t: 'note',
+              text: `Placed ${val} as the ${goLeft ? 'left' : 'right'} child of ${node.val}!`,
+            },
+            { t: 'done' },
+          );
+          break;
+        }
+      }
       break;
     }
 
     case 'bst-search': {
       const sorted = emitBaseBst(events, customValues);
+      const target = Number.isFinite(paramValue) ? paramValue : sorted[4];
+      const treeNodes: Record<string, { val: number; left?: string; right?: string }> = {
+        'bst-50': { val: sorted[3], left: 'bst-30', right: 'bst-70' },
+        'bst-30': { val: sorted[1], left: 'bst-20', right: 'bst-40' },
+        'bst-70': { val: sorted[5], left: 'bst-60', right: 'bst-85' },
+        'bst-20': { val: sorted[0] },
+        'bst-40': { val: sorted[2] },
+        'bst-60': { val: sorted[4] },
+        'bst-85': { val: sorted[6] },
+      };
+
       events.push(
         {
           t: 'note',
-          text: `Searching for ${sorted[4]} in the Binary Search Tree starting at root ${sorted[3]}.`,
+          text: `Searching for ${target} in the Binary Search Tree starting at root ${sorted[3]}.`,
         },
         { t: 'line', line: 26 },
-        { t: 'visit', id: 'bst-50' },
-        {
-          t: 'note',
-          text: `${sorted[4]} is bigger than root ${sorted[3]}, so we ignore the entire left half and go RIGHT to ${sorted[5]}.`,
-        },
-        { t: 'visit', id: 'bst-70' },
-        {
-          t: 'note',
-          text: `${sorted[4]} is smaller than ${sorted[5]}, so we go LEFT.`,
-        },
-        { t: 'visit', id: 'bst-60' },
-        {
-          t: 'note',
-          text: `Found ${sorted[4]}! Binary Search Tree found it in just 3 steps instead of checking all 7 nodes.`,
-        },
-        { t: 'done' },
       );
+
+      let curId: string | undefined = 'bst-50';
+      let steps = 0;
+      let found = false;
+      while (curId) {
+        const node: { val: number; left?: string; right?: string } = treeNodes[curId];
+        steps++;
+        events.push({ t: 'visit', id: curId });
+        if (node.val === target) {
+          events.push({
+            t: 'note',
+            text: `Found ${target}! Binary Search Tree found it in just ${steps} step${steps === 1 ? '' : 's'}.`,
+          });
+          found = true;
+          break;
+        }
+        const goLeft = target < node.val;
+        const nextId: string | undefined = goLeft ? node.left : node.right;
+        if (nextId) {
+          events.push({
+            t: 'note',
+            text: `${target} is ${goLeft ? 'smaller' : 'bigger'} than ${node.val}, so we go ${goLeft ? 'LEFT' : 'RIGHT'} to ${treeNodes[nextId].val}.`,
+          });
+        } else {
+          events.push({
+            t: 'note',
+            text: `${target} is ${goLeft ? 'smaller' : 'bigger'} than ${node.val}, but ${goLeft ? 'left' : 'right'} child is NULL.`,
+          });
+        }
+        curId = nextId;
+      }
+      if (!found) {
+        events.push({
+          t: 'note',
+          text: `Search finished: ${target} is not in this BST.`,
+        });
+      }
+      events.push({ t: 'done' });
       break;
     }
 
     case 'bst-delete': {
       const sorted = emitBaseBst(events, customValues);
-      events.push(
-        {
+      const target = Number.isFinite(paramValue) ? paramValue : sorted[1];
+      const treeNodes: Record<
+        string,
+        { val: number; left?: string; right?: string; parent?: string; side?: 'left' | 'right' }
+      > = {
+        'bst-50': { val: sorted[3], left: 'bst-30', right: 'bst-70' },
+        'bst-30': { val: sorted[1], left: 'bst-20', right: 'bst-40', parent: 'bst-50', side: 'left' },
+        'bst-70': { val: sorted[5], left: 'bst-60', right: 'bst-85', parent: 'bst-50', side: 'right' },
+        'bst-20': { val: sorted[0], parent: 'bst-30', side: 'left' },
+        'bst-40': { val: sorted[2], parent: 'bst-30', side: 'right' },
+        'bst-60': { val: sorted[4], parent: 'bst-70', side: 'left' },
+        'bst-85': { val: sorted[6], parent: 'bst-70', side: 'right' },
+      };
+
+      events.push({
+        t: 'note',
+        text: `Searching BST to remove node ${target}.`,
+      });
+
+      let curId: string | undefined = 'bst-50';
+      let targetId: string | null = null;
+      while (curId) {
+        const node: { val: number; left?: string; right?: string } = treeNodes[curId];
+        events.push({ t: 'visit', id: curId });
+        if (node.val === target) {
+          targetId = curId;
+          break;
+        }
+        const goLeft = target < node.val;
+        const nextId: string | undefined = goLeft ? node.left : node.right;
+        if (nextId) {
+          events.push({
+            t: 'note',
+            text: `${target} is ${goLeft ? 'smaller' : 'bigger'} than ${node.val} → go ${goLeft ? 'LEFT' : 'RIGHT'}.`,
+          });
+        }
+        curId = nextId;
+      }
+
+      if (!targetId) {
+        events.push(
+          { t: 'note', text: `Value ${target} was not found in the BST — nothing removed.` },
+          { t: 'done' },
+        );
+        break;
+      }
+
+      const targetNode = treeNodes[targetId];
+      if (!targetNode.left && !targetNode.right) {
+        events.push({
           t: 'note',
-          text: `Deleting node ${sorted[1]} (which has two children: ${sorted[0]} and ${sorted[2]}) from the BST.`,
-        },
-        { t: 'visit', id: 'bst-50' },
-        { t: 'visit', id: 'bst-30' },
-        {
-          t: 'note',
-          text: `Found node ${sorted[1]}. Since it has two children, we replace it with its in-order successor (${sorted[2]}).`,
-        },
-        { t: 'compare', a: { id: 'bst-30' }, b: { id: 'bst-40' } },
-        { t: 'set', target: { id: 'bst-30' }, value: sorted[2] },
-        { t: 'unlink', from: 'bst-30', to: 'bst-40' },
-        { t: 'remove', id: 'bst-40' },
-        {
-          t: 'note',
-          text: `Copied ${sorted[2]} into the node and removed the old leaf. The BST remains valid!`,
-        },
-        { t: 'done' },
-      );
+          text: `Found leaf node ${target}. Removing it directly from parent ${targetNode.parent ? treeNodes[targetNode.parent].val : 'root'}.`,
+        });
+        if (targetNode.parent) {
+          events.push({ t: 'unlink', from: targetNode.parent, to: targetId });
+        }
+        events.push(
+          { t: 'remove', id: targetId },
+          { t: 'note', text: `Deleted leaf node ${target}. The BST remains valid!` },
+          { t: 'done' },
+        );
+      } else {
+        // Internal node with 2 children: replace with leftmost node in right subtree (in-order successor)
+        let succId = targetNode.right!;
+        while (treeNodes[succId].left) {
+          succId = treeNodes[succId].left!;
+        }
+        const succNode = treeNodes[succId];
+        events.push(
+          {
+            t: 'note',
+            text: `Found node ${target} with two children. Replacing with its in-order successor (${succNode.val}).`,
+          },
+          { t: 'compare', a: { id: targetId }, b: { id: succId } },
+          { t: 'set', target: { id: targetId }, value: succNode.val },
+          { t: 'unlink', from: succNode.parent!, to: succId },
+          { t: 'remove', id: succId },
+          {
+            t: 'note',
+            text: `Copied ${succNode.val} into the node and removed old leaf. The BST remains valid!`,
+          },
+          { t: 'done' },
+        );
+      }
+      const removeIdx = sorted.indexOf(target);
+      if (removeIdx >= 0) {
+        updatedValues = sorted.filter((_, idx) => idx !== removeIdx);
+      }
       break;
     }
 
@@ -1421,13 +1784,19 @@ export function runStructureOperation(
     // BINARY HEAP & PRIORITY QUEUE (Week 10)
     // ==========================================
     case 'heap-insert': {
-      const val = paramValue || 95;
+      const val = Number.isFinite(paramValue) ? paramValue : 95;
+      const heapVals =
+        customValues && customValues.length >= 5
+          ? [...customValues].slice(0, 5).sort((a, b) => b - a)
+          : [90, 70, 80, 40, 50];
+      const [h0, h1, h2, h3, h4] = heapVals;
+      updatedValues = [...heapVals, val];
       events.push(
-        { t: 'create', id: 'bst-50', kind: 'node', value: 90 },
-        { t: 'create', id: 'bst-30', kind: 'node', value: 70 },
-        { t: 'create', id: 'bst-70', kind: 'node', value: 80 },
-        { t: 'create', id: 'bst-20', kind: 'node', value: 40 },
-        { t: 'create', id: 'bst-40', kind: 'node', value: 50 },
+        { t: 'create', id: 'bst-50', kind: 'node', value: h0 },
+        { t: 'create', id: 'bst-30', kind: 'node', value: h1 },
+        { t: 'create', id: 'bst-70', kind: 'node', value: h2 },
+        { t: 'create', id: 'bst-20', kind: 'node', value: h3 },
+        { t: 'create', id: 'bst-40', kind: 'node', value: h4 },
         { t: 'link', from: 'bst-50', to: 'bst-30', label: 'left' },
         { t: 'link', from: 'bst-50', to: 'bst-70', label: 'right' },
         { t: 'link', from: 'bst-30', to: 'bst-20', label: 'left' },
@@ -1440,31 +1809,55 @@ export function runStructureOperation(
         { t: 'link', from: 'bst-70', to: 'bst-60', label: 'left' },
         {
           t: 'note',
-          text: `Placed ${val} under 80. Now we Bubble Up (siftUp) while ${val} is bigger than its parent!`,
+          text: `Placed ${val} under ${h2}. Now we Bubble Up (siftUp) while ${val} is bigger than its parent!`,
         },
         { t: 'compare', a: { id: 'bst-60' }, b: { id: 'bst-70' } },
         {
           t: 'note',
-          text: `Comparing ${val} with its parent 80.`,
+          text: `Comparing ${val} with its parent ${h2}.`,
         },
-        { t: 'swap', a: { id: 'bst-60' }, b: { id: 'bst-70' } },
-        {
-          t: 'note',
-          text: `${val} is bigger than 80, so they swap places!`,
-        },
-        { t: 'compare', a: { id: 'bst-70' }, b: { id: 'bst-50' } },
-        {
-          t: 'note',
-          text: `Comparing ${val} with the root 90.`,
-        },
-        { t: 'visit', id: 'bst-50' },
-        { t: 'swap', a: { id: 'bst-70' }, b: { id: 'bst-50' } },
-        {
-          t: 'note',
-          text: `${val} is bigger than 90, so they swap! ${val} is now the new maximum at the root of the Heap.`,
-        },
-        { t: 'done' },
       );
+      if (val > h2) {
+        events.push(
+          { t: 'swap', a: { id: 'bst-60' }, b: { id: 'bst-70' } },
+          {
+            t: 'note',
+            text: `${val} is bigger than ${h2}, so they swap places!`,
+          },
+          { t: 'compare', a: { id: 'bst-70' }, b: { id: 'bst-50' } },
+          {
+            t: 'note',
+            text: `Comparing ${val} with the root ${h0}.`,
+          },
+        );
+        if (val > h0) {
+          events.push(
+            { t: 'visit', id: 'bst-50' },
+            { t: 'swap', a: { id: 'bst-70' }, b: { id: 'bst-50' } },
+            {
+              t: 'note',
+              text: `${val} is bigger than ${h0}, so they swap! ${val} is now the new maximum at the root of the Heap.`,
+            },
+          );
+        } else {
+          events.push(
+            { t: 'visit', id: 'bst-70' },
+            {
+              t: 'note',
+              text: `${val} ≤ root ${h0}, so Bubble Up stops here. Max-Heap property restored!`,
+            },
+          );
+        }
+      } else {
+        events.push(
+          { t: 'visit', id: 'bst-60' },
+          {
+            t: 'note',
+            text: `${val} ≤ parent ${h2}, so no swap is needed — Max-Heap property already holds!`,
+          },
+        );
+      }
+      events.push({ t: 'done' });
       break;
     }
 
@@ -1633,40 +2026,61 @@ export function runStructureOperation(
     case 'hash-linear':
     case 'hash-quadratic':
     case 'hash-double': {
-      const buckets = [null, 15, 22, null, 18, null, null];
+      const buckets: (number | null)[] = [null, 15, 22, null, 18, null, null];
       events.push({ t: 'create', id: 'arr', kind: 'array', value: 7 });
       buckets.forEach((v, idx) => {
         events.push({ t: 'set', target: { id: 'arr', index: idx }, value: v ?? 0 });
       });
-      const key = paramValue || 29;
-      events.push(
-        {
-          t: 'note',
-          text: `Hash Table with 7 buckets. Inserting key ${key}: hash(${key}) = ${key} % 7 = 1.`,
-        },
-        { t: 'compare', a: { id: 'arr', index: 1 }, b: { id: 'arr', index: 1 } },
-        {
-          t: 'note',
-          text: 'Collision at Bucket #2 (index 1) — it already holds 15! Stepping forward to find an empty bucket.',
-        },
-        { t: 'compare', a: { id: 'arr', index: 2 }, b: { id: 'arr', index: 2 } },
-        {
-          t: 'note',
-          text: 'Bucket #3 (index 2) is also occupied (holds 22). Probing to next bucket...',
-        },
-        { t: 'set', target: { id: 'arr', index: 3 }, value: key },
-        { t: 'visit', id: 'arr[3]' },
-        {
-          t: 'note',
-          text: `Bucket #4 (index 3) is empty! Stored ${key} in Bucket #4.`,
-        },
-        { t: 'done' },
-      );
+      const key = Number.isFinite(paramValue) ? paramValue : 29;
+      const h1 = ((key % 7) + 7) % 7;
+      const step2 = 5 - (((Math.abs(key) % 5) + 5) % 5);
+      const probeMethod =
+        opId === 'hash-linear'
+          ? 'Linear Probing (+1)'
+          : opId === 'hash-quadratic'
+            ? 'Quadratic Probing (+i²)'
+            : `Double Hashing (step2=${step2})`;
+
+      events.push({
+        t: 'note',
+        text: `Hash Table (7 buckets, ${probeMethod}). Inserting key ${key}: hash(${key}) = ${key} % 7 = ${h1}.`,
+      });
+
+      for (let i = 0; i < 7; i++) {
+        const idx =
+          opId === 'hash-linear'
+            ? (h1 + i) % 7
+            : opId === 'hash-quadratic'
+              ? (h1 + i * i) % 7
+              : (h1 + i * step2) % 7;
+        if (buckets[idx] !== null) {
+          events.push(
+            { t: 'compare', a: { id: 'arr', index: idx }, b: { id: 'arr', index: idx } },
+            {
+              t: 'note',
+              text: `Collision at index ${idx} (already holds ${buckets[idx]})! Probing next slot...`,
+            },
+          );
+        } else {
+          events.push(
+            { t: 'set', target: { id: 'arr', index: idx }, value: key },
+            { t: 'visit', id: `arr[${idx}]` },
+            {
+              t: 'note',
+              text: `Index ${idx} is empty! Stored key ${key} at bucket [${idx}].`,
+            },
+          );
+          break;
+        }
+      }
+      events.push({ t: 'done' });
       break;
     }
 
     case 'hash-chaining': {
-      const val = paramValue || 36;
+      const val = Number.isFinite(paramValue) ? paramValue : 36;
+      const bucketIdx = ((val % 3) + 3) % 3;
+      const bucketId = `b-${bucketIdx}`;
       events.push(
         { t: 'create', id: 'b-0', kind: 'node', value: 'B0' },
         { t: 'create', id: 'b-1', kind: 'node', value: 'B1:15' },
@@ -1675,19 +2089,33 @@ export function runStructureOperation(
         { t: 'link', from: 'b-1', to: 'c-1', label: 'chain' },
         {
           t: 'note',
-          text: `Separate Chaining: Bucket 1 already has a linked chain (15 → 29). Hashing ${val}: ${val} % 7 = 1.`,
+          text: `Separate Chaining (3 buckets): hashing ${val} → ${val} % 3 = Bucket ${bucketIdx}.`,
         },
-        { t: 'visit', id: 'b-1' },
-        { t: 'visit', id: 'c-1' },
-        { t: 'create', id: 'c-2', kind: 'node', value: val },
-        { t: 'link', from: 'c-1', to: 'c-2', label: 'chain' },
-        { t: 'visit', id: 'c-2' },
-        {
-          t: 'note',
-          text: `Appended ${val} to Bucket 1's linked list: 15 → 29 → ${val}!`,
-        },
-        { t: 'done' },
+        { t: 'visit', id: bucketId },
       );
+      if (bucketIdx === 1) {
+        events.push(
+          { t: 'visit', id: 'c-1' },
+          { t: 'create', id: 'c-2', kind: 'node', value: val },
+          { t: 'link', from: 'c-1', to: 'c-2', label: 'chain' },
+          { t: 'visit', id: 'c-2' },
+          {
+            t: 'note',
+            text: `Appended ${val} to Bucket 1's chain: 15 → 29 → ${val}!`,
+          },
+        );
+      } else {
+        events.push(
+          { t: 'create', id: 'c-2', kind: 'node', value: val },
+          { t: 'link', from: bucketId, to: 'c-2', label: 'chain' },
+          { t: 'visit', id: 'c-2' },
+          {
+            t: 'note',
+            text: `Chained ${val} directly onto Bucket ${bucketIdx}!`,
+          },
+        );
+      }
+      events.push({ t: 'done' });
       break;
     }
   }

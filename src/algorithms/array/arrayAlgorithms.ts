@@ -879,13 +879,14 @@ export function arrayDeleteAtTrace(
 ): ArrayTraceResult {
   const arr = [...input];
   const events: TraceEvent[] = [];
+  const index = arr.length > 0 ? Math.max(0, Math.min(arr.length - 1, Math.floor(rawIndex))) : 0;
 
   if (emitInit) {
     emitArrayInit(
       events,
       'arr',
       arr,
-      `Preparing to remove the number at position ${rawIndex + 1}.`,
+      `Preparing to remove the number at position ${index + 1}.`,
     );
   }
 
@@ -895,7 +896,6 @@ export function arrayDeleteAtTrace(
     return { events, finalArray: arr, meta: ARRAY_ALGORITHM_METADATA['delete-at'] };
   }
 
-  const index = Math.max(0, Math.min(arr.length - 1, Math.floor(rawIndex)));
   const removedVal = arr[index];
   events.push({ t: 'line', line: 2 });
   events.push({
@@ -939,13 +939,14 @@ export function arrayUpdateAtTrace(
 ): ArrayTraceResult {
   const arr = [...input];
   const events: TraceEvent[] = [];
+  const index = arr.length > 0 ? Math.max(0, Math.min(arr.length - 1, Math.floor(rawIndex))) : 0;
 
   if (emitInit) {
     emitArrayInit(
       events,
       'arr',
       arr,
-      `Preparing to change the number at position ${rawIndex + 1} to ${newValue}.`,
+      `Preparing to change the number at position ${index + 1} to ${newValue}.`,
     );
   }
 
@@ -955,7 +956,6 @@ export function arrayUpdateAtTrace(
     return { events, finalArray: arr, meta: ARRAY_ALGORITHM_METADATA['update-at'] };
   }
 
-  const index = Math.max(0, Math.min(arr.length - 1, Math.floor(rawIndex)));
   const oldVal = arr[index];
   arr[index] = newValue;
   events.push({ t: 'line', line: 2 });
@@ -1274,6 +1274,6 @@ export function runArrayOperation(
     case 'reverse':
       return arrayReverseTrace(input, emitInit);
     case 'rotate':
-      return arrayRotateTrace(input, paramIndex || 1, emitInit);
+      return arrayRotateTrace(input, Math.max(0, Math.floor(paramIndex)), emitInit);
   }
 }
