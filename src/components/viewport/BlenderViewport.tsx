@@ -22,7 +22,7 @@ interface NodeMeshProps {
   selected: boolean;
   wireframe: boolean;
   snapshot: TraceStateSnapshot;
-  activeOperation: string | null;
+  activeStructureOp: string | null;
   isPrimaryActive: boolean;
   swapPartner: SceneObjectInfo | null;
   swapDirection: 1 | -1;
@@ -66,7 +66,7 @@ function SceneObjectMesh({
   selected,
   wireframe,
   snapshot,
-  activeOperation,
+  activeStructureOp,
   isPrimaryActive,
   swapPartner,
   swapDirection,
@@ -153,9 +153,9 @@ function SceneObjectMesh({
 
   const isActiveVisit = snapshot.activeVisitId === obj.id;
   const isSlowFastOp =
-    activeOperation === 'sll-find-middle' || activeOperation === 'cll-cycle';
+    activeStructureOp === 'sll-find-middle' || activeStructureOp === 'cll-cycle';
   const isPrevCurrOp =
-    activeOperation === 'sll-reverse' || activeOperation === 'sll-delete-val';
+    activeStructureOp === 'sll-reverse' || activeStructureOp === 'sll-delete-val';
   const isSlowPtr =
     isListNode &&
     isSlowFastOp &&
@@ -181,7 +181,7 @@ function SceneObjectMesh({
   const isPrevPtr = isListNode && prevVisitId === obj.id;
   const isTempPhase =
     isListNode &&
-    activeOperation === 'sll-delete-val' &&
+    activeStructureOp === 'sll-delete-val' &&
     snapshot.narration.toLowerCase().includes('temp');
   const isDisconnectedTemp =
     isTempPhase &&
@@ -766,7 +766,7 @@ function SceneContents() {
   const showGrid = useViewportStore((s) => s.showGrid);
   const wireframe = useViewportStore((s) => s.wireframe);
   const currentSnapshot = useViewportStore((s) => s.currentSnapshot);
-  const activeOperation = useViewportStore((s) => s.activeOperation);
+  const activeStructureOp = useViewportStore((s) => s.activeStructureOp);
   const uiMode = useViewportStore((s) => s.uiMode);
 
   const objectList = Object.values(sceneObjects);
@@ -861,7 +861,10 @@ function SceneContents() {
         }),
       )}
 
-      {comparePair && comparePair.a.id !== comparePair.b.id && (
+      {comparePair &&
+        comparePair.a.id !== comparePair.b.id &&
+        activeStructureOp !== 'sll-find-middle' &&
+        activeStructureOp !== 'cll-cycle' && (
         <TechnicalComparisonCallout
           fromObj={comparePair.a}
           toObj={comparePair.b}
@@ -893,7 +896,7 @@ function SceneContents() {
             selected={selectedId === obj.id}
             wireframe={wireframe}
             snapshot={currentSnapshot}
-            activeOperation={activeOperation}
+            activeStructureOp={activeStructureOp}
             isPrimaryActive={obj.id === primaryActiveId}
             swapPartner={swapPartner}
             swapDirection={swapDirection}

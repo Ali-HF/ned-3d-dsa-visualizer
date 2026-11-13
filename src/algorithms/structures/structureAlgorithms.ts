@@ -1052,7 +1052,6 @@ export function runStructureOperation(
         );
       }
       events.push(
-        { t: 'visit', id: nodeIds[slow] },
         {
           t: 'note',
           text: `Fast reaches the end, so Slow lands right on the middle node (${vals[slow]})!`,
@@ -1095,26 +1094,41 @@ export function runStructureOperation(
       const vals = emitBaseLinkedList(events, customValues);
       const nodeIds = getLinkedListNodeIds(vals.length);
       const tailId = nodeIds[nodeIds.length - 1];
-      const loopTargetId = nodeIds[1] ?? nodeIds[0];
+      const loopTargetIdx = nodeIds.length > 1 ? 1 : 0;
+      const loopTargetId = nodeIds[loopTargetIdx];
+      const nextIndex = (idx: number) =>
+        idx + 1 < nodeIds.length ? idx + 1 : loopTargetIdx;
+
       events.push(
         { t: 'link', from: tailId, to: loopTargetId, label: 'loop' },
         {
           t: 'note',
-          text: `Tail node loops back to ${vals[1] ?? vals[0]}! Running Tortoise & Hare cycle detection.`,
+          text: `Tail node loops back to ${vals[loopTargetIdx]}! Running Tortoise (Slow) & Hare (Fast) cycle detection.`,
         },
-        { t: 'compare', a: { id: loopTargetId }, b: { id: nodeIds[2] ?? loopTargetId } },
-        {
-          t: 'note',
-          text: 'Tortoise steps 1 node while Hare jumps 2 nodes ahead.',
-        },
-        { t: 'compare', a: { id: tailId }, b: { id: tailId } },
-        { t: 'visit', id: tailId },
-        {
-          t: 'note',
-          text: 'Tortoise and Hare meet inside the loop — cycle confirmed!',
-        },
-        { t: 'done' },
+        { t: 'compare', a: { id: nodeIds[0] }, b: { id: nodeIds[0] } },
+        { t: 'note', text: 'Both Slow and Fast start at head.' },
       );
+
+      let slow = 0;
+      let fast = 0;
+      for (let step = 0; step < nodeIds.length * 2 + 2; step++) {
+        slow = nextIndex(slow);
+        fast = nextIndex(nextIndex(fast));
+        events.push({ t: 'compare', a: { id: nodeIds[slow] }, b: { id: nodeIds[fast] } });
+        if (slow === fast) {
+          events.push({
+            t: 'note',
+            text: `Slow (${vals[slow]}) and Fast (${vals[fast]}) meet at node #${slow + 1} — cycle confirmed!`,
+          });
+          break;
+        }
+        events.push({
+          t: 'note',
+          text: `Slow steps 1 node to ${vals[slow]}, while Fast jumps 2 nodes to ${vals[fast]}.`,
+        });
+      }
+
+      events.push({ t: 'done' });
       break;
     }
 
