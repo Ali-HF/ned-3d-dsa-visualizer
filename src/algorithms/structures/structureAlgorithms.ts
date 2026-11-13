@@ -1274,15 +1274,19 @@ export function runStructureOperation(
       let nextPlateId = 0;
       let balanced = true;
 
-      events.push({
-        t: 'note',
-        text: `Checking if "${expr}" has balanced brackets using a Stack.`,
-      });
+      events.push(
+        {
+          t: 'note',
+          text: `Checking if "${expr}" has balanced brackets using a Stack.`,
+        },
+        { t: 'line', line: 47 },
+      );
 
       for (const ch of expr) {
         if (openBrackets.has(ch)) {
           const id = `stk-${nextPlateId++}`;
           const prevId = stack.length > 0 ? stack[stack.length - 1].id : null;
+          events.push({ t: 'line', line: 51 });
           events.push({ t: 'create', id, kind: 'node', value: ch });
           if (prevId) {
             events.push({ t: 'link', from: id, to: prevId, label: 'below' });
@@ -1295,20 +1299,26 @@ export function runStructureOperation(
         } else if (ch in matchingOpen) {
           const expected = matchingOpen[ch];
           if (stack.length === 0) {
-            events.push({
-              t: 'note',
-              text: `Read "${ch}": stack is empty — no matching "${expected}"! Expression is NOT balanced.`,
-            });
+            events.push(
+              { t: 'line', line: 55 },
+              {
+                t: 'note',
+                text: `Read "${ch}": stack is empty — no matching "${expected}"! Expression is NOT balanced.`,
+              },
+            );
             balanced = false;
             break;
           }
           const top = stack[stack.length - 1];
-          events.push({ t: 'visit', id: top.id });
+          events.push({ t: 'line', line: 58 }, { t: 'visit', id: top.id });
           if (top.ch !== expected) {
-            events.push({
-              t: 'note',
-              text: `Read "${ch}": mismatch! Top is "${top.ch}", expected "${expected}". Expression is NOT balanced.`,
-            });
+            events.push(
+              { t: 'line', line: 60 },
+              {
+                t: 'note',
+                text: `Read "${ch}": mismatch! Top is "${top.ch}", expected "${expected}". Expression is NOT balanced.`,
+              },
+            );
             balanced = false;
             break;
           }

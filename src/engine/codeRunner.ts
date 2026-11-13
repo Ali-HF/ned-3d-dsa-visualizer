@@ -939,7 +939,11 @@ function inferOperationFromCode(
   if (src.includes('factorial')) {
     return { kind: 'structure', structOp: 'recursion-factorial' };
   }
-  if (src.includes('isbalanced') || src.includes('infixtopostfix')) {
+  if (
+    src.includes('isbalanced') ||
+    src.includes('balancedparentheses') ||
+    src.includes('infixtopostfix')
+  ) {
     return { kind: 'structure', structOp: 'stack-brackets' };
   }
   if (src.includes('bst') || (src.includes('->left') && src.includes('->right'))) {
