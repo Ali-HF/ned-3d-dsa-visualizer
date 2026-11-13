@@ -91,7 +91,9 @@ function SceneObjectMesh({
     isStackSlab &&
     !isHashBucket &&
     !isHanoi &&
-    !snapshot.edges.some((e) => e.to === obj.id && e.label === 'below') &&
+    !snapshot.edges.some(
+      (e) => e.to === obj.id && (e.label === 'below' || e.label === 'calls'),
+    ) &&
     Object.keys(snapshot.nodes).length > 0;
   const isQueueNode =
     obj.id.startsWith('q-') ||
