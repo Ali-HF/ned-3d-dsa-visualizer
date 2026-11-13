@@ -480,18 +480,19 @@ function SceneObjectMesh({
             </div>
           </Html>
 
-          {/* Floating TOP / BUCKET Indicator above slab */}
-          {(isTopSlab || isHashBucket) && (
+          {/* Floating TOP 3D Pointer Arrow / BUCKET Indicator above slab */}
+          {isHashBucket && (
             <Html
               position={[0, 0.42, 0]}
               center
               distanceFactor={14}
               zIndexRange={[6, 0]}
             >
-              <div className="stitch-top-badge">
-                {isHashBucket ? 'BUCKET ▼' : 'TOP ▲'}
-              </div>
+              <div className="stitch-top-badge">BUCKET ▼</div>
             </Html>
+          )}
+          {isTopSlab && !isHashBucket && (
+            <PointerArrow3D label="TOP" color="#f59e0b" baseY={0.34} />
           )}
         </>
       ) : (
