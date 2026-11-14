@@ -9,21 +9,28 @@ import type {
 import { TraceTimeline } from '../engine/traceEngine';
 import {
   ARRAY_ALGORITHM_METADATA,
-  runArrayOperation,
   type AlgorithmMetadata,
   type ArrayOperationId,
 } from '../algorithms/array/arrayAlgorithms';
 import {
   STRUCTURE_OP_CATALOG,
   buildStaticStructureTrace,
-  runStructureOperation,
   type StructureOperationId,
 } from '../algorithms/structures/structureAlgorithms';
 import {
   CORPUS_FILE_CATALOG,
   getCorpusCodeLines,
+  getCorpusRawText,
 } from '../corpus/cppCorpusRegistry';
-import { executeCustomCodeTrace } from '../engine/codeRunner';
+import {
+  executeCustomCodeTrace,
+  executeCustomCodeTraceInWorker,
+} from '../engine/codeRunner';
+import {
+  ARRAY_CORPUS_MAP,
+  runCorpusArrayOperation,
+  runCorpusStructureOperation,
+} from '../engine/corpusRunner';
 
 export interface QueuedOperationEntry {
   uid: string;
@@ -32,23 +39,6 @@ export interface QueuedOperationEntry {
   startStep: number;
   endStep: number;
 }
-
-const ARRAY_CORPUS_MAP: Record<ArrayOperationId, string> = {
-  'bubble-sort': '06_elementary_sorting/bubble_sort.cpp',
-  'selection-sort': '06_elementary_sorting/selection_sort.cpp',
-  'insertion-sort': '06_elementary_sorting/insertion_sort.cpp',
-  'merge-sort': '07_advanced_sorting/merge_sort.cpp',
-  'quick-sort': '07_advanced_sorting/quick_sort.cpp',
-  'insert-at': '01_arrays_and_searching/array_operations.cpp',
-  'delete-at': '01_arrays_and_searching/array_operations.cpp',
-  'delete-val': '01_arrays_and_searching/array_operations.cpp',
-  'update-at': '01_arrays_and_searching/array_operations.cpp',
-  reverse: '01_arrays_and_searching/array_operations.cpp',
-  rotate: '01_arrays_and_searching/array_operations.cpp',
-  'rotate-right': '01_arrays_and_searching/array_operations.cpp',
-  'linear-search': '01_arrays_and_searching/linear_search.cpp',
-  'binary-search': '01_arrays_and_searching/binary_search.cpp',
-};
 
 interface ViewportState {
   /** UI complexity mode: 'kids' (friendly), 'standard' (CAD HUD), or 'pro' (full developer inspector) */
@@ -88,6 +78,8 @@ interface ViewportState {
   autoFollowCamera: boolean;
   operationHistory: QueuedOperationEntry[];
   hasPendingOperationRun: boolean;
+  customCodeError: string | null;
+  isRunningCustomCode: boolean;
 
   setUiMode: (mode: 'kids' | 'standard' | 'pro') => void;
   toggleUiMode: () => void;
@@ -126,6 +118,8 @@ interface ViewportState {
   selectAndRunCorpusFile: (relativePath: string) => void;
   previewCustomCode: (sourceCode: string, fileName?: string) => void;
   runCustomCodeNow: (sourceCode: string, fileName?: string) => void;
+  runCustomCodeAsync: (sourceCode: string, fileName?: string) => Promise<void>;
+  clearCustomCodeError: () => void;
   queueOperation: (op: ArrayOperationId, paramIndex?: number, paramValue?: number) => void;
   clearOperationQueue: () => void;
 }
@@ -163,6 +157,11 @@ export function buildArraySceneObjectsFromSnapshot(
       const addrHex = `0x${(baseAddr + idx * 4).toString(16).toUpperCase()}`;
       const visitBadgeIdx = snapshot.visitedOrder.indexOf(cellId);
 
+      // Attach any runtime index pointers (i, j, low, mid, high, left, right, topIndex, front, rear)
+      const matchingPointers = Object.entries(snapshot.indexPointers ?? {})
+        .filter(([, ptr]) => ptr.arrayId === arrState.id && ptr.index === idx)
+        .map(([ptrName, ptr]) => ptr.name ?? ptrName);
+
       objects.push({
         id: cellId,
         kind: 'array-cell',
@@ -176,11 +175,53 @@ export function buildArraySceneObjectsFromSnapshot(
           value: val,
           type: 'int (4 bytes)',
           visitedOrder: visitBadgeIdx >= 0 ? `#${visitBadgeIdx + 1}` : 'unvisited',
+          indexPointers: matchingPointers.length > 0 ? matchingPointers.join(' / ') : '',
         },
         linksTo: [],
       });
     });
   });
+
+  // If no 1D arrays are present, check for 2D matrices (`vector<vector<int>>` or `int grid[R][C]`)
+  if (objects.length === 0 && Object.keys(snapshot.matrices ?? {}).length > 0) {
+    const matEntries = Object.values(snapshot.matrices);
+    const mat = matEntries[0];
+    const rowSpacing = 1.75;
+    const colSpacing = 1.65;
+    const startZ = -((mat.rows - 1) * rowSpacing) / 2;
+    const startX = -((mat.cols - 1) * colSpacing) / 2;
+
+    mat.values.forEach((rowVals, rIdx) => {
+      rowVals.forEach((val, cIdx) => {
+        const cellId = `${mat.id}[${rIdx}][${cIdx}]`;
+        const xPos = startX + cIdx * colSpacing;
+        const zPos = startZ + rIdx * rowSpacing;
+        const numericVal = typeof val === 'number' ? val : 10;
+        const barHeight = Math.max(0.45, Math.min(4.2, Math.abs(numericVal) / 22));
+        const addrHex = `0x${(0x3000 + (rIdx * mat.cols + cIdx) * 4).toString(16).toUpperCase()}`;
+
+        objects.push({
+          id: cellId,
+          kind: 'array-cell',
+          label: cellId,
+          value: val,
+          memoryAddress: addrHex,
+          position: [xPos, barHeight / 2, zPos],
+          fields: {
+            array: mat.id,
+            index: rIdx * mat.cols + cIdx,
+            row: rIdx,
+            col: cIdx,
+            value: val,
+            type: 'int (2D Grid Cell)',
+            visitedOrder: snapshot.visitedOrder.includes(cellId) ? 'visited' : 'unvisited',
+            indexPointers: '',
+          },
+          linksTo: [],
+        });
+      });
+    });
+  }
 
   return objects;
 }
@@ -409,20 +450,103 @@ export function buildSceneObjectsForScene(
   scene: PreviewSceneKind,
   snapshot: TraceStateSnapshot,
 ): SceneObjectInfo[] {
+  const appendCallStackAndScalarFallback = (baseObjs: SceneObjectInfo[]): SceneObjectInfo[] => {
+    const out = [...baseObjs];
+    const has3DCallFrames = out.some(
+      (o) => o.id.startsWith('callframe-') || o.id.startsWith('stk-call-'),
+    );
+    const callDepth = snapshot.callStack.length;
+
+    // Bug 1 Rule: Render 3D callframe blocks ONLY when there is no other structure to draw (out.length === 0).
+    // When any real data structure (array, list, tree, graph, grid, container) is on stage, the call stack
+    // is shown only in the compact HUD panel.
+    if (!has3DCallFrames && out.length === 0 && callDepth > 0) {
+      snapshot.callStack.forEach((frame, idx) => {
+        const frameId = `callframe-${idx}`;
+        const retSuffix = frame.returnValue !== undefined ? ` → ${String(frame.returnValue)}` : '';
+        const label = `${frame.fn}(${frame.args.join(', ')})${retSuffix}`;
+        out.push({
+          id: frameId,
+          kind: 'stack-slab',
+          label,
+          value: label,
+          memoryAddress: `0x7FFF${(0x100 + idx * 16).toString(16).toUpperCase()}`,
+          position: [0, 0.24 + idx * 0.58, 0],
+          fields: {
+            id: frameId,
+            function: frame.fn,
+            args: frame.args.join(', '),
+            depth: idx + 1,
+          },
+          linksTo: idx > 0 ? [{ label: 'below', targetId: `callframe-${idx - 1}` }] : [],
+        });
+      });
+    }
+
+    // Requirement A4: If nothing else to draw (pure scalar math), show scalar variables as 3D blocks, never a blank stage
+    if (out.length === 0) {
+      const scalarEntries = Object.entries(snapshot.scalars ?? {});
+      if (scalarEntries.length > 0) {
+        const spacing = 1.85;
+        const startX = -((scalarEntries.length - 1) * spacing) / 2;
+        scalarEntries.forEach(([varName, val], idx) => {
+          const numVal = typeof val === 'number' ? val : 10;
+          const barHeight = Math.max(0.65, Math.min(4.2, Math.abs(numVal) / 18));
+          out.push({
+            id: `var-${varName}`,
+            kind: 'array-cell',
+            label: `${varName} = ${String(val)}`,
+            value: val,
+            memoryAddress: `0x7FF0${(idx * 4).toString(16).toUpperCase()}`,
+            position: [startX + idx * spacing, barHeight / 2, 0],
+            fields: {
+              variable: varName,
+              index: idx,
+              value: val,
+              type: typeof val,
+              indexPointers: varName,
+            },
+            linksTo: [],
+          });
+        });
+      }
+    }
+
+    return out;
+  };
+
   if (scene === 'array') {
-    return buildArraySceneObjectsFromSnapshot(snapshot);
+    return appendCallStackAndScalarFallback(buildArraySceneObjectsFromSnapshot(snapshot));
+  }
+
+  // If Stack or Queue is backed by a flat array (`arr`, e.g. stack_array.cpp, queue_array_and_circular.cpp, deque.cpp), render as 3D bars
+  if (
+    (scene === 'stack' || scene === 'queue') &&
+    Object.keys(snapshot.nodes).length === 0 &&
+    Object.keys(snapshot.arrays).length > 0
+  ) {
+    return appendCallStackAndScalarFallback(buildArraySceneObjectsFromSnapshot(snapshot));
+  }
+
+  // If Heap is backed by a flat array (`arr`, e.g. std::priority_queue), render as 3D heap bars
+  if (
+    scene === 'heap' &&
+    Object.keys(snapshot.nodes).length === 0 &&
+    Object.keys(snapshot.arrays).length > 0
+  ) {
+    return appendCallStackAndScalarFallback(buildArraySceneObjectsFromSnapshot(snapshot));
   }
 
   // If Hash Table is running Open Addressing (uses `arr`), render as 3D bucket bars
   if (scene === 'hash-table' && Object.keys(snapshot.arrays).length > 0) {
-    return buildArraySceneObjectsFromSnapshot(snapshot);
+    return appendCallStackAndScalarFallback(buildArraySceneObjectsFromSnapshot(snapshot));
   }
 
   const nodeEntries = Object.values(snapshot.nodes);
   const count = nodeEntries.length;
   const dynamicTreeCoords =
     (scene === 'bst' || scene === 'heap') &&
-    nodeEntries.some((n) => !(n.id in TREE_NODE_COORDS))
+      nodeEntries.some((n) => !(n.id in TREE_NODE_COORDS))
       ? computeDynamicTreeLayout(snapshot)
       : null;
   const dynamicGraphCoords =
@@ -487,7 +611,7 @@ export function buildSceneObjectsForScene(
     }
   }
 
-  return nodeEntries.map((node, idx) => {
+  const nodeObjs = nodeEntries.map((node, idx) => {
     const outgoingLinks = snapshot.edges
       .filter((e) => e.from === node.id)
       .map((e) => ({ label: e.label ?? 'next', targetId: e.to }));
@@ -554,6 +678,8 @@ export function buildSceneObjectsForScene(
       linksTo: outgoingLinks,
     };
   });
+
+  return appendCallStackAndScalarFallback(nodeObjs);
 }
 
 function formatOperationLabel(
@@ -635,6 +761,8 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
   autoFollowCamera: false,
   operationHistory: [],
   hasPendingOperationRun: false,
+  customCodeError: null,
+  isRunningCustomCode: false,
 
   setUiMode: (mode) => set({ uiMode: mode }),
   toggleUiMode: () =>
@@ -927,24 +1055,29 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
   runOperationNow: (op, paramIndex = 0, paramValue = 42) => {
     const state = get();
     const baseArr = state.workingArray;
-    const result = runArrayOperation(op, baseArr, paramIndex, paramValue, true);
-    const corpusPath = ARRAY_CORPUS_MAP[op];
-    const corpusLines = getCorpusCodeLines(corpusPath, result.meta.code);
-    const enrichedMeta: AlgorithmMetadata = {
-      ...result.meta,
-      code: corpusLines,
-    };
-
+    const result = runCorpusArrayOperation(op, baseArr, paramIndex, paramValue);
     const timeline = new TraceTimeline(result.events);
-    const startStep = Math.min(baseArr.length + 2, timeline.totalSteps);
-    const snapshot = timeline.getSnapshotAt(startStep);
-    const objs = buildArraySceneObjectsFromSnapshot(snapshot);
+    let startStep = Math.max(1, Math.min(result.operationStartStep, timeline.totalSteps));
+    let snapshot = timeline.getSnapshotAt(startStep);
+    let objs = buildArraySceneObjectsFromSnapshot(snapshot);
+    if (objs.length === 0 && timeline.totalSteps > 1) {
+      const nonEmptyIdx = result.events.findIndex((e, idx) => {
+        if (e.t !== 'note') return false;
+        const snap = timeline.getSnapshotAt(idx + 1);
+        return buildArraySceneObjectsFromSnapshot(snap).length > 0;
+      });
+      if (nonEmptyIdx >= 0) {
+        startStep = nonEmptyIdx + 1;
+        snapshot = timeline.getSnapshotAt(startStep);
+        objs = buildArraySceneObjectsFromSnapshot(snapshot);
+      }
+    }
 
     set({
       previewScene: 'array',
       activeOperation: op,
-      selectedCorpusFile: corpusPath,
-      activeMetadata: enrichedMeta,
+      selectedCorpusFile: result.corpusPath,
+      activeMetadata: result.meta,
       workingArray: result.finalArray,
       timeline,
       currentStep: startStep,
@@ -968,18 +1101,30 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
 
   runStructureOperationNow: (op, paramValue = 40, paramText) => {
     const state = get();
-    const result = runStructureOperation(op, paramValue, state.workingArray, paramText);
+    const result = runCorpusStructureOperation(op, state.workingArray, paramValue, paramText);
     const timeline = new TraceTimeline(result.events);
-    const firstNoteIdx = result.events.findIndex((e) => e.t === 'note');
-    const startStep = firstNoteIdx >= 0 ? firstNoteIdx + 1 : 1;
-    const snapshot = timeline.getSnapshotAt(startStep);
-    const objs = buildSceneObjectsForScene(result.scene, snapshot);
+    let startStep = Math.max(1, Math.min(result.operationStartStep, timeline.totalSteps));
+    let snapshot = timeline.getSnapshotAt(startStep);
+    let objs = buildSceneObjectsForScene(result.scene, snapshot);
+    if (objs.length === 0 && timeline.totalSteps > 1) {
+      const nonEmptyIdx = result.events.findIndex((e, idx) => {
+        if (e.t !== 'note') return false;
+        const snap = timeline.getSnapshotAt(idx + 1);
+        return buildSceneObjectsForScene(result.scene, snap).length > 0;
+      });
+      if (nonEmptyIdx >= 0) {
+        startStep = nonEmptyIdx + 1;
+        snapshot = timeline.getSnapshotAt(startStep);
+        objs = buildSceneObjectsForScene(result.scene, snapshot);
+      }
+    }
 
     set({
       previewScene: result.scene,
       activeStructureOp: op,
+      selectedCorpusFile: result.corpusPath,
       activeMetadata: result.meta,
-      workingArray: result.updatedValues ?? state.workingArray,
+      workingArray: result.finalArray,
       timeline,
       currentStep: startStep,
       totalSteps: timeline.totalSteps,
@@ -1020,22 +1165,72 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
   selectAndRunCorpusFile: (relativePath) => {
     const entry = CORPUS_FILE_CATALOG.find((c) => c.relativePath === relativePath);
     if (!entry) return;
-    set({ selectedCorpusFile: relativePath });
+    const state = get();
+    const rawCpp = getCorpusRawText(relativePath);
+    const fileName = relativePath.split('/')[1] ?? relativePath;
 
-    if (entry.scene === 'array') {
-      get().runOperationNow(entry.operationId as ArrayOperationId, 2, 42);
-    } else {
-      get().runStructureOperationNow(entry.operationId as StructureOperationId, 42);
+    try {
+      const res = executeCustomCodeTrace(
+        rawCpp,
+        state.workingArray,
+        relativePath,
+        fileName,
+      );
+      const timeline = new TraceTimeline(res.events);
+      const firstNoteIdx = res.events.findIndex((e) => e.t === 'note');
+      let startStep = firstNoteIdx >= 0 ? firstNoteIdx + 1 : 1;
+      let snapshot = timeline.getSnapshotAt(startStep);
+      let objs = buildSceneObjectsForScene(entry.scene, snapshot);
+      if (objs.length === 0) {
+        const midStep = Math.max(1, Math.ceil(timeline.totalSteps / 2));
+        const midSnap = timeline.getSnapshotAt(midStep);
+        const midObjs = buildSceneObjectsForScene(entry.scene, midSnap);
+        if (midObjs.length > 0) {
+          startStep = midStep;
+          snapshot = midSnap;
+          objs = midObjs;
+        }
+      }
+      const lines = getCorpusCodeLines(relativePath, res.meta.code);
+
+      set({
+        previewScene: entry.scene,
+        selectedCorpusFile: relativePath,
+        activeOperation: entry.scene === 'array' ? (entry.operationId as ArrayOperationId) : null,
+        activeStructureOp:
+          entry.scene !== 'array' ? (entry.operationId as StructureOperationId) : null,
+        activeMetadata: {
+          ...res.meta,
+          title: `${entry.title} (${fileName})`,
+          code: lines,
+        },
+        workingArray: res.extractedArray,
+        timeline,
+        currentStep: startStep,
+        totalSteps: timeline.totalSteps,
+        currentSnapshot: snapshot,
+        sceneObjects: toObjectMap(objs),
+        selectedId: objs[0]?.id ?? null,
+        isPlaying: state.autoPlayOnRun,
+        hasPendingOperationRun: false,
+        customCodeError: null,
+      });
+    } catch {
+      if (entry.scene === 'array') {
+        get().runOperationNow(entry.operationId as ArrayOperationId, 2, 42);
+      } else {
+        get().runStructureOperationNow(entry.operationId as StructureOperationId, 42);
+      }
+      const lines = getCorpusCodeLines(relativePath, get().activeMetadata.code);
+      set((s) => ({
+        selectedCorpusFile: relativePath,
+        activeMetadata: {
+          ...s.activeMetadata,
+          title: `${entry.title} (${fileName})`,
+          code: lines,
+        },
+      }));
     }
-    const lines = getCorpusCodeLines(relativePath, get().activeMetadata.code);
-    set((s) => ({
-      selectedCorpusFile: relativePath,
-      activeMetadata: {
-        ...s.activeMetadata,
-        title: `${entry.title} (${relativePath.split('/')[1]})`,
-        code: lines,
-      },
-    }));
   },
 
   previewCustomCode: (sourceCode, fileName) => {
@@ -1046,38 +1241,108 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
         title: fileName ? `${fileName} (Ready — click Visualize)` : 'Custom Code (Ready)',
         code: lines,
       },
+      customCodeError: null,
       isPlaying: false,
     }));
   },
 
+  clearCustomCodeError: () => set({ customCodeError: null }),
+
   runCustomCodeNow: (sourceCode, fileName) => {
     const state = get();
-    const res = executeCustomCodeTrace(
-      sourceCode,
-      state.workingArray,
-      state.selectedCorpusFile,
-      fileName,
-    );
-    const timeline = new TraceTimeline(res.events);
-    const firstNoteIdx = res.events.findIndex((e) => e.t === 'note');
-    const startStep = firstNoteIdx >= 0 ? firstNoteIdx + 1 : 1;
-    const snapshot = timeline.getSnapshotAt(startStep);
-    const objs = buildSceneObjectsForScene(res.scene, snapshot);
+    try {
+      const res = executeCustomCodeTrace(
+        sourceCode,
+        state.workingArray,
+        undefined,
+        fileName,
+      );
+      const timeline = new TraceTimeline(res.events);
+      const firstNoteIdx = res.events.findIndex((e) => e.t === 'note');
+      const startStep = firstNoteIdx >= 0 ? firstNoteIdx + 1 : 1;
+      const snapshot = timeline.getSnapshotAt(startStep);
+      const objs = buildSceneObjectsForScene(res.scene, snapshot);
 
-    set({
-      previewScene: res.scene,
-      activeMetadata: res.meta,
-      workingArray: res.extractedArray,
-      timeline,
-      currentStep: startStep,
-      totalSteps: timeline.totalSteps,
-      currentSnapshot: snapshot,
-      sceneObjects: toObjectMap(objs),
-      selectedId: objs[0]?.id ?? null,
-      isPlaying: state.autoPlayOnRun,
-      hasPendingOperationRun: false,
-      detailsOpen: true,
-    });
+      set({
+        previewScene: res.scene,
+        activeMetadata: res.meta,
+        workingArray: res.extractedArray,
+        timeline,
+        currentStep: startStep,
+        totalSteps: timeline.totalSteps,
+        currentSnapshot: snapshot,
+        sceneObjects: toObjectMap(objs),
+        selectedId: objs[0]?.id ?? null,
+        isPlaying: state.autoPlayOnRun,
+        hasPendingOperationRun: false,
+        customCodeError: null,
+        isRunningCustomCode: false,
+        detailsOpen: true,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const lines = sourceCode.replace(/\r\n/g, '\n').split('\n');
+      set((s) => ({
+        isPlaying: false,
+        isRunningCustomCode: false,
+        customCodeError: message,
+        detailsOpen: true,
+        activeMetadata: {
+          ...s.activeMetadata,
+          title: fileName ? `${fileName} (Error)` : 'Custom C++ Code (Error)',
+          code: lines,
+        },
+      }));
+    }
+  },
+
+  runCustomCodeAsync: async (sourceCode, fileName) => {
+    const state = get();
+    set({ isRunningCustomCode: true, customCodeError: null, isPlaying: false });
+    try {
+      const res = await executeCustomCodeTraceInWorker(
+        sourceCode,
+        state.workingArray,
+        undefined,
+        fileName,
+      );
+      const timeline = new TraceTimeline(res.events);
+      const firstNoteIdx = res.events.findIndex((e) => e.t === 'note');
+      const startStep = firstNoteIdx >= 0 ? firstNoteIdx + 1 : 1;
+      const snapshot = timeline.getSnapshotAt(startStep);
+      const objs = buildSceneObjectsForScene(res.scene, snapshot);
+
+      set({
+        previewScene: res.scene,
+        activeMetadata: res.meta,
+        workingArray: res.extractedArray,
+        timeline,
+        currentStep: startStep,
+        totalSteps: timeline.totalSteps,
+        currentSnapshot: snapshot,
+        sceneObjects: toObjectMap(objs),
+        selectedId: objs[0]?.id ?? null,
+        isPlaying: get().autoPlayOnRun,
+        hasPendingOperationRun: false,
+        customCodeError: null,
+        isRunningCustomCode: false,
+        detailsOpen: true,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const lines = sourceCode.replace(/\r\n/g, '\n').split('\n');
+      set((s) => ({
+        isPlaying: false,
+        isRunningCustomCode: false,
+        customCodeError: message,
+        detailsOpen: true,
+        activeMetadata: {
+          ...s.activeMetadata,
+          title: fileName ? `${fileName} (Error)` : 'Custom C++ Code (Error)',
+          code: lines,
+        },
+      }));
+    }
   },
 
   queueOperation: (op, paramIndex = 0, paramValue = 42) => {
@@ -1086,7 +1351,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       (e, idx) => !(idx === state.timeline.events.length - 1 && e.t === 'done'),
     );
     const startStep = existingEvents.length + 1;
-    const result = runArrayOperation(op, state.workingArray, paramIndex, paramValue, false);
+    const result = runCorpusArrayOperation(op, state.workingArray, paramIndex, paramValue);
     const combinedEvents = [...existingEvents, ...result.events];
     const timeline = new TraceTimeline(combinedEvents);
     const snapshot = timeline.getSnapshotAt(state.currentStep);
@@ -1095,6 +1360,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
     set({
       previewScene: 'array',
       activeOperation: op,
+      selectedCorpusFile: result.corpusPath,
       activeMetadata: result.meta,
       workingArray: result.finalArray,
       timeline,

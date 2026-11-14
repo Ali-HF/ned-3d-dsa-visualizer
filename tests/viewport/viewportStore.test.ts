@@ -135,17 +135,61 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     expect(useViewportStore.getState().uiMode).toBe('standard');
   });
 
-  it('executes custom C++ code with user-edited array literals and operation calls', () => {
+  it('executes custom C++ code with user-edited array literals and real algorithm bodies', () => {
     const store = useViewportStore.getState();
     const customCpp = `
       int arr[] = { 91, 14, 73, 28 };
-      void quickSort(int arr[], int low, int high) {}
+      void customSelectionSort(int arr[], int n) {
+        for (int i = 0; i < n - 1; i++) {
+          int minIdx = i;
+          for (int j = i + 1; j < n; j++) {
+            if (arr[j] < arr[minIdx]) {
+              minIdx = j;
+            }
+          }
+          if (minIdx != i) {
+            swap(arr[i], arr[minIdx]);
+          }
+        }
+      }
     `;
-    store.runCustomCodeNow(customCpp, 'custom_quick.cpp');
+    store.runCustomCodeNow(customCpp, 'custom_sort.cpp');
     const state = useViewportStore.getState();
+    expect(state.customCodeError).toBeNull();
     expect(state.previewScene).toBe('array');
     expect(state.workingArray).toEqual([14, 28, 73, 91]);
-    expect(state.activeMetadata.title).toContain('custom_quick.cpp');
+    expect(state.activeMetadata.title).toContain('custom_sort.cpp');
+  });
+
+  it('does NOT run a hardcoded sort when custom C++ function body is empty, and surfaces syntax/runtime errors clearly', () => {
+    const store = useViewportStore.getState();
+
+    // Empty function body should leave array in its original unsorted order [91, 14, 73, 28]
+    const noopCpp = `
+      int arr[] = { 91, 14, 73, 28 };
+      void quickSort(int arr[], int low, int high) {}
+    `;
+    store.runCustomCodeNow(noopCpp, 'noop_quick.cpp');
+    expect(useViewportStore.getState().customCodeError).toBeNull();
+    expect(useViewportStore.getState().workingArray).toEqual([91, 14, 73, 28]);
+
+    // Syntax error is reported clearly with line number
+    store.runCustomCodeNow('int main() {\n  int x = ;\n}', 'bad_syntax.cpp');
+    expect(useViewportStore.getState().customCodeError).toMatch(/Syntax error at line 2/);
+
+    // Runtime error (out-of-bounds array access) is reported clearly with line number
+    store.runCustomCodeNow(
+      'int main() {\n  int arr[] = { 10, 20 };\n  int x = arr[99];\n  return 0;\n}',
+      'oob.cpp',
+    );
+    expect(useViewportStore.getState().customCodeError).toMatch(/Runtime error at line 3/);
+
+    // Infinite loop hits step limit and reports error
+    store.runCustomCodeNow(
+      'int main() {\n  while (true) {}\n  return 0;\n}',
+      'inf.cpp',
+    );
+    expect(useViewportStore.getState().customCodeError).toMatch(/Runtime error at line 2/);
   });
 
   it('populates live recursion callStack frames during recursive operations', () => {
@@ -448,5 +492,81 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     const pegEdges = state.currentSnapshot.edges.filter((e) => e.label === 'peg');
     expect(pegEdges.length).toBe(4);
     expect(pegEdges.every((e) => e.to === 'peg-C')).toBe(true);
+  });
+
+  it('highlights the exact executing C++ line across all statements and playback actions in Custom Code mode without leaking built-in lines', () => {
+    const store = useViewportStore.getState();
+    const customCpp = [
+      '// Line 1: comment',
+      'int main() {',
+      '  int arr[] = { 30, 10, 20 };', // line 3
+      '  int n = 3;', // line 4
+      '  for (int i = 0; i < n - 1; i++) {', // line 5
+      '    for (int j = 0; j < n - i - 1; j++) {', // line 6
+      '      if (arr[j] > arr[j + 1]) {', // line 7
+      '        swap(arr[j], arr[j + 1]);', // line 8
+      '      }', // line 9
+      '    }', // line 10
+      '  }', // line 11
+      '  return 0;', // line 12
+      '}', // line 13
+    ].join('\n');
+
+    store.runCustomCodeNow(customCpp, 'line_sync_test.cpp');
+    let state = useViewportStore.getState();
+    expect(state.customCodeError).toBeNull();
+
+    // 1. Every TraceEvent in custom code carries its original C++ line number
+    for (const ev of state.timeline.events) {
+      expect(typeof ev.line).toBe('number');
+      expect(ev.line).toBeGreaterThanOrEqual(1);
+      expect(ev.line).toBeLessThanOrEqual(13);
+    }
+
+    // 2. Stepping forward visits all executing lines (3, 4, 5, 6, 7, 8, 12), not just 2 fixed lines
+    store.restart();
+    const visitedActiveLines = new Set<number>();
+    while (useViewportStore.getState().currentStep < useViewportStore.getState().totalSteps) {
+      const snap = useViewportStore.getState().currentSnapshot;
+      if (snap.activeLine !== null) {
+        visitedActiveLines.add(snap.activeLine);
+      }
+      // Snapshot stepIndex and store currentStep are strictly synchronized
+      expect(snap.stepIndex).toBe(useViewportStore.getState().currentStep);
+      const lastEv = state.timeline.events[snap.stepIndex - 1];
+      if (lastEv?.line) {
+        expect(snap.activeLine).toBe(lastEv.line);
+      }
+      store.stepForward();
+    }
+
+    expect(visitedActiveLines.has(3)).toBe(true); // int arr[] = ...
+    expect(visitedActiveLines.has(4)).toBe(true); // int n = 3;
+    expect(visitedActiveLines.has(5)).toBe(true); // outer for loop
+    expect(visitedActiveLines.has(6)).toBe(true); // inner for loop
+    expect(visitedActiveLines.has(7)).toBe(true); // if (arr[j] > arr[j + 1])
+    expect(visitedActiveLines.has(8)).toBe(true); // swap(arr[j], arr[j + 1])
+    expect(visitedActiveLines.has(12)).toBe(true); // return 0;
+
+    // 3. Verify stepBackward, seekToStep (scrub), play, pause, and setPlaybackSpeed keep activeLine and 3D stepIndex in sync
+    store.stepBackward();
+    state = useViewportStore.getState();
+    expect(state.currentSnapshot.stepIndex).toBe(state.currentStep);
+    expect(state.currentSnapshot.activeLine).toBe(
+      state.timeline.events[state.currentStep - 1]?.line ?? null,
+    );
+
+    const midStep = Math.floor(state.totalSteps / 2);
+    store.seekToStep(midStep);
+    state = useViewportStore.getState();
+    expect(state.currentStep).toBe(midStep);
+    expect(state.currentSnapshot.stepIndex).toBe(midStep);
+    expect(state.currentSnapshot.activeLine).toBe(
+      state.timeline.events[midStep - 1]?.line ?? null,
+    );
+
+    store.setPlaybackSpeed(2.5);
+    expect(useViewportStore.getState().playbackSpeed).toBe(2.5);
+    expect(useViewportStore.getState().currentSnapshot.stepIndex).toBe(midStep);
   });
 });

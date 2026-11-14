@@ -241,7 +241,12 @@ function SceneObjectMesh({
                 ? { label: 'PREV', color: '#c084fc' }
                 : null;
   const visitOrderIndex = snapshot.visitedOrder.indexOf(obj.id);
-  const isDoneItem = snapshot.isDone;
+  const isDoneItem =
+    snapshot.isDone && (!isArrayCell || snapshot.hasArrayWrites);
+  const arrayIndexPointerLabel =
+    isArrayCell && typeof obj.fields.indexPointers === 'string' && obj.fields.indexPointers.trim()
+      ? obj.fields.indexPointers.trim()
+      : null;
 
   const isActiveBar = isCompared || isSwapped || isSpawned || isActiveVisit;
 
@@ -422,7 +427,7 @@ function SceneObjectMesh({
             />
           </mesh>
 
-          {/* Top VAL Badge (visible on both bars during swap, hidden on primary left bar only during compare) */}
+          {/* Top VAL Badge + Runtime Index Pointer Arrow (i, j, low, mid, high, etc.) */}
           <group ref={valueTextRef}>
             {(!isPrimaryActive || isSwapped) && (
               <Html center distanceFactor={14} zIndexRange={[5, 0]}>
@@ -433,6 +438,13 @@ function SceneObjectMesh({
                   </span>
                 </div>
               </Html>
+            )}
+            {arrayIndexPointerLabel && (
+              <PointerArrow3D
+                label={arrayIndexPointerLabel}
+                color="#38bdf8"
+                baseY={0.42}
+              />
             )}
           </group>
 
@@ -489,9 +501,8 @@ function SceneObjectMesh({
           >
             <div className={`stitch-slab-badge ${isActiveBar ? 'active' : ''}`}>
               <span
-                className={`stitch-idx-box ${
-                  isActiveBar || visitOrderIndex >= 0 ? 'active' : ''
-                }`}
+                className={`stitch-idx-box ${isActiveBar || visitOrderIndex >= 0 ? 'active' : ''
+                  }`}
               >
                 {obj.id}
               </span>
@@ -593,9 +604,8 @@ function SceneObjectMesh({
           >
             <div className="stitch-under-bar">
               <span
-                className={`stitch-idx-box ${
-                  isActiveBar || visitOrderIndex >= 0 ? 'active' : ''
-                }`}
+                className={`stitch-idx-box ${isActiveBar || visitOrderIndex >= 0 ? 'active' : ''
+                  }`}
               >
                 {obj.id}
               </span>
@@ -645,9 +655,8 @@ function TechnicalComparisonCallout({
   const opText =
     mode === 'swap'
       ? `OP: SWP (${fromObj.id}:${valA} ↔ ${toObj.id}:${valB})`
-      : `OP: CMP (A[${idxA}]:${valA} > A[${idxB}]:${valB}) = ${
-          valA > valB ? 'TRUE' : 'FALSE'
-        }`;
+      : `OP: CMP (A[${idxA}]:${valA} > A[${idxB}]:${valB}) = ${valA > valB ? 'TRUE' : 'FALSE'
+      }`;
 
   const swapArcFront = useMemo(() => {
     if (mode !== 'swap') return [];
@@ -914,12 +923,12 @@ function SceneContents() {
         activeStructureOp !== 'sll-find-middle' &&
         activeStructureOp !== 'cll-cycle' &&
         activeStructureOp !== 'sll-reverse' && (
-        <TechnicalComparisonCallout
-          fromObj={comparePair.a}
-          toObj={comparePair.b}
-          mode="compare"
-        />
-      )}
+          <TechnicalComparisonCallout
+            fromObj={comparePair.a}
+            toObj={comparePair.b}
+            mode="compare"
+          />
+        )}
       {swapPair && (
         <TechnicalComparisonCallout
           fromObj={swapPair.a}
@@ -983,8 +992,10 @@ export function BlenderViewport() {
   const showSortedResultLine =
     previewScene === 'array' &&
     activeMetadata.category === 'sorting' &&
+    currentSnapshot.hasArrayWrites &&
     currentSnapshot.isDone &&
     currentArrayValues.length > 0;
+  const scalarEntries = Object.entries(currentSnapshot.scalars ?? {}).slice(0, 6);
 
   return (
     <div className="viewport-container">
@@ -1025,9 +1036,39 @@ export function BlenderViewport() {
               <span>
                 {currentSnapshot.callStack
                   .slice(-3)
-                  .map((f) => `${f.fn}(${f.args.join(',')})`)
+                  .map((f) => {
+                    const ret = f.returnValue !== undefined ? `=${String(f.returnValue)}` : '';
+                    return `${f.fn}(${f.args.join(',')})${ret}`;
+                  })
                   .join(' → ')}
               </span>
+            </div>
+          )}
+
+          {scalarEntries.length > 0 && (
+            <div className="stitch-hud-pill telemetry" role="status">
+              <span className="hud-scene-name">VARS:</span>
+              <span>
+                {scalarEntries
+                  .map(([k, v]) => `${k}=${typeof v === 'string' ? `"${v}"` : String(v)}`)
+                  .join(' | ')}
+              </span>
+            </div>
+          )}
+
+          {currentSnapshot.coutOutput && (
+            <div className="stitch-hud-pill telemetry" role="status">
+              <span className="hud-scene-name">STDOUT:</span>
+              <span className="green">
+                {currentSnapshot.coutOutput.split('\n').slice(-1)[0]}
+              </span>
+            </div>
+          )}
+
+          {currentSnapshot.truncatedReason && (
+            <div className="stitch-hud-pill telemetry" role="alert">
+              <span className="hud-scene-name">WARNING:</span>
+              <span>{currentSnapshot.truncatedReason}</span>
             </div>
           )}
         </div>

@@ -123,57 +123,57 @@ const STRUCTURE_CARDS: {
   metaTag: string;
   icon: string;
 }[] = [
-  { id: 'array', name: 'Array', cppType: 'Array<int>', metaTag: '1D • Fixed', icon: '{}' },
-  {
-    id: 'linked-list',
-    name: 'Linked List',
-    cppType: 'List<Node*>',
-    metaTag: 'Heap • Ptr',
-    icon: '⊶⊷',
-  },
-  { id: 'stack', name: 'Stack', cppType: 'Stack<int>', metaTag: 'LIFO • Top', icon: '☰' },
-  {
-    id: 'queue',
-    name: 'Queue & Deque',
-    cppType: 'Queue<int>',
-    metaTag: 'FIFO • Ring',
-    icon: '⇥',
-  },
-  {
-    id: 'bst',
-    name: 'Tree (BST / AVL)',
-    cppType: 'BSTNode<int>',
-    metaTag: '2-Child • Bal',
-    icon: '⑂',
-  },
-  {
-    id: 'heap',
-    name: 'Binary Heap',
-    cppType: 'MaxHeap<int>',
-    metaTag: 'Complete • PQ',
-    icon: '△',
-  },
-  {
-    id: 'graph',
-    name: 'Graph',
-    cppType: 'Graph<V,E>',
-    metaTag: 'Adj • Weight',
-    icon: '◈',
-  },
-  {
-    id: 'hash-table',
-    name: 'Hash Table',
-    cppType: 'HashMap<K,V>',
-    metaTag: 'Mod • Probe',
-    icon: '#',
-  },
-];
+    { id: 'array', name: 'Array', cppType: 'Array<int>', metaTag: '1D • Fixed', icon: '{}' },
+    {
+      id: 'linked-list',
+      name: 'Linked List',
+      cppType: 'List<Node*>',
+      metaTag: 'Heap • Ptr',
+      icon: '⊶⊷',
+    },
+    { id: 'stack', name: 'Stack', cppType: 'Stack<int>', metaTag: 'LIFO • Top', icon: '☰' },
+    {
+      id: 'queue',
+      name: 'Queue & Deque',
+      cppType: 'Queue<int>',
+      metaTag: 'FIFO • Ring',
+      icon: '⇥',
+    },
+    {
+      id: 'bst',
+      name: 'Tree (BST / AVL)',
+      cppType: 'BSTNode<int>',
+      metaTag: '2-Child • Bal',
+      icon: '⑂',
+    },
+    {
+      id: 'heap',
+      name: 'Binary Heap',
+      cppType: 'MaxHeap<int>',
+      metaTag: 'Complete • PQ',
+      icon: '△',
+    },
+    {
+      id: 'graph',
+      name: 'Graph',
+      cppType: 'Graph<V,E>',
+      metaTag: 'Adj • Weight',
+      icon: '◈',
+    },
+    {
+      id: 'hash-table',
+      name: 'Hash Table',
+      cppType: 'HashMap<K,V>',
+      metaTag: 'Mod • Probe',
+      icon: '#',
+    },
+  ];
 
 const CUSTOM_CODE_TEMPLATES: { label: string; fileName: string; code: string }[] = [
   {
     label: 'Custom Swap',
     fileName: 'custom_sort.cpp',
-    code: `// Write custom C++ or JS loops, comparisons & swaps!
+    code: `// Write custom C++ loops, comparisons & swaps!
 int main() {
   int arr[] = { 65, 18, 84, 32, 47, 12 };
   int n = 6;
@@ -259,6 +259,10 @@ export function App() {
   const playbackSpeed = useViewportStore((s) => s.playbackSpeed);
   const operationHistory = useViewportStore((s) => s.operationHistory);
   const hasPendingOperationRun = useViewportStore((s) => s.hasPendingOperationRun);
+  const customCodeError = useViewportStore((s) => s.customCodeError);
+  const isRunningCustomCode = useViewportStore((s) => s.isRunningCustomCode);
+  const clearCustomCodeError = useViewportStore((s) => s.clearCustomCodeError);
+  const runCustomCodeAsync = useViewportStore((s) => s.runCustomCodeAsync);
 
   const togglePlay = useViewportStore((s) => s.togglePlay);
   const stepForward = useViewportStore((s) => s.stepForward);
@@ -274,7 +278,6 @@ export function App() {
   const runStructureOperationNow = useViewportStore((s) => s.runStructureOperationNow);
   const selectCorpusFile = useViewportStore((s) => s.selectCorpusFile);
   const previewCustomCode = useViewportStore((s) => s.previewCustomCode);
-  const runCustomCodeNow = useViewportStore((s) => s.runCustomCodeNow);
 
   const [structPickerOpen, setStructPickerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<StitchCategoryTab | null>(null);
@@ -331,9 +334,9 @@ export function App() {
       operationHistory.length === 0
         ? 0
         : Math.min(
-            totalPasses,
-            Math.max(1, Math.ceil((currentStep / Math.max(1, totalSteps)) * totalPasses)),
-          );
+          totalPasses,
+          Math.max(1, Math.ceil((currentStep / Math.max(1, totalSteps)) * totalPasses)),
+        );
     return {
       comparisons: String(comparisons).padStart(2, '0'),
       swaps: String(swaps).padStart(2, '0'),
@@ -389,14 +392,25 @@ export function App() {
   };
 
   // Auto-scroll the code viewer so the currently running line remains centered/visible
+  // on every playback action (play, pause, next, previous, scrub, speed change).
   useEffect(() => {
-    if (activeLineRef.current) {
+    if (
+      activeLineRef.current &&
+      typeof activeLineRef.current.scrollIntoView === 'function'
+    ) {
       activeLineRef.current.scrollIntoView({
         block: 'nearest',
         behavior: 'smooth',
       });
     }
-  }, [currentSnapshot.activeLine, detailsOpen]);
+  }, [
+    currentSnapshot.activeLine,
+    currentStep,
+    isPlaying,
+    playbackSpeed,
+    detailsOpen,
+    uiMode,
+  ]);
 
   const selectedArrayAction = activeOperation
     ? (ARRAY_GUIDE_ACTIONS.find((a) => a.id === activeOperation) ?? null)
@@ -573,18 +587,18 @@ export function App() {
     activeTab === null
       ? ARRAY_GUIDE_ACTIONS
       : ARRAY_GUIDE_ACTIONS.filter((a) =>
-          activeTab === 'Walk' ? a.tab === 'Sort' : a.tab === activeTab,
-        );
+        activeTab === 'Walk' ? a.tab === 'Sort' : a.tab === activeTab,
+      );
   const filteredStructActions =
     activeTab === null
       ? STRUCTURE_OP_CATALOG.filter((a) => a.scene === previewScene)
       : STRUCTURE_OP_CATALOG.filter(
-          (a) =>
-            a.scene === previewScene &&
-            (activeTab === 'Walk'
-              ? a.group === 'Sort' || a.group === 'Find'
-              : mapGroupToTab(a.group) === activeTab),
-        );
+        (a) =>
+          a.scene === previewScene &&
+          (activeTab === 'Walk'
+            ? a.group === 'Sort' || a.group === 'Find'
+            : mapGroupToTab(a.group) === activeTab),
+      );
   const displayedStructActions =
     filteredStructActions.length > 0
       ? filteredStructActions
@@ -791,9 +805,8 @@ export function App() {
 
       {/* 2. MAIN WORKSPACE AREA */}
       <div
-        className={`stitch-workspace ${
-          showRightDrawer ? 'with-drawer' : 'no-drawer'
-        }`}
+        className={`stitch-workspace ${showRightDrawer ? 'with-drawer' : 'no-drawer'
+          }`}
         style={
           showRightDrawer
             ? { gridTemplateColumns: `248px 1fr ${rightDrawerWidth}px 32px` }
@@ -856,9 +869,8 @@ export function App() {
                       <button
                         key={card.id}
                         type="button"
-                        className={`st-struct-option ${
-                          previewScene === card.id ? 'selected' : ''
-                        }`}
+                        className={`st-struct-option ${previewScene === card.id ? 'selected' : ''
+                          }`}
                         onClick={() => {
                           setPreviewScene(card.id);
                           setActiveTab(null);
@@ -899,51 +911,51 @@ export function App() {
                 <div className="st-algo-list">
                   {previewScene === 'array'
                     ? filteredArrayActions.map((item) => {
-                        const isSelected = activeOperation === item.id;
-                        return (
-                          <Screentip
-                            key={item.id}
-                            title={item.label}
-                            description={`Simulate ${item.label} in 3D. Theoretical Time Complexity: ${item.complexity}.`}
-                            placement="right"
+                      const isSelected = activeOperation === item.id;
+                      return (
+                        <Screentip
+                          key={item.id}
+                          title={item.label}
+                          description={`Simulate ${item.label} in 3D. Theoretical Time Complexity: ${item.complexity}.`}
+                          placement="right"
+                        >
+                          <button
+                            type="button"
+                            className={`st-algo-row ${isSelected ? 'active' : ''}`}
+                            onClick={() => selectArrayOperation(item.id)}
                           >
-                            <button
-                              type="button"
-                              className={`st-algo-row ${isSelected ? 'active' : ''}`}
-                              onClick={() => selectArrayOperation(item.id)}
-                            >
-                              <span className="st-algo-name">
-                                {isSelected && <i className="st-blue-dot" />}
-                                {item.label}
-                              </span>
-                              <code className="st-algo-badge">{item.complexity}</code>
-                            </button>
-                          </Screentip>
-                        );
-                      })
+                            <span className="st-algo-name">
+                              {isSelected && <i className="st-blue-dot" />}
+                              {item.label}
+                            </span>
+                            <code className="st-algo-badge">{item.complexity}</code>
+                          </button>
+                        </Screentip>
+                      );
+                    })
                     : displayedStructActions.map((item) => {
-                        const isSelected = activeStructureOp === item.id;
-                        return (
-                          <Screentip
-                            key={item.id}
-                            title={item.label}
-                            description={`Select ${item.label} (Big-O time complexity ${item.timeComplexity}), then click Run.`}
-                            placement="right"
+                      const isSelected = activeStructureOp === item.id;
+                      return (
+                        <Screentip
+                          key={item.id}
+                          title={item.label}
+                          description={`Select ${item.label} (Big-O time complexity ${item.timeComplexity}), then click Run.`}
+                          placement="right"
+                        >
+                          <button
+                            type="button"
+                            className={`st-algo-row ${isSelected ? 'active' : ''}`}
+                            onClick={() => selectStructureOperation(item.id)}
                           >
-                            <button
-                              type="button"
-                              className={`st-algo-row ${isSelected ? 'active' : ''}`}
-                              onClick={() => selectStructureOperation(item.id)}
-                            >
-                              <span className="st-algo-name">
-                                {isSelected && <i className="st-blue-dot" />}
-                                {item.label}
-                              </span>
-                              <code className="st-algo-badge">{item.timeComplexity}</code>
-                            </button>
-                          </Screentip>
-                        );
-                      })}
+                            <span className="st-algo-name">
+                              {isSelected && <i className="st-blue-dot" />}
+                              {item.label}
+                            </span>
+                            <code className="st-algo-badge">{item.timeComplexity}</code>
+                          </button>
+                        </Screentip>
+                      );
+                    })}
                 </div>
               </section>
 
@@ -1016,87 +1028,87 @@ export function App() {
                       selectedArrayAction?.needsNumber ||
                       selectedStructAction?.needsNumber ||
                       selectedStructAction?.needsText) && (
-                      <div className="st-extra-params">
-                        {previewScene === 'array' && selectedArrayAction?.needsPosition && (
-                          <label className="st-mini-param">
-                            <span>{selectedArrayAction.positionLabel ?? 'Index'}</span>
-                            <input
-                              type="number"
-                              value={paramIndexText}
-                              min={
-                                selectedArrayAction.id === 'rotate' ||
-                                selectedArrayAction.id === 'rotate-right'
-                                  ? 1
-                                  : 0
-                              }
-                              max={
-                                selectedArrayAction.id === 'insert-at'
-                                  ? workingArray.length
-                                  : Math.max(0, workingArray.length - 1)
-                              }
-                              onChange={(e) => setParamIndexText(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleRunActiveOperation();
-                              }}
-                              aria-label={selectedArrayAction.positionLabel ?? 'Index'}
-                            />
-                          </label>
-                        )}
-                        {(previewScene === 'array'
-                          ? selectedArrayAction?.needsNumber
-                          : selectedStructAction?.needsNumber) && (
-                          <label className="st-mini-param">
-                            <span>
-                              {previewScene === 'array'
-                                ? (selectedArrayAction?.numberLabel ?? 'Value')
-                                : (selectedStructAction?.numberLabel ?? 'Value')}
-                            </span>
-                            <input
-                              type="number"
-                              value={paramValueText}
-                              min={selectedStructAction?.id === 'recursion-factorial' ? 1 : undefined}
-                              max={selectedStructAction?.id === 'recursion-factorial' ? 6 : undefined}
-                              onChange={(e) => setParamValueText(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleRunActiveOperation();
-                              }}
-                              aria-label={
-                                previewScene === 'array'
-                                  ? (selectedArrayAction?.numberLabel ?? 'Value')
-                                  : (selectedStructAction?.numberLabel ?? 'Value')
-                              }
-                            />
-                          </label>
-                        )}
-                        {previewScene !== 'array' && selectedStructAction?.needsText && (
-                          <label className="st-mini-param">
-                            <span>{selectedStructAction.textLabel ?? 'Expression'}</span>
-                            <input
-                              type="text"
-                              value={
-                                selectedStructAction.id === 'recursion-hanoi'
-                                  ? hanoiDisksText
-                                  : paramText
-                              }
-                              placeholder={
-                                selectedStructAction.id === 'recursion-hanoi'
-                                  ? '10, 20, 30'
-                                  : '{[()]}'
-                              }
-                              onChange={(e) =>
-                                selectedStructAction.id === 'recursion-hanoi'
-                                  ? setHanoiDisksText(e.target.value)
-                                  : setParamText(e.target.value)
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleRunActiveOperation();
-                              }}
-                              aria-label={selectedStructAction.textLabel ?? 'Expression'}
-                            />
-                          </label>
-                        )}
-                      </div>
-                    )}
+                        <div className="st-extra-params">
+                          {previewScene === 'array' && selectedArrayAction?.needsPosition && (
+                            <label className="st-mini-param">
+                              <span>{selectedArrayAction.positionLabel ?? 'Index'}</span>
+                              <input
+                                type="number"
+                                value={paramIndexText}
+                                min={
+                                  selectedArrayAction.id === 'rotate' ||
+                                    selectedArrayAction.id === 'rotate-right'
+                                    ? 1
+                                    : 0
+                                }
+                                max={
+                                  selectedArrayAction.id === 'insert-at'
+                                    ? workingArray.length
+                                    : Math.max(0, workingArray.length - 1)
+                                }
+                                onChange={(e) => setParamIndexText(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleRunActiveOperation();
+                                }}
+                                aria-label={selectedArrayAction.positionLabel ?? 'Index'}
+                              />
+                            </label>
+                          )}
+                          {(previewScene === 'array'
+                            ? selectedArrayAction?.needsNumber
+                            : selectedStructAction?.needsNumber) && (
+                              <label className="st-mini-param">
+                                <span>
+                                  {previewScene === 'array'
+                                    ? (selectedArrayAction?.numberLabel ?? 'Value')
+                                    : (selectedStructAction?.numberLabel ?? 'Value')}
+                                </span>
+                                <input
+                                  type="number"
+                                  value={paramValueText}
+                                  min={selectedStructAction?.id === 'recursion-factorial' ? 1 : undefined}
+                                  max={selectedStructAction?.id === 'recursion-factorial' ? 6 : undefined}
+                                  onChange={(e) => setParamValueText(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleRunActiveOperation();
+                                  }}
+                                  aria-label={
+                                    previewScene === 'array'
+                                      ? (selectedArrayAction?.numberLabel ?? 'Value')
+                                      : (selectedStructAction?.numberLabel ?? 'Value')
+                                  }
+                                />
+                              </label>
+                            )}
+                          {previewScene !== 'array' && selectedStructAction?.needsText && (
+                            <label className="st-mini-param">
+                              <span>{selectedStructAction.textLabel ?? 'Expression'}</span>
+                              <input
+                                type="text"
+                                value={
+                                  selectedStructAction.id === 'recursion-hanoi'
+                                    ? hanoiDisksText
+                                    : paramText
+                                }
+                                placeholder={
+                                  selectedStructAction.id === 'recursion-hanoi'
+                                    ? '10, 20, 30'
+                                    : '{[()]}'
+                                }
+                                onChange={(e) =>
+                                  selectedStructAction.id === 'recursion-hanoi'
+                                    ? setHanoiDisksText(e.target.value)
+                                    : setParamText(e.target.value)
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleRunActiveOperation();
+                                }}
+                                aria-label={selectedStructAction.textLabel ?? 'Expression'}
+                              />
+                            </label>
+                          )}
+                        </div>
+                      )}
                     {opError && (
                       <div
                         role="alert"
@@ -1169,7 +1181,7 @@ export function App() {
                     Upload
                     <input
                       type="file"
-                      accept=".cpp,.cc,.h,.hpp,.js,.ts"
+                      accept=".cpp,.cc,.cxx,.h,.hpp"
                       style={{ display: 'none' }}
                       onChange={(e) => {
                         const file = e.target.files?.[0];
@@ -1226,20 +1238,44 @@ export function App() {
                 <textarea
                   className="st-corpus-textarea"
                   value={customCodeText}
-                  onChange={(e) => setCustomCodeText(e.target.value)}
+                  onChange={(e) => {
+                    setCustomCodeText(e.target.value);
+                    if (customCodeError) clearCustomCodeError();
+                  }}
                   rows={13}
                   spellCheck={false}
                 />
+                {customCodeError && (
+                  <div
+                    role="alert"
+                    style={{
+                      marginBottom: 8,
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      background: 'rgba(239, 68, 68, 0.14)',
+                      border: '1px solid rgba(239, 68, 68, 0.5)',
+                      color: '#fca5a5',
+                      fontSize: '11.5px',
+                      lineHeight: 1.4,
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {customCodeError}
+                  </div>
+                )}
                 <button
                   type="button"
                   className="st-corpus-run-btn"
+                  disabled={isRunningCustomCode}
                   onClick={() => {
                     setDetailsOpen(true);
-                    runCustomCodeNow(customCodeText, customFileName);
+                    void runCustomCodeAsync(customCodeText, customFileName);
                   }}
                 >
                   <IconPlay />
-                  <span>Visualize on 3D Stage</span>
+                  <span>
+                    {isRunningCustomCode ? 'Tracing C++...' : 'Visualize on 3D Stage'}
+                  </span>
                 </button>
                 <div
                   style={{
@@ -1399,7 +1435,7 @@ export function App() {
               </div>
               <div className="code-editor-subbar">
                 <span>{displayedCodeMeta.code.length} lines</span>
-                <span>C++ / JS</span>
+                <span>C++</span>
                 {currentSnapshot.activeLine ? (
                   <span className="code-subbar-active">
                     Executing Line {currentSnapshot.activeLine}

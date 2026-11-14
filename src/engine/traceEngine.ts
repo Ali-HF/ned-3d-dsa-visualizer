@@ -18,6 +18,13 @@ export function createEmptySnapshot(): TraceStateSnapshot {
     activeVisitId: null,
     visitedOrder: [],
     callStack: [],
+    scalars: {},
+    indexPointers: {},
+    matrices: {},
+    containers: {},
+    hasArrayWrites: false,
+    coutOutput: '',
+    detectedStructure: undefined,
     truncatedReason: null,
     isDone: false,
   };
@@ -32,6 +39,32 @@ export function cloneSnapshot(snap: TraceStateSnapshot): TraceStateSnapshot {
   const nodes: TraceStateSnapshot['nodes'] = {};
   for (const [k, v] of Object.entries(snap.nodes)) {
     nodes[k] = { ...v };
+  }
+
+  const scalars: TraceStateSnapshot['scalars'] = { ...(snap.scalars ?? {}) };
+  const indexPointers: TraceStateSnapshot['indexPointers'] = {};
+  for (const [k, v] of Object.entries(snap.indexPointers ?? {})) {
+    indexPointers[k] = { ...v };
+  }
+
+  const matrices: TraceStateSnapshot['matrices'] = {};
+  for (const [k, v] of Object.entries(snap.matrices ?? {})) {
+    matrices[k] = {
+      id: v.id,
+      rows: v.rows,
+      cols: v.cols,
+      values: v.values.map((row) => [...row]),
+    };
+  }
+
+  const containers: TraceStateSnapshot['containers'] = {};
+  for (const [k, v] of Object.entries(snap.containers ?? {})) {
+    containers[k] = {
+      id: v.id,
+      kind: v.kind,
+      values: Array.isArray(v.values) ? [...v.values] : [],
+      entries: v.entries ? v.entries.map((e) => ({ ...e })) : undefined,
+    };
   }
 
   return {
@@ -52,7 +85,19 @@ export function cloneSnapshot(snap: TraceStateSnapshot): TraceStateSnapshot {
     removedId: snap.removedId,
     activeVisitId: snap.activeVisitId,
     visitedOrder: [...snap.visitedOrder],
-    callStack: snap.callStack.map((f) => ({ fn: f.fn, args: [...f.args], depth: f.depth })),
+    callStack: snap.callStack.map((f) => ({
+      fn: f.fn,
+      args: [...f.args],
+      depth: f.depth,
+      returnValue: f.returnValue,
+    })),
+    scalars,
+    indexPointers,
+    matrices,
+    containers,
+    hasArrayWrites: snap.hasArrayWrites ?? false,
+    coutOutput: typeof snap.coutOutput === 'string' ? snap.coutOutput : '',
+    detectedStructure: snap.detectedStructure,
     truncatedReason: snap.truncatedReason,
     isDone: snap.isDone,
   };
@@ -77,12 +122,70 @@ export function applyTraceEvent(
   next.stepIndex = nextStepIndex;
   next.lastEvent = event;
 
-  // Clear transient visual highlights unless this event is just a line or note annotation
-  if (event.t !== 'line' && event.t !== 'note') {
+  // Clear transient visual highlights unless this event is the immediate companion note
+  // on the same source line describing a swap, compare, set, or create action.
+  const isImmediateCompanionNote =
+    event.t === 'note' &&
+    prev.lastEvent !== null &&
+    (prev.lastEvent.t === 'swap' ||
+      prev.lastEvent.t === 'compare' ||
+      prev.lastEvent.t === 'set' ||
+      prev.lastEvent.t === 'create') &&
+    (event.line === undefined || event.line === prev.activeLine);
+
+  if (event.t !== 'line' && !isImmediateCompanionNote) {
     next.comparedRefs = null;
     next.swappedRefs = null;
     next.spawnedRef = null;
     next.removedId = null;
+  }
+
+  if (typeof event.line === 'number' && event.line > 0) {
+    next.activeLine = event.line;
+  }
+
+  if (event.scalars) {
+    next.scalars = { ...event.scalars };
+  }
+  if (event.indexPointers) {
+    const ptrs: TraceStateSnapshot['indexPointers'] = {};
+    for (const [k, v] of Object.entries(event.indexPointers)) {
+      ptrs[k] = { ...v };
+    }
+    next.indexPointers = ptrs;
+  }
+  if (event.matrices) {
+    const mats: TraceStateSnapshot['matrices'] = {};
+    for (const [k, v] of Object.entries(event.matrices)) {
+      mats[k] = {
+        id: v.id,
+        rows: v.rows,
+        cols: v.cols,
+        values: v.values.map((r) => [...r]),
+      };
+    }
+    next.matrices = mats;
+  }
+  if (event.containers) {
+    const conts: TraceStateSnapshot['containers'] = {};
+    for (const [k, v] of Object.entries(event.containers)) {
+      conts[k] = {
+        id: v.id,
+        kind: v.kind,
+        values: Array.isArray(v.values) ? [...v.values] : [],
+        entries: v.entries ? v.entries.map((e) => ({ ...e })) : undefined,
+      };
+    }
+    next.containers = conts;
+  }
+  if (typeof event.hasArrayWrites === 'boolean') {
+    next.hasArrayWrites = next.hasArrayWrites || event.hasArrayWrites;
+  }
+  if (typeof event.coutOutput === 'string') {
+    next.coutOutput = event.coutOutput;
+  }
+  if (event.detectedStructure) {
+    next.detectedStructure = event.detectedStructure;
   }
 
   switch (event.t) {
@@ -122,6 +225,9 @@ export function applyTraceEvent(
         }
         next.arrays[id].values[index] = event.value;
         next.spawnedRef = { id, index };
+        if (event.isInit === false) {
+          next.hasArrayWrites = true;
+        }
       } else if (next.nodes[id]) {
         next.nodes[id].value = event.value;
         next.spawnedRef = { id };
@@ -150,6 +256,7 @@ export function applyTraceEvent(
         const valB = next.arrays[b.id].values[b.index] ?? null;
         next.arrays[a.id].values[a.index] = valB;
         next.arrays[b.id].values[b.index] = valA;
+        next.hasArrayWrites = true;
       } else if (next.nodes[a.id] && next.nodes[b.id]) {
         const valA = next.nodes[a.id].value;
         next.nodes[a.id].value = next.nodes[b.id].value;

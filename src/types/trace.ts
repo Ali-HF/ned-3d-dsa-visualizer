@@ -9,21 +9,64 @@
 export type Ref = { id: string; index?: number };
 export type Primitive = number | string | boolean | null;
 
+export interface IndexPointerState {
+  name?: string;
+  arrayId: string;
+  index: number;
+}
+
+export interface MatrixState {
+  id: string;
+  rows: number;
+  cols: number;
+  values: Primitive[][];
+}
+
+export interface ContainerEntry {
+  key: Primitive;
+  value: Primitive;
+}
+
+export interface ContainerState {
+  id: string;
+  kind:
+    | 'stack'
+    | 'queue'
+    | 'deque'
+    | 'priority_queue'
+    | 'list'
+    | 'map'
+    | 'unordered_map'
+    | 'string';
+  values?: Primitive[];
+  entries?: ContainerEntry[];
+}
+
+export interface RuntimeMetadataSnapshot {
+  scalars?: Record<string, Primitive>;
+  indexPointers?: Record<string, IndexPointerState>;
+  matrices?: Record<string, MatrixState>;
+  containers?: Record<string, ContainerState>;
+  hasArrayWrites?: boolean;
+  coutOutput?: string;
+  detectedStructure?: PreviewSceneKind;
+}
+
 export type TraceEvent =
-  | { t: 'line'; line: number }
-  | { t: 'create'; id: string; kind: 'array' | 'node' | 'edge'; value?: Primitive }
-  | { t: 'set'; target: Ref; value: Primitive }
-  | { t: 'compare'; a: Ref; b: Ref }
-  | { t: 'swap'; a: Ref; b: Ref }
-  | { t: 'link'; from: string; to: string; label?: string }
-  | { t: 'unlink'; from: string; to: string }
-  | { t: 'remove'; id: string }
-  | { t: 'visit'; id: string }
-  | { t: 'note'; text: string }
-  | { t: 'call'; fn: string; args: Primitive[]; depth: number }
-  | { t: 'return'; fn: string; value?: Primitive }
-  | { t: 'truncated'; reason: string }
-  | { t: 'done' };
+  | ({ t: 'line'; line: number } & RuntimeMetadataSnapshot)
+  | ({ t: 'create'; id: string; kind: 'array' | 'node' | 'edge' | 'bucket'; value?: Primitive; line?: number } & RuntimeMetadataSnapshot)
+  | ({ t: 'set'; target: Ref; value: Primitive; isInit?: boolean; line?: number } & RuntimeMetadataSnapshot)
+  | ({ t: 'compare'; a: Ref; b: Ref; line?: number } & RuntimeMetadataSnapshot)
+  | ({ t: 'swap'; a: Ref; b: Ref; line?: number } & RuntimeMetadataSnapshot)
+  | ({ t: 'link'; from: string; to: string; label?: string; line?: number } & RuntimeMetadataSnapshot)
+  | ({ t: 'unlink'; from: string; to: string; line?: number } & RuntimeMetadataSnapshot)
+  | ({ t: 'remove'; id: string; line?: number } & RuntimeMetadataSnapshot)
+  | ({ t: 'visit'; id: string; line?: number } & RuntimeMetadataSnapshot)
+  | ({ t: 'note'; text: string; line?: number } & RuntimeMetadataSnapshot)
+  | ({ t: 'call'; fn: string; args: Primitive[]; depth: number; line?: number } & RuntimeMetadataSnapshot)
+  | ({ t: 'return'; fn: string; value?: Primitive; line?: number } & RuntimeMetadataSnapshot)
+  | ({ t: 'truncated'; reason: string; line?: number } & RuntimeMetadataSnapshot)
+  | ({ t: 'done'; line?: number } & RuntimeMetadataSnapshot);
 
 /**
  * Inspectable 3D Scene Object
@@ -78,6 +121,7 @@ export interface CallStackFrame {
   fn: string;
   args: Primitive[];
   depth: number;
+  returnValue?: Primitive;
 }
 
 export interface TraceStateSnapshot {
@@ -109,6 +153,20 @@ export interface TraceStateSnapshot {
   visitedOrder: string[];
   /** Active call stack frames */
   callStack: CallStackFrame[];
+  /** Live scalar variables in current scope */
+  scalars: Record<string, Primitive>;
+  /** Scalars used as array subscripts (e.g. i, j, low, mid, high, left, right) */
+  indexPointers: Record<string, IndexPointerState>;
+  /** Active 2D matrices / vector<vector<int>> */
+  matrices: Record<string, MatrixState>;
+  /** Active STL containers (stack, queue, priority_queue, map, list, string) */
+  containers: Record<string, ContainerState>;
+  /** Whether any array cell has been modified after initialization (set/swap) */
+  hasArrayWrites: boolean;
+  /** Accumulated std::cout / printf output string */
+  coutOutput: string;
+  /** Auto-detected primary structure from runtime data shape */
+  detectedStructure?: PreviewSceneKind;
   /** Whether the trace was truncated due to step limits */
   truncatedReason: string | null;
   /** Whether execution has reached { t: 'done' } */
