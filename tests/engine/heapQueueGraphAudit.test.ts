@@ -9,56 +9,68 @@ describe('Library Deep Audit Tests: Heap Dual Rendering, Queue Custom Inputs & G
     for (const op of heapOps) {
       it(`renders complete binary tree nodes and no array cells for ${op}`, () => {
         const store = useViewportStore.getState();
-        store.setCustomArray([50, 30, 20, 15, 10]);
-        store.runStructureOperationNow(op, 40);
+        store.setDetailsOpen(true);
+        try {
+          store.setCustomArray([50, 30, 20, 15, 10]);
+          store.runStructureOperationNow(op, 40);
 
-        const totalSteps = store.timeline.totalSteps;
-        expect(totalSteps).toBeGreaterThan(1);
+          const activeTimeline = useViewportStore.getState().timeline;
+          const totalSteps = activeTimeline.totalSteps;
+          expect(totalSteps).toBeGreaterThan(1);
 
-        for (let s = 1; s <= totalSteps; s++) {
-          const snap = store.timeline.getSnapshotAt(s);
-          const objs = buildSceneObjectsForScene('heap', snap);
+          for (let s = 1; s <= totalSteps; s++) {
+            const snap = activeTimeline.getSnapshotAt(s);
+            const objs = buildSceneObjectsForScene('heap', snap);
 
-          // Heap array in snapshot
-          const heapArr = snap.arrays['arr'] ?? snap.arrays['aux'];
-          const heapSize = heapArr?.values?.length ?? 0;
+            // Heap array in snapshot
+            const heapArr = snap.arrays['arr'] ?? snap.arrays['aux'];
+            const heapSize = heapArr?.values?.length ?? 0;
 
-          if (heapSize > 0) {
-            // Stage must never be blank
-            expect(objs.length).toBeGreaterThanOrEqual(heapSize);
+            if (heapSize > 0) {
+              // Stage must never be blank
+              expect(objs.length).toBeGreaterThanOrEqual(heapSize);
 
-            // Verify array cells are removed from 3D stage (tree-only)
-            const arrayCells = objs.filter((o) => o.kind === 'array-cell');
-            expect(arrayCells.length).toBe(0);
+              // Verify array cells are removed from 3D stage (tree-only)
+              const arrayCells = objs.filter((o) => o.kind === 'array-cell');
+              expect(arrayCells.length).toBe(0);
 
-            // Verify complete binary tree nodes are present
-            const treeNodes = objs.filter((o) => o.kind === 'tree-node' && o.id.startsWith('heap-node-'));
-            expect(treeNodes.length).toBe(heapSize);
+              // Verify complete binary tree nodes are present
+              const treeNodes = objs.filter((o) => o.kind === 'tree-node' && o.id.startsWith('heap-node-'));
+              expect(treeNodes.length).toBe(heapSize);
 
-            // Values must match runtime heap array exactly
-            for (let i = 0; i < heapSize; i++) {
-              expect(treeNodes[i].value).toBe(heapArr.values[i]);
+              // Values must match runtime heap array exactly
+              for (let i = 0; i < heapSize; i++) {
+                expect(treeNodes[i].value).toBe(heapArr.values[i]);
+              }
             }
           }
+        } finally {
+          store.setDetailsOpen(false);
         }
       });
     }
 
     it('ensures heap swaps highlight and animate correctly', () => {
       const store = useViewportStore.getState();
-      store.setCustomArray([90, 70, 80, 40, 50]);
-      store.runStructureOperationNow('heap-insert', 95);
+      store.setDetailsOpen(true);
+      try {
+        store.setCustomArray([90, 70, 80, 40, 50]);
+        store.runStructureOperationNow('heap-insert', 95);
 
-      let foundSwap = false;
-      for (let s = 1; s <= store.timeline.totalSteps; s++) {
-        const snap = store.timeline.getSnapshotAt(s);
-        if (snap.swappedRefs && snap.swappedRefs.length === 2) {
-          foundSwap = true;
-          // Swap must carry original executable C++ line
-          expect(snap.activeLine).toBeGreaterThan(0);
+        const activeTimeline = useViewportStore.getState().timeline;
+        let foundSwap = false;
+        for (let s = 1; s <= activeTimeline.totalSteps; s++) {
+          const snap = activeTimeline.getSnapshotAt(s);
+          if (snap.swappedRefs && snap.swappedRefs.length === 2) {
+            foundSwap = true;
+            // Swap must carry original executable C++ line
+            expect(snap.activeLine).toBeGreaterThan(0);
+          }
         }
+        expect(foundSwap).toBe(true);
+      } finally {
+        store.setDetailsOpen(false);
       }
-      expect(foundSwap).toBe(true);
     });
   });
 
@@ -72,7 +84,8 @@ describe('Library Deep Audit Tests: Heap Dual Rendering, Queue Custom Inputs & G
         store.applyCustomInputValues(inputVals);
         store.runStructureOperationNow('queue-enqueue', 99);
 
-        const snapEnd = store.timeline.getSnapshotAt(store.timeline.totalSteps);
+        const activeTimeline = useViewportStore.getState().timeline;
+        const snapEnd = activeTimeline.getSnapshotAt(activeTimeline.totalSteps);
         const objs = buildSceneObjectsForScene('queue', snapEnd);
         expect(objs.length).toBeGreaterThanOrEqual(size);
       });
@@ -83,7 +96,8 @@ describe('Library Deep Audit Tests: Heap Dual Rendering, Queue Custom Inputs & G
         store.applyCustomInputValues(inputVals);
         store.runStructureOperationNow('circular-queue', 88);
 
-        const snapEnd = store.timeline.getSnapshotAt(store.timeline.totalSteps);
+        const activeTimeline = useViewportStore.getState().timeline;
+        const snapEnd = activeTimeline.getSnapshotAt(activeTimeline.totalSteps);
         const objs = buildSceneObjectsForScene('queue', snapEnd);
         expect(objs.length).toBeGreaterThanOrEqual(size);
       });
@@ -94,7 +108,8 @@ describe('Library Deep Audit Tests: Heap Dual Rendering, Queue Custom Inputs & G
         store.applyCustomInputValues(inputVals);
         store.runStructureOperationNow('deque-ops', 77);
 
-        const snapEnd = store.timeline.getSnapshotAt(store.timeline.totalSteps);
+        const activeTimeline = useViewportStore.getState().timeline;
+        const snapEnd = activeTimeline.getSnapshotAt(activeTimeline.totalSteps);
         const objs = buildSceneObjectsForScene('queue', snapEnd);
         expect(objs.length).toBeGreaterThan(0);
       });
@@ -152,7 +167,8 @@ describe('Library Deep Audit Tests: Heap Dual Rendering, Queue Custom Inputs & G
       for (const op of graphOps) {
         const store = useViewportStore.getState();
         store.runStructureOperationNow(op);
-        const snap = store.timeline.getSnapshotAt(Math.floor(store.timeline.totalSteps / 2));
+        const activeTimeline = useViewportStore.getState().timeline;
+        const snap = activeTimeline.getSnapshotAt(Math.floor(activeTimeline.totalSteps / 2));
         const objs = buildSceneObjectsForScene('graph', snap);
 
         const nodeObjs = objs.filter((o) => o.kind === 'graph-node');

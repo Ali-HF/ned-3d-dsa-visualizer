@@ -9,12 +9,14 @@ import type {
 import { TraceTimeline } from '../engine/traceEngine';
 import {
   ARRAY_ALGORITHM_METADATA,
+  runArrayOperation,
   type AlgorithmMetadata,
   type ArrayOperationId,
 } from '../algorithms/array/arrayAlgorithms';
 import {
   STRUCTURE_OP_CATALOG,
   buildStaticStructureTrace,
+  runStructureOperation,
   type StructureOperationId,
 } from '../algorithms/structures/structureAlgorithms';
 import {
@@ -38,6 +40,31 @@ export interface QueuedOperationEntry {
   op: ArrayOperationId | StructureOperationId;
   startStep: number;
   endStep: number;
+}
+
+export type LastLibraryRun =
+  | {
+      kind: 'array';
+      op: ArrayOperationId;
+      paramIndex: number;
+      paramValue: number;
+      inputArray: number[];
+    }
+  | {
+      kind: 'structure';
+      op: StructureOperationId;
+      paramValue: number;
+      paramText?: string;
+      inputArray: number[];
+    };
+
+/**
+ * The C++ code viewer is visible in Pro mode (always-on drawer) or whenever the
+ * Details/Code drawer is open. When it is visible, Library operations replay the
+ * real corpus C++ line by line; when hidden, they use the fast visual-only traces.
+ */
+export function isCodeViewerOpen(s: { uiMode: 'kids' | 'standard' | 'pro'; detailsOpen: boolean }): boolean {
+  return s.uiMode === 'pro' || s.detailsOpen;
 }
 
 interface ViewportState {
@@ -64,7 +91,11 @@ interface ViewportState {
 
   /** Trace Playback & Operations State */
   workingArray: number[];
-  libraryInputMode: 'default' | 'dataset';
+  /**
+   * Last Library operation run (with its pre-run input), so toggling the code
+   * viewer can re-run the same operation in the other playback mode.
+   */
+  lastLibraryRun: LastLibraryRun | null;
   activeOperation: ArrayOperationId | null;
   activeStructureOp: StructureOperationId | null;
   selectedCorpusFile: string;
@@ -113,8 +144,8 @@ interface ViewportState {
   applyCustomInputValues: (values: number[]) => void;
   selectArrayOperation: (op: ArrayOperationId) => void;
   selectStructureOperation: (op: StructureOperationId) => void;
-  runOperationNow: (op: ArrayOperationId, paramIndex?: number, paramValue?: number, forceCustomValues?: boolean) => void;
-  runStructureOperationNow: (op: StructureOperationId, paramValue?: number, paramText?: string, forceCustomValues?: boolean) => void;
+  runOperationNow: (op: ArrayOperationId, paramIndex?: number, paramValue?: number) => void;
+  runStructureOperationNow: (op: StructureOperationId, paramValue?: number, paramText?: string) => void;
   selectCorpusFile: (relativePath: string) => void;
   selectAndRunCorpusFile: (relativePath: string) => void;
   previewCustomCode: (sourceCode: string, fileName?: string) => void;
@@ -848,7 +879,6 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
   wireframe: false,
 
   workingArray: INITIAL_ARRAY,
-  libraryInputMode: 'default',
   activeOperation: null,
   activeStructureOp: null,
   selectedCorpusFile: '01_arrays_and_searching/array_operations.cpp',
@@ -869,12 +899,28 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
   hasPendingOperationRun: false,
   customCodeError: null,
   isRunningCustomCode: false,
+  lastLibraryRun: null,
 
-  setUiMode: (mode) => set({ uiMode: mode }),
-  toggleUiMode: () =>
-    set((s) => ({ uiMode: s.uiMode === 'standard' ? 'pro' : 'standard' })),
-  setDetailsOpen: (open) => set({ detailsOpen: open }),
-  toggleDetailsOpen: () => set((s) => ({ detailsOpen: !s.detailsOpen })),
+  setUiMode: (mode) => {
+    const wasOpen = isCodeViewerOpen(get());
+    set({ uiMode: mode });
+    rerunLibraryOperationIfCodeViewerToggled(wasOpen);
+  },
+  toggleUiMode: () => {
+    const wasOpen = isCodeViewerOpen(get());
+    set((s) => ({ uiMode: s.uiMode === 'standard' ? 'pro' : 'standard' }));
+    rerunLibraryOperationIfCodeViewerToggled(wasOpen);
+  },
+  setDetailsOpen: (open) => {
+    const wasOpen = isCodeViewerOpen(get());
+    set({ detailsOpen: open });
+    rerunLibraryOperationIfCodeViewerToggled(wasOpen);
+  },
+  toggleDetailsOpen: () => {
+    const wasOpen = isCodeViewerOpen(get());
+    set((s) => ({ detailsOpen: !s.detailsOpen }));
+    rerunLibraryOperationIfCodeViewerToggled(wasOpen);
+  },
 
   setAppMode: (mode) =>
     set({ appMode: mode, detailsOpen: mode === 'upload' ? true : get().detailsOpen }),
@@ -889,7 +935,6 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       );
       set({
         previewScene: 'array',
-        libraryInputMode: 'default',
         activeOperation: null,
         selectedCorpusFile: '01_arrays_and_searching/array_operations.cpp',
         timeline,
@@ -905,6 +950,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
         selectedId: objs[0]?.id ?? null,
         isPlaying: false,
         operationHistory: [],
+        lastLibraryRun: null,
         hasPendingOperationRun: false,
       });
       return;
@@ -919,7 +965,6 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
 
     set({
       previewScene: scene,
-      libraryInputMode: 'default',
       activeStructureOp: null,
       activeMetadata: result.meta,
       timeline,
@@ -930,6 +975,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       sceneObjects: toObjectMap(objects),
       selectedId: objects[0]?.id ?? null,
       operationHistory: [],
+      lastLibraryRun: null,
       hasPendingOperationRun: false,
     });
   },
@@ -1066,7 +1112,6 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
     set({
       previewScene: 'array',
       workingArray: arr,
-      libraryInputMode: 'dataset',
       timeline,
       currentStep: timeline.totalSteps,
       totalSteps: timeline.totalSteps,
@@ -1075,6 +1120,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       selectedId: objs[0]?.id ?? null,
       isPlaying: false,
       operationHistory: [],
+      lastLibraryRun: null,
     });
   },
 
@@ -1090,7 +1136,6 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       const { timeline, snapshot, objs } = buildStaticArrayState(arr);
       set({
         workingArray: arr,
-        libraryInputMode: 'dataset',
         timeline,
         currentStep: timeline.totalSteps,
         totalSteps: timeline.totalSteps,
@@ -1099,6 +1144,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
         selectedId: objs[0]?.id ?? null,
         isPlaying: false,
         operationHistory: [],
+        lastLibraryRun: null,
         hasPendingOperationRun: state.activeOperation !== null,
       });
       return;
@@ -1112,7 +1158,6 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
     const objs = buildSceneObjectsForScene(state.previewScene, snapshot);
     set({
       workingArray: arr,
-      libraryInputMode: 'dataset',
       timeline,
       currentStep: startStep,
       totalSteps: timeline.totalSteps,
@@ -1121,6 +1166,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       selectedId: objs[0]?.id ?? null,
       isPlaying: false,
       operationHistory: [],
+      lastLibraryRun: null,
       hasPendingOperationRun: state.activeStructureOp !== null,
     });
   },
@@ -1131,7 +1177,6 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
     const corpusLines = getCorpusCodeLines(corpusPath, baseMeta.code);
     set({
       activeOperation: op,
-      libraryInputMode: 'default',
       selectedCorpusFile: corpusPath,
       activeMetadata: {
         ...baseMeta,
@@ -1145,13 +1190,12 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
   selectStructureOperation: (op) => {
     const def = STRUCTURE_OP_CATALOG.find((item) => item.id === op);
     if (!def) {
-      set({ activeStructureOp: op, libraryInputMode: 'default', isPlaying: false, hasPendingOperationRun: true });
+      set({ activeStructureOp: op, isPlaying: false, hasPendingOperationRun: true });
       return;
     }
     const corpusLines = getCorpusCodeLines(def.corpusPath, []);
     set((s) => ({
       activeStructureOp: op,
-      libraryInputMode: 'default',
       selectedCorpusFile: def.corpusPath,
       activeMetadata: {
         ...s.activeMetadata,
@@ -1165,11 +1209,55 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
     }));
   },
 
-  runOperationNow: (op, paramIndex = 0, paramValue = 42, forceCustomValues = false) => {
+  runOperationNow: (op, paramIndex = 0, paramValue = 42) => {
     const state = get();
-    const isDatasetMode = forceCustomValues || state.libraryInputMode === 'dataset';
-    const baseArr = isDatasetMode ? state.workingArray : [];
-    const result = runCorpusArrayOperation(op, baseArr, paramIndex, paramValue);
+    const inputArray = [...state.workingArray];
+    const lastLibraryRun: LastLibraryRun = {
+      kind: 'array',
+      op,
+      paramIndex,
+      paramValue,
+      inputArray,
+    };
+
+    // Code viewer hidden: fast visual-only trace (no line-by-line C++ stepping)
+    if (!isCodeViewerOpen(state)) {
+      const fast = runArrayOperation(op, inputArray, paramIndex, paramValue, true);
+      const corpusPath = ARRAY_CORPUS_MAP[op];
+      const corpusLines = getCorpusCodeLines(corpusPath, fast.meta.code);
+      const fastTimeline = new TraceTimeline(fast.events);
+      const fastStart = Math.min(inputArray.length + 2, fastTimeline.totalSteps);
+      const fastSnapshot = fastTimeline.getSnapshotAt(fastStart);
+      const fastObjs = buildArraySceneObjectsFromSnapshot(fastSnapshot);
+      set({
+        previewScene: 'array',
+        activeOperation: op,
+        selectedCorpusFile: corpusPath,
+        activeMetadata: { ...fast.meta, code: corpusLines },
+        workingArray: fast.finalArray,
+        timeline: fastTimeline,
+        currentStep: fastStart,
+        totalSteps: fastTimeline.totalSteps,
+        currentSnapshot: fastSnapshot,
+        sceneObjects: toObjectMap(fastObjs),
+        selectedId: fastObjs[0]?.id ?? null,
+        isPlaying: state.autoPlayOnRun,
+        hasPendingOperationRun: false,
+        lastLibraryRun,
+        operationHistory: [
+          {
+            uid: `op-${Date.now()}`,
+            label: formatOperationLabel(op, paramIndex, paramValue),
+            op,
+            startStep: fastStart,
+            endStep: fastTimeline.totalSteps,
+          },
+        ],
+      });
+      return;
+    }
+
+    const result = runCorpusArrayOperation(op, inputArray, paramIndex, paramValue);
     const timeline = new TraceTimeline(result.events);
     let startStep = Math.max(1, Math.min(result.operationStartStep, timeline.totalSteps));
     let snapshot = timeline.getSnapshotAt(startStep);
@@ -1201,6 +1289,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       selectedId: objs[0]?.id ?? null,
       isPlaying: state.autoPlayOnRun,
       hasPendingOperationRun: false,
+      lastLibraryRun,
       operationHistory: [
         {
           uid: `op-${Date.now()}`,
@@ -1213,11 +1302,60 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
     });
   },
 
-  runStructureOperationNow: (op, paramValue = 40, paramText, forceCustomValues = false) => {
+  runStructureOperationNow: (op, paramValue = 40, paramText) => {
     const state = get();
-    const isDatasetMode = forceCustomValues || state.libraryInputMode === 'dataset';
-    const baseArr = isDatasetMode ? state.workingArray : [];
-    const result = runCorpusStructureOperation(op, baseArr, paramValue, paramText);
+    const inputArray = [...state.workingArray];
+    const lastLibraryRun: LastLibraryRun = {
+      kind: 'structure',
+      op,
+      paramValue,
+      paramText,
+      inputArray,
+    };
+
+    // Code viewer hidden: fast visual-only trace (no line-by-line C++ stepping)
+    if (!isCodeViewerOpen(state)) {
+      const fast = runStructureOperation(op, paramValue, inputArray, paramText);
+      const def = STRUCTURE_OP_CATALOG.find((item) => item.id === op);
+      const corpusPath = def?.corpusPath ?? state.selectedCorpusFile;
+      const corpusLines = getCorpusCodeLines(corpusPath, fast.meta.code);
+      const fastTimeline = new TraceTimeline(fast.events);
+      const firstNoteIdx = fast.events.findIndex((e) => e.t === 'note');
+      const fastStart = firstNoteIdx >= 0 ? firstNoteIdx + 1 : 1;
+      const fastSnapshot = fastTimeline.getSnapshotAt(fastStart);
+      const fastObjs = buildSceneObjectsForScene(fast.scene, fastSnapshot);
+      set({
+        previewScene: fast.scene,
+        activeStructureOp: op,
+        selectedCorpusFile: corpusPath,
+        activeMetadata: {
+          ...fast.meta,
+          code: corpusLines.length > 0 ? corpusLines : fast.meta.code,
+        },
+        workingArray: fast.updatedValues ?? inputArray,
+        timeline: fastTimeline,
+        currentStep: fastStart,
+        totalSteps: fastTimeline.totalSteps,
+        currentSnapshot: fastSnapshot,
+        sceneObjects: toObjectMap(fastObjs),
+        selectedId: fastObjs[0]?.id ?? null,
+        isPlaying: state.autoPlayOnRun,
+        hasPendingOperationRun: false,
+        lastLibraryRun,
+        operationHistory: [
+          {
+            uid: `op-${Date.now()}`,
+            label: fast.meta.title,
+            op,
+            startStep: fastStart,
+            endStep: fastTimeline.totalSteps,
+          },
+        ],
+      });
+      return;
+    }
+
+    const result = runCorpusStructureOperation(op, inputArray, paramValue, paramText);
     const timeline = new TraceTimeline(result.events);
     let startStep = Math.max(1, Math.min(result.operationStartStep, timeline.totalSteps));
     let snapshot = timeline.getSnapshotAt(startStep);
@@ -1249,6 +1387,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       selectedId: objs[0]?.id ?? null,
       isPlaying: state.autoPlayOnRun,
       hasPendingOperationRun: false,
+      lastLibraryRun,
       operationHistory: [
         {
           uid: `op-${Date.now()}`,
@@ -1268,7 +1407,6 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
     const lines = getCorpusCodeLines(relativePath, get().activeMetadata.code);
     set((s) => ({
       selectedCorpusFile: relativePath,
-      libraryInputMode: 'default',
       activeMetadata: {
         ...s.activeMetadata,
         title: `${entry.title} (${relativePath.split('/')[1]})`,
@@ -1313,7 +1451,6 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       set({
         previewScene: entry.scene,
         selectedCorpusFile: relativePath,
-        libraryInputMode: 'default',
         activeOperation: entry.scene === 'array' ? (entry.operationId as ArrayOperationId) : null,
         activeStructureOp:
           entry.scene !== 'array' ? (entry.operationId as StructureOperationId) : null,
@@ -1332,6 +1469,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
         isPlaying: state.autoPlayOnRun,
         hasPendingOperationRun: false,
         customCodeError: null,
+        lastLibraryRun: null,
       });
     } catch {
       if (entry.scene === 'array') {
@@ -1394,6 +1532,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
         isPlaying: state.autoPlayOnRun,
         hasPendingOperationRun: false,
         customCodeError: null,
+        lastLibraryRun: null,
         isRunningCustomCode: false,
         detailsOpen: true,
       });
@@ -1443,6 +1582,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
         isPlaying: get().autoPlayOnRun,
         hasPendingOperationRun: false,
         customCodeError: null,
+        lastLibraryRun: null,
         isRunningCustomCode: false,
         detailsOpen: true,
       });
@@ -1485,6 +1625,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       totalSteps: timeline.totalSteps,
       currentSnapshot: snapshot,
       sceneObjects: toObjectMap(objs),
+      lastLibraryRun: null,
       operationHistory: [
         ...state.operationHistory,
         {
@@ -1502,3 +1643,37 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
     get().setCustomArray([42, 17, 68, 29, 84, 12]);
   },
 }));
+
+/**
+ * When the code viewer is opened or closed while a Library operation is loaded,
+ * re-run that same operation (same input values and params) in the other mode:
+ * - code viewer open  → real corpus C++ trace, stepping line by line with highlights
+ * - code viewer closed → fast visual-only trace
+ * Playback state is carried over (playing keeps playing, finished stays finished).
+ */
+function rerunLibraryOperationIfCodeViewerToggled(wasOpen: boolean): void {
+  const state = useViewportStore.getState();
+  const isOpen = isCodeViewerOpen(state);
+  if (wasOpen === isOpen) return;
+  const last = state.lastLibraryRun;
+  if (!last || state.appMode !== 'library' || state.hasPendingOperationRun) return;
+  if (last.kind === 'array' ? state.activeOperation !== last.op : state.activeStructureOp !== last.op) {
+    return;
+  }
+
+  const wasPlaying = state.isPlaying;
+  const wasFinished = state.totalSteps > 0 && state.currentStep >= state.totalSteps;
+
+  useViewportStore.setState({ workingArray: [...last.inputArray] });
+  if (last.kind === 'array') {
+    state.runOperationNow(last.op, last.paramIndex, last.paramValue);
+  } else {
+    state.runStructureOperationNow(last.op, last.paramValue, last.paramText);
+  }
+
+  if (wasFinished && !wasPlaying) {
+    useViewportStore.getState().skipToEnd();
+  } else {
+    useViewportStore.setState({ isPlaying: wasPlaying });
+  }
+}

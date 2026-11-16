@@ -1,9 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { useViewportStore } from '../../src/state/useViewportStore';
 import { getCameraPoseForPreset } from '../../src/components/viewport/cameraPoses';
 
 describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
   beforeEach(() => {
+    useViewportStore.setState({
+      appMode: 'library',
+      uiMode: 'standard',
+      detailsOpen: false,
+    });
     useViewportStore.getState().setPreviewScene('bst');
   });
 
@@ -11,7 +17,7 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     const state = useViewportStore.getState();
     expect(state.previewScene).toBe('bst');
     expect(state.selectedId).toBe('bst-50');
-    expect(Object.keys(state.sceneObjects).length).toBe(7);
+    expect(Object.keys(state.sceneObjects).length).toBe(6);
   });
 
   it('switches between linked-list and live trace array scenes', () => {
@@ -389,8 +395,37 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     store.runStructureOperationNow('heap-insert', 15);
     useViewportStore.getState().skipToEnd();
     state = useViewportStore.getState();
-    expect(state.currentSnapshot.nodes['bst-50']?.value).toBe(90);
+    expect(state.currentSnapshot.nodes['heap-0']?.value).toBe(90);
     expect(state.currentSnapshot.narration).toContain('no swap is needed');
+
+    // Heap extract, build, and sort honor custom datasets of arbitrary length
+    store.setPreviewScene('heap');
+    store.applyCustomInputValues([10, 20, 30, 60, 20]);
+    state = useViewportStore.getState();
+    expect(state.currentSnapshot.nodes['heap-0']?.value).toBe(60);
+
+    store.runStructureOperationNow('heap-extract');
+    useViewportStore.getState().skipToEnd();
+    state = useViewportStore.getState();
+    expect(state.currentSnapshot.nodes['heap-0']?.value).toBe(30);
+
+    store.applyCustomInputValues([12, 45, 7, 88]);
+    store.runStructureOperationNow('heap-build');
+    useViewportStore.getState().skipToEnd();
+    state = useViewportStore.getState();
+    expect(state.currentSnapshot.nodes['heap-0']?.value).toBe(88);
+
+    store.applyCustomInputValues([12, 45, 7, 88]);
+    store.runStructureOperationNow('heap-sort');
+    useViewportStore.getState().skipToEnd();
+    state = useViewportStore.getState();
+    expect(state.workingArray).toEqual([7, 12, 45, 88]);
+
+    // Hash table linear probing uses actual key % 7 (e.g. 21 % 7 = 0, empty!)
+    store.runStructureOperationNow('hash-linear', 21);
+    useViewportStore.getState().skipToEnd();
+    state = useViewportStore.getState();
+    expect(state.currentSnapshot.arrays['arr']?.values[0]).toBe(21);
   });
 
   it('positions new head node on the left when inserting at front of linked list', () => {
@@ -558,5 +593,109 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     store.setPlaybackSpeed(2.5);
     expect(useViewportStore.getState().playbackSpeed).toBe(2.5);
     expect(useViewportStore.getState().currentSnapshot.stepIndex).toBe(midStep);
+  });
+
+  it('supports arbitrary custom datasets in BST operations and AVL rotations without padding', () => {
+    const store = useViewportStore.getState();
+    store.setPreviewScene('bst');
+
+    // 3-element custom dataset [10, 20, 50] should have exactly 3 nodes (no +12 padding)
+    store.applyCustomInputValues([10, 20, 50]);
+    let state = useViewportStore.getState();
+    expect(Object.keys(state.currentSnapshot.nodes).length).toBe(3);
+    expect(state.currentSnapshot.nodes['bst-50']?.value).toBe(20);
+    expect(state.currentSnapshot.nodes['bst-30']?.value).toBe(10);
+    expect(state.currentSnapshot.nodes['bst-70']?.value).toBe(50);
+
+    // Insert 12 into [10, 20, 50] -> right child of 10 (bst-30), preserving all 4 nodes
+    store.runStructureOperationNow('bst-insert', 12);
+    useViewportStore.getState().skipToEnd();
+    state = useViewportStore.getState();
+    expect(Object.keys(state.currentSnapshot.nodes).length).toBe(4);
+    expect(state.currentSnapshot.nodes['bst-new']?.value).toBe(12);
+    expect(
+      state.currentSnapshot.edges.some(
+        (e) => e.from === 'bst-30' && e.to === 'bst-new' && e.label === 'right',
+      ),
+    ).toBe(true);
+    expect(state.workingArray).toEqual([10, 20, 50, 12]);
+
+    // Inorder walk on [10, 20, 50, 12] visits exact 4 nodes in sorted order
+    store.runStructureOperationNow('tree-inorder');
+    useViewportStore.getState().skipToEnd();
+    state = useViewportStore.getState();
+    expect(state.currentSnapshot.narration).toContain('10, 12, 20, 50');
+
+    // Delete node 10 (has 1 child: 12) -> 12 promoted, 3 nodes remain
+    store.runStructureOperationNow('bst-delete', 10);
+    useViewportStore.getState().skipToEnd();
+    state = useViewportStore.getState();
+    expect(Object.keys(state.currentSnapshot.nodes).length).toBe(3);
+    expect(state.workingArray).toEqual([12, 20, 50]);
+
+    // 9-element custom dataset works (> 7 nodes)
+    store.applyCustomInputValues([5, 10, 15, 20, 25, 30, 35, 40, 45]);
+    state = useViewportStore.getState();
+    expect(Object.keys(state.currentSnapshot.nodes).length).toBe(9);
+    expect(Object.keys(state.sceneObjects).length).toBe(9);
+
+    // AVL rotation uses custom dataset [10, 20, 50] -> Left Rotation -> root 20
+    store.applyCustomInputValues([10, 20, 50]);
+    store.runStructureOperationNow('avl-rotation');
+    useViewportStore.getState().skipToEnd();
+    state = useViewportStore.getState();
+    expect(state.currentSnapshot.nodes['bst-50']?.value).toBe(20);
+    expect(state.currentSnapshot.nodes['bst-30']?.value).toBe(10);
+    expect(state.currentSnapshot.nodes['bst-70']?.value).toBe(50);
+    expect(state.currentSnapshot.narration).toContain('AVL Left Rotation complete');
+  });
+
+  it('uses fast visual traces when code viewer is closed and switches to line-by-line C++ tracing when opened', () => {
+    const store = useViewportStore.getState();
+    store.setPreviewScene('bst');
+    store.applyCustomInputValues([10, 20, 30, 40, 50, 60, 70]);
+
+    // 1. Code viewer closed (Standard mode, detailsOpen = false) -> fast visual trace
+    expect(useViewportStore.getState().detailsOpen).toBe(false);
+    store.runStructureOperationNow('bst-insert', 25);
+    useViewportStore.getState().skipToEnd();
+    const fastState = useViewportStore.getState();
+    const fastSteps = fastState.totalSteps;
+    expect(fastState.currentSnapshot.nodes['bst-new']?.value).toBe(25);
+
+    // 2. User clicks the code viewer button -> switches to line-by-line C++ corpus mode
+    store.toggleDetailsOpen();
+    let codeState = useViewportStore.getState();
+    expect(codeState.detailsOpen).toBe(true);
+    expect(codeState.totalSteps).toBeGreaterThan(fastSteps);
+
+    const visitedLines = new Set<number>();
+    codeState.restart();
+    while (useViewportStore.getState().currentStep < useViewportStore.getState().totalSteps) {
+      const snap = useViewportStore.getState().currentSnapshot;
+      if (snap.activeLine !== null) {
+        visitedLines.add(snap.activeLine);
+      }
+      useViewportStore.getState().stepForward();
+    }
+    expect(visitedLines.size).toBeGreaterThanOrEqual(3);
+
+    // 3. Closing code viewer switches back to the fast visual trace
+    store.setDetailsOpen(false);
+    codeState = useViewportStore.getState();
+    expect(codeState.detailsOpen).toBe(false);
+    expect(codeState.totalSteps).toBe(fastSteps);
+
+    // 4. Same behavior for Array operations (e.g., bubble-sort)
+    store.setPreviewScene('array');
+    store.applyCustomInputValues([50, 10, 40, 20]);
+    store.runOperationNow('bubble-sort');
+    const arrayFastSteps = useViewportStore.getState().totalSteps;
+    expect(useViewportStore.getState().currentSnapshot.activeLine).toBeNull();
+
+    store.toggleDetailsOpen();
+    const arrayCodeState = useViewportStore.getState();
+    expect(arrayCodeState.totalSteps).toBeGreaterThan(arrayFastSteps);
+    expect(arrayCodeState.currentSnapshot.activeLine).not.toBeNull();
   });
 });

@@ -532,32 +532,170 @@ function emitBaseStack(
   return vals;
 }
 
-function emitBaseBst(events: TraceEvent[], customValues?: number[]) {
-  let sorted = [20, 30, 40, 50, 60, 70, 85];
-  if (customValues && customValues.length >= 3) {
-    const padded = [...customValues];
-    while (padded.length < 7) {
-      padded.push((padded[padded.length - 1] ?? 50) + 12);
+interface BstNodeInfo {
+  id: string;
+  val: number;
+  left?: string;
+  right?: string;
+  parent?: string;
+  side?: 'left' | 'right';
+}
+
+const BST_SLOT_TO_ID: Record<number, string> = {
+  1: 'bst-50',
+  2: 'bst-30',
+  3: 'bst-70',
+  4: 'bst-20',
+  5: 'bst-40',
+  6: 'bst-60',
+  7: 'bst-85',
+};
+
+function emitBaseBst(
+  events: TraceEvent[],
+  customValues?: number[],
+): {
+  rootId: string;
+  nodes: Record<string, BstNodeInfo>;
+  sorted: number[];
+} {
+  const raw =
+    customValues && customValues.length >= 1
+      ? customValues.slice(0, 24)
+      : [20, 30, 40, 50, 60, 70, 85];
+  const sorted = [...raw].sort((a, b) => a - b);
+  const nodes: Record<string, BstNodeInfo> = {};
+
+  const build = (
+    lo: number,
+    hi: number,
+    slot: number,
+    parent?: string,
+    side?: 'left' | 'right',
+  ): string | undefined => {
+    if (lo > hi) return undefined;
+    let mid = Math.floor((lo + hi) / 2);
+    // Keep equal values in the right subtree so val < node.val ? left : right always holds
+    while (mid > lo && sorted[mid - 1] === sorted[mid]) {
+      mid--;
     }
-    sorted = padded.slice(0, 7).sort((a, b) => a - b);
+    const id = BST_SLOT_TO_ID[slot] ?? `bst-n${slot}`;
+    const node: BstNodeInfo = {
+      id,
+      val: sorted[mid],
+      parent,
+      side,
+    };
+    nodes[id] = node;
+    events.push({ t: 'create', id, kind: 'node', value: node.val });
+    if (parent && side) {
+      events.push({ t: 'link', from: parent, to: id, label: side });
+    }
+    node.left = build(lo, mid - 1, slot * 2, id, 'left');
+    node.right = build(mid + 1, hi, slot * 2 + 1, id, 'right');
+    return id;
+  };
+
+  const rootId = build(0, sorted.length - 1, 1)!;
+  return { rootId, nodes, sorted };
+}
+
+function heapId(idx: number): string {
+  return `heap-${idx}`;
+}
+
+function buildMaxHeapArray(values: number[]): number[] {
+  const arr = [...values];
+  const n = arr.length;
+  for (let start = Math.floor(n / 2) - 1; start >= 0; start--) {
+    let idx = start;
+    while (true) {
+      const left = 2 * idx + 1;
+      const right = 2 * idx + 2;
+      let largest = idx;
+      if (left < n && arr[left] > arr[largest]) largest = left;
+      if (right < n && arr[right] > arr[largest]) largest = right;
+      if (largest === idx) break;
+      const tmp = arr[idx];
+      arr[idx] = arr[largest];
+      arr[largest] = tmp;
+      idx = largest;
+    }
   }
-  const [v20, v30, v40, v50, v60, v70, v85] = sorted;
-  events.push(
-    { t: 'create', id: 'bst-50', kind: 'node', value: v50 },
-    { t: 'create', id: 'bst-30', kind: 'node', value: v30 },
-    { t: 'create', id: 'bst-70', kind: 'node', value: v70 },
-    { t: 'create', id: 'bst-20', kind: 'node', value: v20 },
-    { t: 'create', id: 'bst-40', kind: 'node', value: v40 },
-    { t: 'create', id: 'bst-60', kind: 'node', value: v60 },
-    { t: 'create', id: 'bst-85', kind: 'node', value: v85 },
-    { t: 'link', from: 'bst-50', to: 'bst-30', label: 'left' },
-    { t: 'link', from: 'bst-50', to: 'bst-70', label: 'right' },
-    { t: 'link', from: 'bst-30', to: 'bst-20', label: 'left' },
-    { t: 'link', from: 'bst-30', to: 'bst-40', label: 'right' },
-    { t: 'link', from: 'bst-70', to: 'bst-60', label: 'left' },
-    { t: 'link', from: 'bst-70', to: 'bst-85', label: 'right' },
-  );
-  return sorted;
+  return arr;
+}
+
+function emitCompleteBinaryTree(events: TraceEvent[], values: number[]): void {
+  for (let i = 0; i < values.length; i++) {
+    events.push({ t: 'create', id: heapId(i), kind: 'node', value: values[i] });
+  }
+  for (let i = 1; i < values.length; i++) {
+    const parent = Math.floor((i - 1) / 2);
+    events.push({
+      t: 'link',
+      from: heapId(parent),
+      to: heapId(i),
+      label: i % 2 === 1 ? 'left' : 'right',
+    });
+  }
+}
+
+function emitSiftDown(
+  events: TraceEvent[],
+  arr: number[],
+  startIdx: number,
+  heapSize: number,
+): void {
+  let idx = startIdx;
+  while (true) {
+    const left = 2 * idx + 1;
+    const right = 2 * idx + 2;
+    if (left >= heapSize) break;
+
+    let largestChild = left;
+    if (right < heapSize) {
+      events.push({
+        t: 'compare',
+        a: { id: heapId(left) },
+        b: { id: heapId(right) },
+      });
+      if (arr[right] > arr[left]) {
+        largestChild = right;
+      }
+    }
+
+    events.push(
+      { t: 'compare', a: { id: heapId(idx) }, b: { id: heapId(largestChild) } },
+      {
+        t: 'note',
+        text: `Bubble Down (siftDown): comparing ${arr[idx]} with larger child ${arr[largestChild]}.`,
+      },
+    );
+
+    if (arr[largestChild] > arr[idx]) {
+      events.push(
+        { t: 'visit', id: heapId(idx) },
+        { t: 'swap', a: { id: heapId(idx) }, b: { id: heapId(largestChild) } },
+        {
+          t: 'note',
+          text: `${arr[largestChild]} > ${arr[idx]}, so they swap places!`,
+        },
+      );
+      const tmp = arr[idx];
+      arr[idx] = arr[largestChild];
+      arr[largestChild] = tmp;
+      idx = largestChild;
+    } else {
+      events.push(
+        { t: 'visit', id: heapId(idx) },
+        {
+          t: 'note',
+          text: `${arr[idx]} ≥ children, so Max-Heap property holds at index ${idx}.`,
+        },
+      );
+      break;
+    }
+  }
 }
 
 function emitBaseGraph(events: TraceEvent[]) {
@@ -656,15 +794,16 @@ export function buildStaticStructureTrace(
     }
     case 'queue': {
       const qVals =
-        customValues && customValues.length >= 3
-          ? customValues.slice(0, 3)
+        customValues && customValues.length >= 1
+          ? customValues.slice(0, 24)
           : [10, 20, 30];
+      for (let i = 0; i < qVals.length; i++) {
+        events.push({ t: 'create', id: `q-${i}`, kind: 'node', value: qVals[i] });
+        if (i > 0) {
+          events.push({ t: 'link', from: `q-${i - 1}`, to: `q-${i}`, label: 'next' });
+        }
+      }
       events.push(
-        { t: 'create', id: 'q-0', kind: 'node', value: qVals[0] },
-        { t: 'create', id: 'q-1', kind: 'node', value: qVals[1] },
-        { t: 'create', id: 'q-2', kind: 'node', value: qVals[2] },
-        { t: 'link', from: 'q-0', to: 'q-1', label: 'next' },
-        { t: 'link', from: 'q-1', to: 'q-2', label: 'next' },
         { t: 'note', text: `Loaded Queue: ${qVals.join(' → ')} (front is ${qVals[0]}).` },
         { t: 'note', text: 'Select an operation, set Value if needed, then click Run.' },
         { t: 'done' },
@@ -672,30 +811,29 @@ export function buildStaticStructureTrace(
       break;
     }
     case 'bst': {
-      const sorted = emitBaseBst(events, customValues);
+      const { rootId, nodes, sorted } = emitBaseBst(events, customValues);
       events.push(
-        { t: 'note', text: `Loaded Binary Search Tree with root ${sorted[3]} (${sorted.join(', ')}).` },
+        {
+          t: 'note',
+          text: `Loaded Binary Search Tree with root ${nodes[rootId].val} (${sorted.join(', ')}).`,
+        },
         { t: 'note', text: 'Select an operation, set Value/Target if needed, then click Run.' },
         { t: 'done' },
       );
       break;
     }
     case 'heap': {
-      const heapVals =
-        customValues && customValues.length >= 5
-          ? [...customValues].slice(0, 5).sort((a, b) => b - a)
+      const base =
+        customValues && customValues.length >= 1
+          ? customValues.slice(0, 24)
           : [90, 70, 80, 40, 50];
+      const heapVals = buildMaxHeapArray(base);
+      emitCompleteBinaryTree(events, heapVals);
       events.push(
-        { t: 'create', id: 'bst-50', kind: 'node', value: heapVals[0] },
-        { t: 'create', id: 'bst-30', kind: 'node', value: heapVals[1] },
-        { t: 'create', id: 'bst-70', kind: 'node', value: heapVals[2] },
-        { t: 'create', id: 'bst-20', kind: 'node', value: heapVals[3] },
-        { t: 'create', id: 'bst-40', kind: 'node', value: heapVals[4] },
-        { t: 'link', from: 'bst-50', to: 'bst-30', label: 'left' },
-        { t: 'link', from: 'bst-50', to: 'bst-70', label: 'right' },
-        { t: 'link', from: 'bst-30', to: 'bst-20', label: 'left' },
-        { t: 'link', from: 'bst-30', to: 'bst-40', label: 'right' },
-        { t: 'note', text: `Loaded Max-Heap with root max ${heapVals[0]}.` },
+        {
+          t: 'note',
+          text: `Loaded Max-Heap with root max ${heapVals[0]} (${heapVals.join(', ')}).`,
+        },
         { t: 'note', text: 'Select an operation, set Value if needed, then click Run.' },
         { t: 'done' },
       );
@@ -1518,25 +1656,28 @@ export function runStructureOperation(
     // ==========================================
     case 'queue-enqueue': {
       const qVals =
-        customValues && customValues.length >= 3
-          ? customValues.slice(0, 3)
+        customValues && customValues.length >= 1
+          ? customValues.slice(0, 23)
           : [10, 20, 30];
       const val = Number.isFinite(paramValue) ? paramValue : 50;
       updatedValues = [...qVals, val];
+      for (let i = 0; i < qVals.length; i++) {
+        events.push({ t: 'create', id: `q-${i}`, kind: 'node', value: qVals[i] });
+        if (i > 0) {
+          events.push({ t: 'link', from: `q-${i - 1}`, to: `q-${i}`, label: 'next' });
+        }
+      }
+      const newId = `q-${qVals.length}`;
+      const prevRearId = `q-${qVals.length - 1}`;
       events.push(
-        { t: 'create', id: 'q-0', kind: 'node', value: qVals[0] },
-        { t: 'create', id: 'q-1', kind: 'node', value: qVals[1] },
-        { t: 'create', id: 'q-2', kind: 'node', value: qVals[2] },
-        { t: 'link', from: 'q-0', to: 'q-1', label: 'next' },
-        { t: 'link', from: 'q-1', to: 'q-2', label: 'next' },
         {
           t: 'note',
-          text: `Queue has ${qVals[0]} at the FRONT and ${qVals[2]} at the BACK. Adding ${val} to the back of the line.`,
+          text: `Queue has ${qVals[0]} at the FRONT and ${qVals[qVals.length - 1]} at the BACK. Adding ${val} to the back of the line.`,
         },
         { t: 'line', line: 19 },
-        { t: 'create', id: 'q-3', kind: 'node', value: val },
-        { t: 'link', from: 'q-2', to: 'q-3', label: 'next' },
-        { t: 'visit', id: 'q-3' },
+        { t: 'create', id: newId, kind: 'node', value: val },
+        { t: 'link', from: prevRearId, to: newId, label: 'next' },
+        { t: 'visit', id: newId },
         {
           t: 'note',
           text: `Done! ${val} joined the back of the queue (First-In, First-Out).`,
@@ -1548,18 +1689,17 @@ export function runStructureOperation(
 
     case 'queue-dequeue': {
       const qVals =
-        customValues && customValues.length >= 4
-          ? customValues.slice(0, 4)
+        customValues && customValues.length >= 1
+          ? customValues.slice(0, 24)
           : [10, 20, 30, 40];
       updatedValues = qVals.slice(1);
+      for (let i = 0; i < qVals.length; i++) {
+        events.push({ t: 'create', id: `q-${i}`, kind: 'node', value: qVals[i] });
+        if (i > 0) {
+          events.push({ t: 'link', from: `q-${i - 1}`, to: `q-${i}`, label: 'next' });
+        }
+      }
       events.push(
-        { t: 'create', id: 'q-0', kind: 'node', value: qVals[0] },
-        { t: 'create', id: 'q-1', kind: 'node', value: qVals[1] },
-        { t: 'create', id: 'q-2', kind: 'node', value: qVals[2] },
-        { t: 'create', id: 'q-3', kind: 'node', value: qVals[3] },
-        { t: 'link', from: 'q-0', to: 'q-1', label: 'next' },
-        { t: 'link', from: 'q-1', to: 'q-2', label: 'next' },
-        { t: 'link', from: 'q-2', to: 'q-3', label: 'next' },
         {
           t: 'note',
           text: `${qVals[0]} is at the FRONT of the queue and has been waiting longest.`,
@@ -1567,67 +1707,112 @@ export function runStructureOperation(
         { t: 'line', line: 27 },
         { t: 'visit', id: 'q-0' },
         { t: 'note', text: `Serving ${qVals[0]} at the front of the queue.` },
-        { t: 'unlink', from: 'q-0', to: 'q-1' },
-        { t: 'remove', id: 'q-0' },
-        { t: 'visit', id: 'q-1' },
-        {
-          t: 'note',
-          text: `${qVals[0]} has left the queue! Now ${qVals[1]} is at the FRONT of the line.`,
-        },
-        { t: 'done' },
       );
+      if (qVals.length > 1) {
+        events.push({ t: 'unlink', from: 'q-0', to: 'q-1' });
+      }
+      events.push({ t: 'remove', id: 'q-0' });
+      if (qVals.length > 1) {
+        events.push(
+          { t: 'visit', id: 'q-1' },
+          {
+            t: 'note',
+            text: `${qVals[0]} has left the queue! Now ${qVals[1]} is at the FRONT of the line.`,
+          },
+        );
+      } else {
+        events.push({
+          t: 'note',
+          text: `${qVals[0]} has left the queue! The queue is now empty.`,
+        });
+      }
+      events.push({ t: 'done' });
       break;
     }
 
     case 'circular-queue': {
-      events.push(
-        { t: 'create', id: 'cq-0', kind: 'node', value: 10 },
-        { t: 'create', id: 'cq-1', kind: 'node', value: 20 },
-        { t: 'create', id: 'cq-2', kind: 'node', value: 30 },
-        { t: 'create', id: 'cq-3', kind: 'node', value: 40 },
-        { t: 'link', from: 'cq-0', to: 'cq-1', label: 'next' },
-        { t: 'link', from: 'cq-1', to: 'cq-2', label: 'next' },
-        { t: 'link', from: 'cq-2', to: 'cq-3', label: 'next' },
-        {
-          t: 'note',
-          text: 'Circular Queue: when the rear reaches the end, it wraps around to slot 0 using modulo.',
-        },
-        { t: 'visit', id: 'cq-0' },
-        { t: 'unlink', from: 'cq-0', to: 'cq-1' },
-        { t: 'remove', id: 'cq-0' },
-        { t: 'note', text: 'Dequeued 10 from slot 0, freeing up space at the start of the buffer.' },
-        { t: 'create', id: 'cq-wrap', kind: 'node', value: 99 },
-        { t: 'link', from: 'cq-3', to: 'cq-wrap', label: 'wrap % N' },
-        { t: 'link', from: 'cq-wrap', to: 'cq-1', label: 'loop' },
-        { t: 'visit', id: 'cq-wrap' },
-        {
-          t: 'note',
-          text: 'Enqueued 99! Rear wrapped around from the end back into the free slot.',
-        },
-        { t: 'done' },
-      );
+      const cqVals =
+        customValues && customValues.length >= 1
+          ? customValues.slice(0, 23)
+          : [10, 20, 30, 40];
+      const enqueueVal = Number.isFinite(paramValue) ? paramValue : 99;
+      for (let i = 0; i < cqVals.length; i++) {
+        events.push({ t: 'create', id: `cq-${i}`, kind: 'node', value: cqVals[i] });
+        if (i > 0) {
+          events.push({ t: 'link', from: `cq-${i - 1}`, to: `cq-${i}`, label: 'next' });
+        }
+      }
+      events.push({
+        t: 'note',
+        text: 'Circular Queue: when the rear reaches the end, it wraps around to slot 0 using modulo.',
+      });
+      if (cqVals.length >= 2) {
+        events.push(
+          { t: 'visit', id: 'cq-0' },
+          { t: 'unlink', from: 'cq-0', to: 'cq-1' },
+          { t: 'remove', id: 'cq-0' },
+          {
+            t: 'note',
+            text: `Dequeued ${cqVals[0]} from slot 0, freeing up space at the start of the buffer.`,
+          },
+          { t: 'create', id: 'cq-wrap', kind: 'node', value: enqueueVal },
+          { t: 'link', from: `cq-${cqVals.length - 1}`, to: 'cq-wrap', label: 'wrap % N' },
+          { t: 'link', from: 'cq-wrap', to: 'cq-1', label: 'loop' },
+          { t: 'visit', id: 'cq-wrap' },
+          {
+            t: 'note',
+            text: `Enqueued ${enqueueVal}! Rear wrapped around from the end back into the free slot.`,
+          },
+        );
+        updatedValues = [...cqVals.slice(1), enqueueVal];
+      } else {
+        events.push(
+          { t: 'create', id: 'cq-wrap', kind: 'node', value: enqueueVal },
+          { t: 'link', from: 'cq-0', to: 'cq-wrap', label: 'wrap % N' },
+          { t: 'link', from: 'cq-wrap', to: 'cq-0', label: 'loop' },
+          { t: 'visit', id: 'cq-wrap' },
+          {
+            t: 'note',
+            text: `Enqueued ${enqueueVal} into the circular buffer.`,
+          },
+        );
+        updatedValues = [...cqVals, enqueueVal];
+      }
+      events.push({ t: 'done' });
       break;
     }
 
     case 'deque-ops': {
+      const dqVals =
+        customValues && customValues.length >= 1
+          ? customValues.slice(0, 22)
+          : [20, 30];
+      const backVal = Number.isFinite(paramValue) ? paramValue : 95;
+      const frontVal = 5;
+      for (let i = 0; i < dqVals.length; i++) {
+        events.push({ t: 'create', id: `q-${i + 1}`, kind: 'node', value: dqVals[i] });
+        if (i > 0) {
+          events.push({ t: 'link', from: `q-${i}`, to: `q-${i + 1}`, label: 'next' });
+        }
+      }
+      const rearId = `q-${dqVals.length + 1}`;
+      const lastExistingId = `q-${dqVals.length}`;
+      updatedValues = [frontVal, ...dqVals, backVal];
       events.push(
-        { t: 'create', id: 'q-1', kind: 'node', value: 20 },
-        { t: 'create', id: 'q-2', kind: 'node', value: 30 },
-        { t: 'link', from: 'q-1', to: 'q-2', label: 'next' },
         {
           t: 'note',
           text: 'Double-Ended Queue (Deque): we can add or remove numbers at BOTH the front and back.',
         },
-        { t: 'create', id: 'q-0', kind: 'node', value: 5 },
+        { t: 'create', id: 'q-0', kind: 'node', value: frontVal },
         { t: 'link', from: 'q-0', to: 'q-1', label: 'front' },
         { t: 'visit', id: 'q-0' },
-        { t: 'note', text: 'Inserted 5 directly at the FRONT of the Deque.' },
-        { t: 'create', id: 'q-3', kind: 'node', value: 95 },
-        { t: 'link', from: 'q-2', to: 'q-3', label: 'rear' },
-        { t: 'visit', id: 'q-3' },
+        { t: 'note', text: `Inserted ${frontVal} directly at the FRONT of the Deque.` },
+        { t: 'create', id: rearId, kind: 'node', value: backVal },
+        { t: 'link', from: lastExistingId, to: rearId, label: 'rear' },
+        { t: 'visit', id: rearId },
         {
           t: 'note',
-          text: 'Inserted 95 at the BACK of the Deque. Deque is now: 5, 20, 30, 95.',
+          text: `Inserted ${backVal} at the BACK of the Deque. Deque is now: ${updatedValues.join(', ')}.`,
         },
         { t: 'done' },
       );
@@ -1638,19 +1823,9 @@ export function runStructureOperation(
     // BINARY TREE, BST & AVL OPERATIONS (Weeks 9, 11, 12)
     // ==========================================
     case 'bst-insert': {
-      const sorted = emitBaseBst(events, customValues);
+      const { rootId, nodes, sorted } = emitBaseBst(events, customValues);
       const val = Number.isFinite(paramValue) ? paramValue : 45;
-      updatedValues = [...sorted.slice(0, 6), val];
-
-      const treeNodes: Record<string, { val: number; left?: string; right?: string }> = {
-        'bst-50': { val: sorted[3], left: 'bst-30', right: 'bst-70' },
-        'bst-30': { val: sorted[1], left: 'bst-20', right: 'bst-40' },
-        'bst-70': { val: sorted[5], left: 'bst-60', right: 'bst-85' },
-        'bst-20': { val: sorted[0] },
-        'bst-40': { val: sorted[2] },
-        'bst-60': { val: sorted[4] },
-        'bst-85': { val: sorted[6] },
-      };
+      updatedValues = [...sorted, val];
 
       events.push(
         {
@@ -1660,16 +1835,16 @@ export function runStructureOperation(
         { t: 'line', line: 17 },
       );
 
-      let curId = 'bst-50';
+      let curId: string | undefined = rootId;
       while (curId) {
-        const node = treeNodes[curId];
+        const node: BstNodeInfo = nodes[curId];
         events.push({ t: 'visit', id: curId });
         const goLeft = val < node.val;
-        const nextId = goLeft ? node.left : node.right;
+        const nextId: string | undefined = goLeft ? node.left : node.right;
         if (nextId) {
           events.push({
             t: 'note',
-            text: `Comparing ${val} with ${node.val}: ${val} is ${goLeft ? 'smaller' : 'greater or equal'}, so go ${goLeft ? 'LEFT' : 'RIGHT'} to ${treeNodes[nextId].val}.`,
+            text: `Comparing ${val} with ${node.val}: ${val} is ${goLeft ? 'smaller' : 'greater or equal'}, so go ${goLeft ? 'LEFT' : 'RIGHT'} to ${nodes[nextId].val}.`,
           });
           curId = nextId;
         } else {
@@ -1694,31 +1869,24 @@ export function runStructureOperation(
     }
 
     case 'bst-search': {
-      const sorted = emitBaseBst(events, customValues);
-      const target = Number.isFinite(paramValue) ? paramValue : sorted[4];
-      const treeNodes: Record<string, { val: number; left?: string; right?: string }> = {
-        'bst-50': { val: sorted[3], left: 'bst-30', right: 'bst-70' },
-        'bst-30': { val: sorted[1], left: 'bst-20', right: 'bst-40' },
-        'bst-70': { val: sorted[5], left: 'bst-60', right: 'bst-85' },
-        'bst-20': { val: sorted[0] },
-        'bst-40': { val: sorted[2] },
-        'bst-60': { val: sorted[4] },
-        'bst-85': { val: sorted[6] },
-      };
+      const { rootId, nodes, sorted } = emitBaseBst(events, customValues);
+      const target = Number.isFinite(paramValue)
+        ? paramValue
+        : sorted[Math.floor(sorted.length / 2)];
 
       events.push(
         {
           t: 'note',
-          text: `Searching for ${target} in the Binary Search Tree starting at root ${sorted[3]}.`,
+          text: `Searching for ${target} in the Binary Search Tree starting at root ${nodes[rootId].val}.`,
         },
         { t: 'line', line: 26 },
       );
 
-      let curId: string | undefined = 'bst-50';
+      let curId: string | undefined = rootId;
       let steps = 0;
       let found = false;
       while (curId) {
-        const node: { val: number; left?: string; right?: string } = treeNodes[curId];
+        const node: BstNodeInfo = nodes[curId];
         steps++;
         events.push({ t: 'visit', id: curId });
         if (node.val === target) {
@@ -1734,7 +1902,7 @@ export function runStructureOperation(
         if (nextId) {
           events.push({
             t: 'note',
-            text: `${target} is ${goLeft ? 'smaller' : 'bigger'} than ${node.val}, so we go ${goLeft ? 'LEFT' : 'RIGHT'} to ${treeNodes[nextId].val}.`,
+            text: `${target} is ${goLeft ? 'smaller' : 'bigger'} than ${node.val}, so we go ${goLeft ? 'LEFT' : 'RIGHT'} to ${nodes[nextId].val}.`,
           });
         } else {
           events.push({
@@ -1755,30 +1923,20 @@ export function runStructureOperation(
     }
 
     case 'bst-delete': {
-      const sorted = emitBaseBst(events, customValues);
-      const target = Number.isFinite(paramValue) ? paramValue : sorted[1];
-      const treeNodes: Record<
-        string,
-        { val: number; left?: string; right?: string; parent?: string; side?: 'left' | 'right' }
-      > = {
-        'bst-50': { val: sorted[3], left: 'bst-30', right: 'bst-70' },
-        'bst-30': { val: sorted[1], left: 'bst-20', right: 'bst-40', parent: 'bst-50', side: 'left' },
-        'bst-70': { val: sorted[5], left: 'bst-60', right: 'bst-85', parent: 'bst-50', side: 'right' },
-        'bst-20': { val: sorted[0], parent: 'bst-30', side: 'left' },
-        'bst-40': { val: sorted[2], parent: 'bst-30', side: 'right' },
-        'bst-60': { val: sorted[4], parent: 'bst-70', side: 'left' },
-        'bst-85': { val: sorted[6], parent: 'bst-70', side: 'right' },
-      };
+      const { rootId, nodes, sorted } = emitBaseBst(events, customValues);
+      const target = Number.isFinite(paramValue)
+        ? paramValue
+        : sorted[Math.min(1, sorted.length - 1)];
 
       events.push({
         t: 'note',
         text: `Searching BST to remove node ${target}.`,
       });
 
-      let curId: string | undefined = 'bst-50';
+      let curId: string | undefined = rootId;
       let targetId: string | null = null;
       while (curId) {
-        const node: { val: number; left?: string; right?: string } = treeNodes[curId];
+        const node: BstNodeInfo = nodes[curId];
         events.push({ t: 'visit', id: curId });
         if (node.val === target) {
           targetId = curId;
@@ -1803,11 +1961,11 @@ export function runStructureOperation(
         break;
       }
 
-      const targetNode = treeNodes[targetId];
+      const targetNode = nodes[targetId];
       if (!targetNode.left && !targetNode.right) {
         events.push({
           t: 'note',
-          text: `Found leaf node ${target}. Removing it directly from parent ${targetNode.parent ? treeNodes[targetNode.parent].val : 'root'}.`,
+          text: `Found leaf node ${target}. Removing it directly from parent ${targetNode.parent ? nodes[targetNode.parent].val : 'root'}.`,
         });
         if (targetNode.parent) {
           events.push({ t: 'unlink', from: targetNode.parent, to: targetId });
@@ -1817,13 +1975,37 @@ export function runStructureOperation(
           { t: 'note', text: `Deleted leaf node ${target}. The BST remains valid!` },
           { t: 'done' },
         );
+      } else if (!targetNode.left || !targetNode.right) {
+        const onlyChildId = (targetNode.left ?? targetNode.right)!;
+        const onlyChild = nodes[onlyChildId];
+        events.push({
+          t: 'note',
+          text: `Found node ${target} with one child (${onlyChild.val}). Replacing it with its child.`,
+        });
+        if (targetNode.parent && targetNode.side) {
+          events.push(
+            { t: 'unlink', from: targetNode.parent, to: targetId },
+            { t: 'unlink', from: targetId, to: onlyChildId },
+            { t: 'remove', id: targetId },
+            { t: 'link', from: targetNode.parent, to: onlyChildId, label: targetNode.side },
+          );
+        } else {
+          events.push(
+            { t: 'unlink', from: targetId, to: onlyChildId },
+            { t: 'remove', id: targetId },
+          );
+        }
+        events.push(
+          { t: 'note', text: `Deleted node ${target} and promoted ${onlyChild.val}. The BST remains valid!` },
+          { t: 'done' },
+        );
       } else {
         // Internal node with 2 children: replace with leftmost node in right subtree (in-order successor)
-        let succId = targetNode.right!;
-        while (treeNodes[succId].left) {
-          succId = treeNodes[succId].left!;
+        let succId = targetNode.right;
+        while (nodes[succId].left) {
+          succId = nodes[succId].left!;
         }
-        const succNode = treeNodes[succId];
+        const succNode = nodes[succId];
         events.push(
           {
             t: 'note',
@@ -1831,47 +2013,59 @@ export function runStructureOperation(
           },
           { t: 'compare', a: { id: targetId }, b: { id: succId } },
           { t: 'set', target: { id: targetId }, value: succNode.val },
-          { t: 'unlink', from: succNode.parent!, to: succId },
-          { t: 'remove', id: succId },
+        );
+        if (succNode.right && succNode.parent && succNode.side) {
+          events.push(
+            { t: 'unlink', from: succId, to: succNode.right },
+            { t: 'unlink', from: succNode.parent, to: succId },
+            { t: 'remove', id: succId },
+            { t: 'link', from: succNode.parent, to: succNode.right, label: succNode.side },
+          );
+        } else {
+          events.push(
+            { t: 'unlink', from: succNode.parent!, to: succId },
+            { t: 'remove', id: succId },
+          );
+        }
+        events.push(
           {
             t: 'note',
-            text: `Copied ${succNode.val} into the node and removed old leaf. The BST remains valid!`,
+            text: `Copied ${succNode.val} into the node and removed old successor. The BST remains valid!`,
           },
           { t: 'done' },
         );
       }
       const removeIdx = sorted.indexOf(target);
       if (removeIdx >= 0) {
-        updatedValues = sorted.filter((_, idx) => idx !== removeIdx);
+        const remaining = sorted.filter((_, idx) => idx !== removeIdx);
+        updatedValues = remaining.length > 0 ? remaining : undefined;
       }
       break;
     }
 
     case 'tree-inorder': {
-      const sorted = emitBaseBst(events, customValues);
-      const order: [string, number, string][] = [
-        ['bst-20', sorted[0], `Leftmost leaf ${sorted[0]} first.`],
-        ['bst-30', sorted[1], `Then parent ${sorted[1]}.`],
-        ['bst-40', sorted[2], `Then right child ${sorted[2]}.`],
-        ['bst-50', sorted[3], `Now the main root ${sorted[3]}.`],
-        ['bst-60', sorted[4], `Left child of right subtree: ${sorted[4]}.`],
-        ['bst-70', sorted[5], `Parent of right subtree: ${sorted[5]}.`],
-        ['bst-85', sorted[6], `Rightmost leaf ${sorted[6]}.`],
-      ];
+      const { rootId, nodes } = emitBaseBst(events, customValues);
+      const visitedVals: number[] = [];
       events.push({
         t: 'note',
         text: 'Inorder Traversal (Left → Root → Right) visits a BST in ascending sorted order!',
       });
-      for (const [id, val, reason] of order) {
+      const walk = (id?: string) => {
+        if (!id) return;
+        const node = nodes[id];
+        walk(node.left);
+        visitedVals.push(node.val);
         events.push(
           { t: 'visit', id },
-          { t: 'note', text: `Visited ${val} — ${reason}` },
+          { t: 'note', text: `Visited ${node.val} (Inorder: Left → Root → Right).` },
         );
-      }
+        walk(node.right);
+      };
+      walk(rootId);
       events.push(
         {
           t: 'note',
-          text: `Inorder Traversal complete! Sorted output: ${sorted.join(', ')}.`,
+          text: `Inorder Traversal complete! Sorted output: ${visitedVals.join(', ')}.`,
         },
         { t: 'done' },
       );
@@ -1879,30 +2073,28 @@ export function runStructureOperation(
     }
 
     case 'tree-preorder': {
-      const sorted = emitBaseBst(events, customValues);
-      const order: [string, number][] = [
-        ['bst-50', sorted[3]],
-        ['bst-30', sorted[1]],
-        ['bst-20', sorted[0]],
-        ['bst-40', sorted[2]],
-        ['bst-70', sorted[5]],
-        ['bst-60', sorted[4]],
-        ['bst-85', sorted[6]],
-      ];
+      const { rootId, nodes } = emitBaseBst(events, customValues);
+      const visitedVals: number[] = [];
       events.push({
         t: 'note',
         text: 'Preorder Traversal (Root → Left → Right): visit each parent before its children.',
       });
-      for (const [id, val] of order) {
+      const walk = (id?: string) => {
+        if (!id) return;
+        const node = nodes[id];
+        visitedVals.push(node.val);
         events.push(
           { t: 'visit', id },
-          { t: 'note', text: `Visited ${val} (Preorder: Root before subtrees).` },
+          { t: 'note', text: `Visited ${node.val} (Preorder: Root before subtrees).` },
         );
-      }
+        walk(node.left);
+        walk(node.right);
+      };
+      walk(rootId);
       events.push(
         {
           t: 'note',
-          text: `Preorder Traversal complete: ${order.map((o) => o[1]).join(', ')}.`,
+          text: `Preorder Traversal complete: ${visitedVals.join(', ')}.`,
         },
         { t: 'done' },
       );
@@ -1910,30 +2102,28 @@ export function runStructureOperation(
     }
 
     case 'tree-postorder': {
-      const sorted = emitBaseBst(events, customValues);
-      const order: [string, number][] = [
-        ['bst-20', sorted[0]],
-        ['bst-40', sorted[2]],
-        ['bst-30', sorted[1]],
-        ['bst-60', sorted[4]],
-        ['bst-85', sorted[6]],
-        ['bst-70', sorted[5]],
-        ['bst-50', sorted[3]],
-      ];
+      const { rootId, nodes } = emitBaseBst(events, customValues);
+      const visitedVals: number[] = [];
       events.push({
         t: 'note',
         text: 'Postorder Traversal (Left → Right → Root): visit children before their parent.',
       });
-      for (const [id, val] of order) {
+      const walk = (id?: string) => {
+        if (!id) return;
+        const node = nodes[id];
+        walk(node.left);
+        walk(node.right);
+        visitedVals.push(node.val);
         events.push(
           { t: 'visit', id },
-          { t: 'note', text: `Visited ${val} (Postorder: children finished before parent).` },
+          { t: 'note', text: `Visited ${node.val} (Postorder: children finished before parent).` },
         );
-      }
+      };
+      walk(rootId);
       events.push(
         {
           t: 'note',
-          text: `Postorder Traversal complete: ${order.map((o) => o[1]).join(', ')}.`,
+          text: `Postorder Traversal complete: ${visitedVals.join(', ')}.`,
         },
         { t: 'done' },
       );
@@ -1941,30 +2131,28 @@ export function runStructureOperation(
     }
 
     case 'tree-levelorder': {
-      const sorted = emitBaseBst(events, customValues);
-      const order: [string, number, number][] = [
-        ['bst-50', sorted[3], 1],
-        ['bst-30', sorted[1], 2],
-        ['bst-70', sorted[5], 2],
-        ['bst-20', sorted[0], 3],
-        ['bst-40', sorted[2], 3],
-        ['bst-60', sorted[4], 3],
-        ['bst-85', sorted[6], 3],
-      ];
+      const { rootId, nodes } = emitBaseBst(events, customValues);
+      const visitedVals: number[] = [];
       events.push({
         t: 'note',
         text: 'Level-Order Traversal (BFS): visits the tree level by level from top to bottom.',
       });
-      for (const [id, val, lvl] of order) {
+      const queue: { id: string; lvl: number }[] = [{ id: rootId, lvl: 1 }];
+      while (queue.length > 0) {
+        const { id, lvl } = queue.shift()!;
+        const node = nodes[id];
+        visitedVals.push(node.val);
         events.push(
           { t: 'visit', id },
-          { t: 'note', text: `Level ${lvl}: visited node ${val}.` },
+          { t: 'note', text: `Level ${lvl}: visited node ${node.val}.` },
         );
+        if (node.left) queue.push({ id: node.left, lvl: lvl + 1 });
+        if (node.right) queue.push({ id: node.right, lvl: lvl + 1 });
       }
       events.push(
         {
           t: 'note',
-          text: `Level-Order Traversal complete: ${order.map((o) => o[1]).join(', ')}.`,
+          text: `Level-Order Traversal complete: ${visitedVals.join(', ')}.`,
         },
         { t: 'done' },
       );
@@ -1972,34 +2160,148 @@ export function runStructureOperation(
     }
 
     case 'avl-rotation': {
-      events.push(
-        { t: 'create', id: 'bst-50', kind: 'node', value: 30 },
-        { t: 'create', id: 'bst-30', kind: 'node', value: 20 },
-        { t: 'create', id: 'bst-20', kind: 'node', value: 10 },
-        { t: 'link', from: 'bst-50', to: 'bst-30', label: 'left' },
-        { t: 'link', from: 'bst-30', to: 'bst-20', label: 'left' },
-        {
-          t: 'note',
-          text: 'Inserted 30, 20, 10: tree leans heavily to the left (Left-Left imbalance, balance factor = +2).',
-        },
-        { t: 'compare', a: { id: 'bst-50' }, b: { id: 'bst-30' } },
-        {
-          t: 'note',
-          text: 'Performing an AVL Right Rotation around 30 so 20 rises up to become the balanced root!',
-        },
-        { t: 'set', target: { id: 'bst-50' }, value: 20 },
-        { t: 'set', target: { id: 'bst-30' }, value: 10 },
-        { t: 'unlink', from: 'bst-30', to: 'bst-20' },
-        { t: 'remove', id: 'bst-20' },
-        { t: 'create', id: 'bst-70', kind: 'node', value: 30 },
-        { t: 'link', from: 'bst-50', to: 'bst-70', label: 'right' },
-        { t: 'visit', id: 'bst-50' },
-        {
-          t: 'note',
-          text: 'AVL Right Rotation complete! Root is now 20 with left child 10 and right child 30 (height balanced).',
-        },
-        { t: 'done' },
-      );
+      const distinct: number[] = [];
+      if (customValues) {
+        for (const n of customValues) {
+          if (!distinct.includes(n)) distinct.push(n);
+          if (distinct.length === 3) break;
+        }
+      }
+      const [a, b, c] = distinct.length === 3 ? distinct : [30, 20, 10];
+      const [minV, midV, maxV] = [a, b, c].sort((x, y) => x - y);
+      const isLL = a > b && b > c;
+      const isRR = a < b && b < c;
+      const isLR = a > b && c > b && c < a;
+      const isRL = a < b && c < b && c > a;
+
+      if (isLL) {
+        events.push(
+          { t: 'create', id: 'bst-50', kind: 'node', value: a },
+          { t: 'create', id: 'bst-30', kind: 'node', value: b },
+          { t: 'create', id: 'bst-20', kind: 'node', value: c },
+          { t: 'link', from: 'bst-50', to: 'bst-30', label: 'left' },
+          { t: 'link', from: 'bst-30', to: 'bst-20', label: 'left' },
+          {
+            t: 'note',
+            text: `Inserted ${a}, ${b}, ${c}: tree leans heavily to the left (Left-Left imbalance, balance factor = +2).`,
+          },
+          { t: 'compare', a: { id: 'bst-50' }, b: { id: 'bst-30' } },
+          {
+            t: 'note',
+            text: `Performing an AVL Right Rotation around ${a} so ${b} rises up to become the balanced root!`,
+          },
+          { t: 'set', target: { id: 'bst-50' }, value: b },
+          { t: 'set', target: { id: 'bst-30' }, value: c },
+          { t: 'unlink', from: 'bst-30', to: 'bst-20' },
+          { t: 'remove', id: 'bst-20' },
+          { t: 'create', id: 'bst-70', kind: 'node', value: a },
+          { t: 'link', from: 'bst-50', to: 'bst-70', label: 'right' },
+          { t: 'visit', id: 'bst-50' },
+          {
+            t: 'note',
+            text: `AVL Right Rotation complete! Root is now ${b} with left child ${c} and right child ${a} (height balanced).`,
+          },
+          { t: 'done' },
+        );
+      } else if (isLR) {
+        events.push(
+          { t: 'create', id: 'bst-50', kind: 'node', value: a },
+          { t: 'create', id: 'bst-30', kind: 'node', value: b },
+          { t: 'create', id: 'bst-40', kind: 'node', value: c },
+          { t: 'link', from: 'bst-50', to: 'bst-30', label: 'left' },
+          { t: 'link', from: 'bst-30', to: 'bst-40', label: 'right' },
+          {
+            t: 'note',
+            text: `Inserted ${a}, ${b}, ${c}: Left-Right imbalance at ${a} (balance factor = +2).`,
+          },
+          { t: 'compare', a: { id: 'bst-30' }, b: { id: 'bst-40' } },
+          { t: 'set', target: { id: 'bst-30' }, value: c },
+          { t: 'unlink', from: 'bst-30', to: 'bst-40' },
+          { t: 'remove', id: 'bst-40' },
+          { t: 'create', id: 'bst-20', kind: 'node', value: b },
+          { t: 'link', from: 'bst-30', to: 'bst-20', label: 'left' },
+          {
+            t: 'note',
+            text: `Step 1: Left Rotation around ${b} converts Left-Right into a Left-Left line (${a} → ${c} → ${b}).`,
+          },
+          { t: 'set', target: { id: 'bst-50' }, value: c },
+          { t: 'set', target: { id: 'bst-30' }, value: b },
+          { t: 'unlink', from: 'bst-30', to: 'bst-20' },
+          { t: 'remove', id: 'bst-20' },
+          { t: 'create', id: 'bst-70', kind: 'node', value: a },
+          { t: 'link', from: 'bst-50', to: 'bst-70', label: 'right' },
+          { t: 'visit', id: 'bst-50' },
+          {
+            t: 'note',
+            text: `Step 2: Right Rotation around ${a} completes! Root is now ${c} with left ${b} and right ${a}.`,
+          },
+          { t: 'done' },
+        );
+      } else if (isRL) {
+        events.push(
+          { t: 'create', id: 'bst-50', kind: 'node', value: a },
+          { t: 'create', id: 'bst-70', kind: 'node', value: b },
+          { t: 'create', id: 'bst-60', kind: 'node', value: c },
+          { t: 'link', from: 'bst-50', to: 'bst-70', label: 'right' },
+          { t: 'link', from: 'bst-70', to: 'bst-60', label: 'left' },
+          {
+            t: 'note',
+            text: `Inserted ${a}, ${b}, ${c}: Right-Left imbalance at ${a} (balance factor = -2).`,
+          },
+          { t: 'compare', a: { id: 'bst-70' }, b: { id: 'bst-60' } },
+          { t: 'set', target: { id: 'bst-70' }, value: c },
+          { t: 'unlink', from: 'bst-70', to: 'bst-60' },
+          { t: 'remove', id: 'bst-60' },
+          { t: 'create', id: 'bst-85', kind: 'node', value: b },
+          { t: 'link', from: 'bst-70', to: 'bst-85', label: 'right' },
+          {
+            t: 'note',
+            text: `Step 1: Right Rotation around ${b} converts Right-Left into a Right-Right line (${a} → ${c} → ${b}).`,
+          },
+          { t: 'set', target: { id: 'bst-50' }, value: c },
+          { t: 'set', target: { id: 'bst-70' }, value: b },
+          { t: 'unlink', from: 'bst-70', to: 'bst-85' },
+          { t: 'remove', id: 'bst-85' },
+          { t: 'create', id: 'bst-30', kind: 'node', value: a },
+          { t: 'link', from: 'bst-50', to: 'bst-30', label: 'left' },
+          { t: 'visit', id: 'bst-50' },
+          {
+            t: 'note',
+            text: `Step 2: Left Rotation around ${a} completes! Root is now ${c} with left ${a} and right ${b}.`,
+          },
+          { t: 'done' },
+        );
+      } else {
+        // Right-Right (either a < b < c directly, or sorted [minV, midV, maxV] when input was already balanced)
+        const intro = isRR
+          ? `Inserted ${minV}, ${midV}, ${maxV}: tree leans heavily to the right (Right-Right imbalance, balance factor = -2).`
+          : `Using ${minV}, ${midV}, ${maxV} in ascending order to demonstrate a Right-Right imbalance (balance factor = -2).`;
+        events.push(
+          { t: 'create', id: 'bst-50', kind: 'node', value: minV },
+          { t: 'create', id: 'bst-70', kind: 'node', value: midV },
+          { t: 'create', id: 'bst-85', kind: 'node', value: maxV },
+          { t: 'link', from: 'bst-50', to: 'bst-70', label: 'right' },
+          { t: 'link', from: 'bst-70', to: 'bst-85', label: 'right' },
+          { t: 'note', text: intro },
+          { t: 'compare', a: { id: 'bst-50' }, b: { id: 'bst-70' } },
+          {
+            t: 'note',
+            text: `Performing an AVL Left Rotation around ${minV} so ${midV} rises up to become the balanced root!`,
+          },
+          { t: 'set', target: { id: 'bst-50' }, value: midV },
+          { t: 'set', target: { id: 'bst-70' }, value: maxV },
+          { t: 'unlink', from: 'bst-70', to: 'bst-85' },
+          { t: 'remove', id: 'bst-85' },
+          { t: 'create', id: 'bst-30', kind: 'node', value: minV },
+          { t: 'link', from: 'bst-50', to: 'bst-30', label: 'left' },
+          { t: 'visit', id: 'bst-50' },
+          {
+            t: 'note',
+            text: `AVL Left Rotation complete! Root is now ${midV} with left child ${minV} and right child ${maxV} (height balanced).`,
+          },
+          { t: 'done' },
+        );
+      }
       break;
     }
 
@@ -2008,116 +2310,227 @@ export function runStructureOperation(
     // ==========================================
     case 'heap-insert': {
       const val = Number.isFinite(paramValue) ? paramValue : 95;
-      const heapVals =
-        customValues && customValues.length >= 5
-          ? [...customValues].slice(0, 5).sort((a, b) => b - a)
+      const base =
+        customValues && customValues.length >= 1
+          ? customValues.slice(0, 23)
           : [90, 70, 80, 40, 50];
-      const [h0, h1, h2, h3, h4] = heapVals;
-      updatedValues = [...heapVals, val];
+      const arr = buildMaxHeapArray(base);
+      emitCompleteBinaryTree(events, arr);
+
+      const insertIdx = arr.length;
+      arr.push(val);
       events.push(
-        { t: 'create', id: 'bst-50', kind: 'node', value: h0 },
-        { t: 'create', id: 'bst-30', kind: 'node', value: h1 },
-        { t: 'create', id: 'bst-70', kind: 'node', value: h2 },
-        { t: 'create', id: 'bst-20', kind: 'node', value: h3 },
-        { t: 'create', id: 'bst-40', kind: 'node', value: h4 },
-        { t: 'link', from: 'bst-50', to: 'bst-30', label: 'left' },
-        { t: 'link', from: 'bst-50', to: 'bst-70', label: 'right' },
-        { t: 'link', from: 'bst-30', to: 'bst-20', label: 'left' },
-        { t: 'link', from: 'bst-30', to: 'bst-40', label: 'right' },
         {
           t: 'note',
-          text: `Max-Heap: every parent is bigger than its children. Inserting ${val} at the next open leaf.`,
+          text: `Max-Heap: every parent is bigger than its children. Inserting ${val} at index ${insertIdx}.`,
         },
-        { t: 'create', id: 'bst-60', kind: 'node', value: val },
-        { t: 'link', from: 'bst-70', to: 'bst-60', label: 'left' },
-        {
-          t: 'note',
-          text: `Placed ${val} under ${h2}. Now we Bubble Up (siftUp) while ${val} is bigger than its parent!`,
-        },
-        { t: 'compare', a: { id: 'bst-60' }, b: { id: 'bst-70' } },
-        {
-          t: 'note',
-          text: `Comparing ${val} with its parent ${h2}.`,
-        },
+        { t: 'create', id: heapId(insertIdx), kind: 'node', value: val },
       );
-      if (val > h2) {
+
+      if (insertIdx > 0) {
+        const parentIdx = Math.floor((insertIdx - 1) / 2);
         events.push(
-          { t: 'swap', a: { id: 'bst-60' }, b: { id: 'bst-70' } },
           {
-            t: 'note',
-            text: `${val} is bigger than ${h2}, so they swap places!`,
+            t: 'link',
+            from: heapId(parentIdx),
+            to: heapId(insertIdx),
+            label: insertIdx % 2 === 1 ? 'left' : 'right',
           },
-          { t: 'compare', a: { id: 'bst-70' }, b: { id: 'bst-50' } },
           {
             t: 'note',
-            text: `Comparing ${val} with the root ${h0}.`,
-          },
-        );
-        if (val > h0) {
-          events.push(
-            { t: 'visit', id: 'bst-50' },
-            { t: 'swap', a: { id: 'bst-70' }, b: { id: 'bst-50' } },
-            {
-              t: 'note',
-              text: `${val} is bigger than ${h0}, so they swap! ${val} is now the new maximum at the root of the Heap.`,
-            },
-          );
-        } else {
-          events.push(
-            { t: 'visit', id: 'bst-70' },
-            {
-              t: 'note',
-              text: `${val} ≤ root ${h0}, so Bubble Up stops here. Max-Heap property restored!`,
-            },
-          );
-        }
-      } else {
-        events.push(
-          { t: 'visit', id: 'bst-60' },
-          {
-            t: 'note',
-            text: `${val} ≤ parent ${h2}, so no swap is needed — Max-Heap property already holds!`,
+            text: `Placed ${val} under ${arr[parentIdx]}. Now we Bubble Up (siftUp) while ${val} is bigger than its parent!`,
           },
         );
       }
+
+      let idx = insertIdx;
+      while (idx > 0) {
+        const parentIdx = Math.floor((idx - 1) / 2);
+        events.push(
+          { t: 'compare', a: { id: heapId(idx) }, b: { id: heapId(parentIdx) } },
+          {
+            t: 'note',
+            text: `Comparing ${arr[idx]} with its parent ${arr[parentIdx]}.`,
+          },
+        );
+        if (arr[idx] > arr[parentIdx]) {
+          events.push(
+            { t: 'swap', a: { id: heapId(idx) }, b: { id: heapId(parentIdx) } },
+            {
+              t: 'note',
+              text: `${arr[idx]} is bigger than ${arr[parentIdx]}, so they swap places!`,
+            },
+          );
+          const tmp = arr[idx];
+          arr[idx] = arr[parentIdx];
+          arr[parentIdx] = tmp;
+          idx = parentIdx;
+        } else {
+          events.push(
+            { t: 'visit', id: heapId(idx) },
+            {
+              t: 'note',
+              text:
+                idx === insertIdx
+                  ? `${arr[idx]} ≤ parent ${arr[parentIdx]}, so no swap is needed — Max-Heap property already holds!`
+                  : `${arr[idx]} ≤ parent ${arr[parentIdx]}, so Bubble Up stops — Max-Heap property holds!`,
+            },
+          );
+          break;
+        }
+      }
+      if (idx === 0) {
+        events.push(
+          { t: 'visit', id: heapId(0) },
+          {
+            t: 'note',
+            text: `${arr[0]} is now the new maximum at the root of the Heap!`,
+          },
+        );
+      }
+      updatedValues = arr;
       events.push({ t: 'done' });
       break;
     }
 
-    case 'heap-extract':
-    case 'heap-build':
-    case 'heap-sort': {
+    case 'heap-extract': {
+      const base =
+        customValues && customValues.length >= 1
+          ? customValues.slice(0, 24)
+          : [95, 70, 85, 40, 50];
+      const arr = buildMaxHeapArray(base);
+      emitCompleteBinaryTree(events, arr);
+
+      if (arr.length === 1) {
+        events.push(
+          { t: 'note', text: `Extracting root max ${arr[0]} (only element in the heap).` },
+          { t: 'visit', id: heapId(0) },
+          { t: 'remove', id: heapId(0) },
+          { t: 'note', text: `Extracted ${arr[0]}. The Max-Heap is now empty.` },
+          { t: 'done' },
+        );
+        updatedValues = [];
+        break;
+      }
+
+      const maxVal = arr[0];
+      const lastIdx = arr.length - 1;
+      const lastVal = arr[lastIdx];
+      const parentOfLast = Math.floor((lastIdx - 1) / 2);
+
       events.push(
-        { t: 'create', id: 'bst-50', kind: 'node', value: 95 },
-        { t: 'create', id: 'bst-30', kind: 'node', value: 70 },
-        { t: 'create', id: 'bst-70', kind: 'node', value: 85 },
-        { t: 'create', id: 'bst-20', kind: 'node', value: 40 },
-        { t: 'create', id: 'bst-40', kind: 'node', value: 50 },
-        { t: 'link', from: 'bst-50', to: 'bst-30', label: 'left' },
-        { t: 'link', from: 'bst-50', to: 'bst-70', label: 'right' },
-        { t: 'link', from: 'bst-30', to: 'bst-20', label: 'left' },
-        { t: 'link', from: 'bst-30', to: 'bst-40', label: 'right' },
         {
           t: 'note',
-          text: 'Max-Heap root holds the largest number (95). Extracting 95 and moving last leaf (50) to root.',
+          text: `Max-Heap root holds the largest number (${maxVal}). Extracting ${maxVal} and moving last leaf (${lastVal}) to root.`,
         },
-        { t: 'visit', id: 'bst-50' },
-        { t: 'set', target: { id: 'bst-50' }, value: 50 },
-        { t: 'unlink', from: 'bst-30', to: 'bst-40' },
-        { t: 'remove', id: 'bst-40' },
-        { t: 'compare', a: { id: 'bst-50' }, b: { id: 'bst-70' } },
+        { t: 'visit', id: heapId(0) },
+        { t: 'set', target: { id: heapId(0) }, value: lastVal },
+        { t: 'unlink', from: heapId(parentOfLast), to: heapId(lastIdx) },
+        { t: 'remove', id: heapId(lastIdx) },
+      );
+
+      arr[0] = lastVal;
+      arr.pop();
+      emitSiftDown(events, arr, 0, arr.length);
+
+      events.push(
         {
           t: 'note',
-          text: 'Moved 50 to the root. Now Bubble Down (siftDown): compare 50 with its larger child 85.',
-        },
-        { t: 'visit', id: 'bst-50' },
-        { t: 'swap', a: { id: 'bst-50' }, b: { id: 'bst-70' } },
-        {
-          t: 'note',
-          text: '85 is bigger than 50, so they swap! 85 is now at the root and the Max-Heap property is restored.',
+          text: `Extract Max complete! Extracted ${maxVal}; new root max is ${arr[0]}.`,
         },
         { t: 'done' },
       );
+      updatedValues = arr;
+      break;
+    }
+
+    case 'heap-build': {
+      const arr =
+        customValues && customValues.length >= 1
+          ? [...customValues].slice(0, 24)
+          : [40, 20, 60, 10, 50, 30];
+      emitCompleteBinaryTree(events, arr);
+
+      const lastInternal = Math.floor(arr.length / 2) - 1;
+      events.push({
+        t: 'note',
+        text: `Building Max-Heap in O(n) from [${arr.join(', ')}] using bottom-up heapify (indices ${Math.max(0, lastInternal)} down to 0).`,
+      });
+
+      for (let start = lastInternal; start >= 0; start--) {
+        events.push(
+          { t: 'visit', id: heapId(start) },
+          { t: 'note', text: `Heapifying subtree rooted at index ${start} (value ${arr[start]}).` },
+        );
+        emitSiftDown(events, arr, start, arr.length);
+      }
+
+      events.push(
+        {
+          t: 'note',
+          text: `Build Max-Heap complete! Root max is ${arr[0]} ([${arr.join(', ')}]).`,
+        },
+        { t: 'done' },
+      );
+      updatedValues = arr;
+      break;
+    }
+
+    case 'heap-sort': {
+      const arr =
+        customValues && customValues.length >= 1
+          ? [...customValues].slice(0, 24)
+          : [40, 20, 60, 10, 50, 30];
+      emitCompleteBinaryTree(events, arr);
+
+      const lastInternal = Math.floor(arr.length / 2) - 1;
+      events.push({
+        t: 'note',
+        text: `Heap Sort Phase 1: Building Max-Heap from [${arr.join(', ')}].`,
+      });
+      for (let start = lastInternal; start >= 0; start--) {
+        emitSiftDown(events, arr, start, arr.length);
+      }
+
+      events.push({
+        t: 'note',
+        text: `Heap Sort Phase 2: Repeatedly extract root max and sift down remaining heap.`,
+      });
+
+      const sorted: number[] = [];
+      for (let end = arr.length - 1; end > 0; end--) {
+        const maxVal = arr[0];
+        events.push(
+          { t: 'swap', a: { id: heapId(0) }, b: { id: heapId(end) } },
+          {
+            t: 'note',
+            text: `Swapped max ${maxVal} to sorted position ${end}, removing leaf from active heap.`,
+          },
+          {
+            t: 'unlink',
+            from: heapId(Math.floor((end - 1) / 2)),
+            to: heapId(end),
+          },
+          { t: 'remove', id: heapId(end) },
+        );
+        const tmp = arr[0];
+        arr[0] = arr[end];
+        arr[end] = tmp;
+        sorted.unshift(maxVal);
+        emitSiftDown(events, arr, 0, end);
+      }
+      if (arr.length > 0) {
+        sorted.unshift(arr[0]);
+      }
+
+      events.push(
+        {
+          t: 'note',
+          text: `Heap Sort complete! Sorted ascending: [${sorted.join(', ')}].`,
+        },
+        { t: 'done' },
+      );
+      updatedValues = sorted;
       break;
     }
 

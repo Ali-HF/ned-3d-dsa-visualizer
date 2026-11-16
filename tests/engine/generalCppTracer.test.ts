@@ -607,21 +607,26 @@ int main() {
     }
     expect(corpusLinesVisited.size).toBeGreaterThan(4);
 
-    // 2. Interactive Library operation button (`runStructureOperationNow`)
-    store.runStructureOperationNow('bst-insert', 65);
-    store.restart();
-    const structOpLinesVisited = new Set<number>();
-    const bstCodeLen = useViewportStore.getState().activeMetadata.code.length;
-    while (useViewportStore.getState().currentStep < useViewportStore.getState().totalSteps) {
-      const snap = useViewportStore.getState().currentSnapshot;
-      if (snap.activeLine !== null) {
-        expect(snap.activeLine).toBeGreaterThanOrEqual(1);
-        expect(snap.activeLine).toBeLessThanOrEqual(bstCodeLen);
-        structOpLinesVisited.add(snap.activeLine);
+    // 2. Interactive Library operation button (`runStructureOperationNow` with code viewer open)
+    store.setDetailsOpen(true);
+    try {
+      store.runStructureOperationNow('bst-insert', 65);
+      store.restart();
+      const structOpLinesVisited = new Set<number>();
+      const bstCodeLen = useViewportStore.getState().activeMetadata.code.length;
+      while (useViewportStore.getState().currentStep < useViewportStore.getState().totalSteps) {
+        const snap = useViewportStore.getState().currentSnapshot;
+        if (snap.activeLine !== null) {
+          expect(snap.activeLine).toBeGreaterThanOrEqual(1);
+          expect(snap.activeLine).toBeLessThanOrEqual(bstCodeLen);
+          structOpLinesVisited.add(snap.activeLine);
+        }
+        store.stepForward();
       }
-      store.stepForward();
+      expect(structOpLinesVisited.size).toBeGreaterThanOrEqual(3);
+    } finally {
+      store.setDetailsOpen(false);
     }
-    expect(structOpLinesVisited.size).toBeGreaterThanOrEqual(3);
   });
 
   it('Bug 1 Fix: recursive tree/structure code (BST insert, inorder, AVL insert) NEVER renders 3D callframe-* blocks alongside structure nodes, while pure recursion (factorial/fibonacci) renders 3D callframe-* blocks', () => {
@@ -804,69 +809,74 @@ int main() {
       expect(execLines.size).toBeGreaterThan(3);
     }
 
-    // 2. All 14 ArrayOperationId buttons via runOperationNow
-    const arrayOpIds = Object.keys(ARRAY_ALGORITHM_METADATA) as ArrayOperationId[];
-    expect(arrayOpIds.length).toBe(14);
-    for (const opId of arrayOpIds) {
-      store.setCustomArray([42, 17, 68, 29, 84, 12]);
-      store.runOperationNow(opId, 2, 29);
-      const st = useViewportStore.getState();
-      const codeLines = st.activeMetadata.code;
-      const execLines = getExecutableLineNumbers(codeLines);
-      expect(st.timeline.totalSteps, `Array op ${opId}: totalSteps > 1`).toBeGreaterThan(1);
+    // 2. All 14 ArrayOperationId buttons via runOperationNow (with code viewer open)
+    store.setDetailsOpen(true);
+    try {
+      const arrayOpIds = Object.keys(ARRAY_ALGORITHM_METADATA) as ArrayOperationId[];
+      expect(arrayOpIds.length).toBe(14);
+      for (const opId of arrayOpIds) {
+        store.setCustomArray([42, 17, 68, 29, 84, 12]);
+        store.runOperationNow(opId, 2, 29);
+        const st = useViewportStore.getState();
+        const codeLines = st.activeMetadata.code;
+        const execLines = getExecutableLineNumbers(codeLines);
+        expect(st.timeline.totalSteps, `Array op ${opId}: totalSteps > 1`).toBeGreaterThan(1);
 
-      for (let s = 1; s <= st.timeline.totalSteps; s++) {
-        const snap = st.timeline.getSnapshotAt(s);
-        const ev = st.timeline.events[s - 1];
-        expect(snap.activeLine, `Array op ${opId} step ${s}`).not.toBeNull();
-        expect(
-          execLines.has(snap.activeLine!),
-          `Array op ${opId} step ${s}: line ${snap.activeLine} ("${codeLines[snap.activeLine! - 1]}") must be an executable line of ${st.selectedCorpusFile}`,
-        ).toBe(true);
-
-        if (ev.t === 'swap') {
-          const lineStr = codeLines[snap.activeLine! - 1];
+        for (let s = 1; s <= st.timeline.totalSteps; s++) {
+          const snap = st.timeline.getSnapshotAt(s);
+          const ev = st.timeline.events[s - 1];
+          expect(snap.activeLine, `Array op ${opId} step ${s}`).not.toBeNull();
           expect(
-            /swap|=/.test(lineStr),
-            `Array op ${opId} step ${s}: swap event at line ${snap.activeLine} ("${lineStr}") must match swap/assignment statement`,
+            execLines.has(snap.activeLine!),
+            `Array op ${opId} step ${s}: line ${snap.activeLine} ("${codeLines[snap.activeLine! - 1]}") must be an executable line of ${st.selectedCorpusFile}`,
           ).toBe(true);
+
+          if (ev.t === 'swap') {
+            const lineStr = codeLines[snap.activeLine! - 1];
+            expect(
+              /swap|=/.test(lineStr),
+              `Array op ${opId} step ${s}: swap event at line ${snap.activeLine} ("${lineStr}") must match swap/assignment statement`,
+            ).toBe(true);
+          }
         }
       }
-    }
 
-    // 3. All 40 StructureOperationId buttons via runStructureOperationNow
-    expect(STRUCTURE_OP_CATALOG.length).toBe(40);
-    for (const def of STRUCTURE_OP_CATALOG) {
-      store.setCustomArray([42, 17, 68, 29, 84, 12]);
-      store.runStructureOperationNow(def.id, 30, '{[()]}');
-      const st = useViewportStore.getState();
-      const codeLines = st.activeMetadata.code;
-      const execLines = getExecutableLineNumbers(codeLines);
-      expect(st.timeline.totalSteps, `Structure op ${def.id}: totalSteps > 1`).toBeGreaterThan(1);
+      // 3. All 40 StructureOperationId buttons via runStructureOperationNow (with code viewer open)
+      expect(STRUCTURE_OP_CATALOG.length).toBe(40);
+      for (const def of STRUCTURE_OP_CATALOG) {
+        store.setCustomArray([42, 17, 68, 29, 84, 12]);
+        store.runStructureOperationNow(def.id, 30, '{[()]}');
+        const st = useViewportStore.getState();
+        const codeLines = st.activeMetadata.code;
+        const execLines = getExecutableLineNumbers(codeLines);
+        expect(st.timeline.totalSteps, `Structure op ${def.id}: totalSteps > 1`).toBeGreaterThan(1);
 
-      let has3DObjects = false;
-      for (let s = 1; s <= st.timeline.totalSteps; s++) {
-        const snap = st.timeline.getSnapshotAt(s);
-        const ev = st.timeline.events[s - 1];
-        expect(snap.activeLine, `Structure op ${def.id} step ${s}`).not.toBeNull();
-        expect(
-          execLines.has(snap.activeLine!),
-          `Structure op ${def.id} step ${s}: line ${snap.activeLine} ("${codeLines[snap.activeLine! - 1]}") must be an executable line of ${def.corpusPath}`,
-        ).toBe(true);
-
-        if (ev.t === 'swap') {
-          const lineStr = codeLines[snap.activeLine! - 1];
+        let has3DObjects = false;
+        for (let s = 1; s <= st.timeline.totalSteps; s++) {
+          const snap = st.timeline.getSnapshotAt(s);
+          const ev = st.timeline.events[s - 1];
+          expect(snap.activeLine, `Structure op ${def.id} step ${s}`).not.toBeNull();
           expect(
-            /swap|=/.test(lineStr),
-            `Structure op ${def.id} step ${s}: swap event at line ${snap.activeLine} ("${lineStr}") must match swap/assignment statement`,
+            execLines.has(snap.activeLine!),
+            `Structure op ${def.id} step ${s}: line ${snap.activeLine} ("${codeLines[snap.activeLine! - 1]}") must be an executable line of ${def.corpusPath}`,
           ).toBe(true);
+
+          if (ev.t === 'swap') {
+            const lineStr = codeLines[snap.activeLine! - 1];
+            expect(
+              /swap|=/.test(lineStr),
+              `Structure op ${def.id} step ${s}: swap event at line ${snap.activeLine} ("${lineStr}") must match swap/assignment statement`,
+            ).toBe(true);
+          }
+          const objs = buildSceneObjectsForScene(st.previewScene, snap);
+          if (objs.length > 0) {
+            has3DObjects = true;
+          }
         }
-        const objs = buildSceneObjectsForScene(st.previewScene, snap);
-        if (objs.length > 0) {
-          has3DObjects = true;
-        }
+        expect(has3DObjects, `Structure op ${def.id}: must produce 3D visuals`).toBe(true);
       }
-      expect(has3DObjects, `Structure op ${def.id}: must produce 3D visuals`).toBe(true);
+    } finally {
+      store.setDetailsOpen(false);
     }
   });
 });
