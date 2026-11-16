@@ -684,9 +684,24 @@ export function buildSceneObjectsForScene(
     if (typeof fScalar === 'number' && (typeof cScalar === 'number' || typeof rScalar === 'number')) {
       let activeVals: Primitive[] = [];
       if (typeof cScalar === 'number') {
-        const cnt = Math.max(0, Math.min(cap, Math.trunc(cScalar)));
+        let cnt = Math.max(0, Math.min(cap, Math.trunc(cScalar)));
         if (cnt > 0 && cap > 0) {
           const frontIdx = ((Math.trunc(fScalar) % cap) + cap) % cap;
+          if (typeof rScalar === 'number' && rScalar >= 0 && rScalar < cap) {
+            const rearIdx = Math.trunc(rScalar);
+            const span = ((rearIdx - frontIdx + cap) % cap) + 1;
+            if (cnt >= 2 && span === cnt - 1) {
+              // dequeue / deleteFront moved `front` forward right before `count--`
+              cnt = span;
+            } else if (
+              span === cnt + 1 &&
+              (snapshot.lastEvent?.t === 'set' ||
+                (snapshot.lastEvent?.t === 'note' && snapshot.narration.includes('Set arr[')))
+            ) {
+              // insertFront wrote `arr[front]` right before `count++`
+              cnt = span;
+            }
+          }
           activeVals = Array.from({ length: cnt }, (_, k) => arrVals[(frontIdx + k) % cap]);
         }
       } else if (typeof rScalar === 'number' && cap > 0) {
@@ -725,7 +740,7 @@ export function buildSceneObjectsForScene(
       if (queueObjs.length > 0) {
         return appendCallStackAndScalarFallback(queueObjs);
       }
-      return appendCallStackAndScalarFallback([]);
+      return snapshot.callStack.length > 0 ? appendCallStackAndScalarFallback([]) : [];
     }
 
     return appendCallStackAndScalarFallback(buildArraySceneObjectsFromSnapshot(snapshot));
@@ -758,6 +773,34 @@ export function buildSceneObjectsForScene(
     scene === 'hash-table' ? computeDynamicHashChainLayout(snapshot) : null;
   const dynamicLinkedListCoords =
     scene === 'linked-list' ? computeDynamicLinkedListLayout(snapshot) : null;
+  const queueOrderMap: Record<string, number> = {};
+  if (scene === 'queue' || scene === 'deque') {
+    const nextOf: Record<string, string> = {};
+    const hasPrev = new Set<string>();
+    for (const e of snapshot.edges) {
+      if (!snapshot.nodes[e.from] || !snapshot.nodes[e.to]) continue;
+      if (e.label === 'next' || !e.label) {
+        nextOf[e.from] = e.to;
+        hasPrev.add(e.to);
+      }
+    }
+    const fronts = nodeEntries.map((n) => n.id).filter((id) => !hasPrev.has(id));
+    let qPos = 0;
+    const seen = new Set<string>();
+    for (const startId of fronts) {
+      let cur: string | undefined = startId;
+      while (cur && !seen.has(cur) && snapshot.nodes[cur]) {
+        seen.add(cur);
+        queueOrderMap[cur] = qPos++;
+        cur = nextOf[cur];
+      }
+    }
+    for (const n of nodeEntries) {
+      if (!seen.has(n.id)) {
+        queueOrderMap[n.id] = qPos++;
+      }
+    }
+  }
   const heapIndexMap: Record<string, number> = {};
   if (scene === 'heap') {
     const hasParent = new Set<string>();
@@ -845,9 +888,10 @@ export function buildSceneObjectsForScene(
         const angle = (idx / Math.max(4, count)) * Math.PI * 2;
         pos = [Math.cos(angle) * 2.6, 1.0, Math.sin(angle) * 2.6];
       } else {
+        const orderedIdx = queueOrderMap[node.id] ?? idx;
         const spacing = 2.4;
         const startX = -((count - 1) * spacing) / 2;
-        pos = [startX + idx * spacing, 1.0, 0];
+        pos = [startX + orderedIdx * spacing, 1.0, 0];
       }
       kind = 'list-node';
     } else if (scene === 'bst' || scene === 'avl' || scene === 'heap') {
@@ -883,6 +927,20 @@ export function buildSceneObjectsForScene(
   });
 
   return appendCallStackAndScalarFallback(nodeObjs);
+}
+
+function getTimelineStartStep(
+  state: Pick<ViewportState, 'timeline' | 'lastLibraryRun' | 'operationHistory'>,
+  fallbackStep = 1,
+): number {
+  if (state.lastLibraryRun && state.operationHistory.length > 0) {
+    const opStart = state.operationHistory[0].startStep;
+    if (opStart > 0 && opStart <= state.timeline.totalSteps) {
+      return opStart;
+    }
+  }
+  const firstNoteIdx = state.timeline.events.findIndex((e) => e.t === 'note');
+  return firstNoteIdx >= 0 ? firstNoteIdx + 1 : fallbackStep;
 }
 
 function formatOperationLabel(
@@ -1067,8 +1125,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
   play: () => {
     const state = get();
     if (state.currentStep >= state.totalSteps) {
-      const firstNoteIdx = state.timeline.events.findIndex((e) => e.t === 'note');
-      const startStep = firstNoteIdx >= 0 ? firstNoteIdx + 1 : 1;
+      const startStep = getTimelineStartStep(state, 1);
       get().seekToStep(Math.min(startStep, state.totalSteps));
     }
     set({ isPlaying: true });
@@ -1118,8 +1175,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       set({ isPlaying: false });
     } else {
       // Manual step forward at the end of the timeline wraps to the first visual step
-      const firstNoteIdx = state.timeline.events.findIndex((e) => e.t === 'note');
-      const startStep = firstNoteIdx >= 0 ? firstNoteIdx + 1 : 1;
+      const startStep = getTimelineStartStep(state, 1);
       state.seekToStep(Math.min(startStep, state.totalSteps));
     }
   },
@@ -1143,8 +1199,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
   restart: () => {
     const state = get();
     set({ isPlaying: false });
-    const firstNoteIdx = state.timeline.events.findIndex((e) => e.t === 'note');
-    const firstStep = firstNoteIdx >= 0 ? firstNoteIdx + 1 : 0;
+    const firstStep = getTimelineStartStep(state, 0);
     state.seekToStep(firstStep);
   },
 

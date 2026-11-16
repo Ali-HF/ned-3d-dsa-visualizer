@@ -745,6 +745,9 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     state = useViewportStore.getState();
     expect(state.previewScene).toBe('deque');
     expect(state.workingArray).toEqual([5, 10, 20, 30]);
+    expect(state.sceneObjects['dq-0']?.position[0]).toBeLessThan(
+      state.sceneObjects['dq-1']?.position[0] ?? 0,
+    );
 
     store.runStructureOperationNow('deque-push-rear', 40);
     useViewportStore.getState().skipToEnd();

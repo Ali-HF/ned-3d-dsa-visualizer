@@ -347,6 +347,7 @@ export function runCppTrace(
   let menuChoiceReadCount = 0;
   let activeMethodName: string | null = null;
   const thisStack: HeapNodeInstance[] = [];
+  let lastActiveQueueInstance: HeapNodeInstance | null = null;
 
   const proxiedArrays = new Map<string, ProxiedArrayMeta>();
   const matrices = new Map<string, MatrixInstance>();
@@ -468,6 +469,17 @@ export function runCppTrace(
           typeof fVal === 'number' ||
           typeof fVal === 'boolean' ||
           typeof fVal === 'string'
+        ) {
+          scalars[fName] = fVal;
+        }
+      }
+    } else if (lastActiveQueueInstance) {
+      for (const [fName, fVal] of Object.entries(lastActiveQueueInstance.fields)) {
+        if (
+          !(fName in scalars) &&
+          (typeof fVal === 'number' ||
+            typeof fVal === 'boolean' ||
+            typeof fVal === 'string')
         ) {
           scalars[fName] = fVal;
         }
@@ -1054,6 +1066,10 @@ export function runCppTrace(
       }
     }
 
+    if (!instance.isVisualNode && ('front' in instance.fields || 'rear' in instance.fields)) {
+      lastActiveQueueInstance = instance;
+    }
+
     return instance;
   };
 
@@ -1552,6 +1568,9 @@ export function runCppTrace(
     if (thisInstance) {
       thisStack.push(thisInstance);
       activeMethodName = fn.name;
+      if (!thisInstance.isVisualNode && ('front' in thisInstance.fields || 'rear' in thisInstance.fields)) {
+        lastActiveQueueInstance = thisInstance;
+      }
     }
 
     let returnValue: CppValue = 0;
@@ -4122,8 +4141,28 @@ export function runCppTrace(
     );
   } else if (finalScene === 'stack' && dslStack.length > 0) {
     finalExtractedArray = dslStack.map((s) => s.val);
-  } else if (finalScene === 'queue' && dslQueue.length > 0) {
-    finalExtractedArray = dslQueue.map((q) => q.val);
+  } else if (finalScene === 'queue' || finalScene === 'deque') {
+    const queueInst = lastActiveQueueInstance as HeapNodeInstance | null;
+    if (dslQueue.length > 0) {
+      finalExtractedArray = dslQueue.map((q) => q.val);
+    } else if (primaryArrayId && proxiedArrays.has(primaryArrayId) && queueInst) {
+      const raw = proxiedArrays.get(primaryArrayId)!.raw;
+      const cap = raw.length;
+      const fVal = queueInst.fields.front;
+      const rVal = queueInst.fields.rear;
+      const cVal = queueInst.fields.count;
+      if (cap > 0 && typeof fVal === 'number') {
+        if (typeof cVal === 'number') {
+          const cnt = Math.max(0, Math.min(cap, Math.trunc(cVal)));
+          const frontIdx = ((Math.trunc(fVal) % cap) + cap) % cap;
+          finalExtractedArray = Array.from({ length: cnt }, (_, k) => raw[(frontIdx + k) % cap]);
+        } else if (typeof rVal === 'number') {
+          const f = Math.max(0, Math.trunc(fVal));
+          const r = Math.min(cap - 1, Math.trunc(rVal));
+          finalExtractedArray = r >= f ? raw.slice(f, r + 1) : [];
+        }
+      }
+    }
   } else if (finalScene === 'linked-list') {
     if (dslList.length > 0) {
       finalExtractedArray = dslList.map((n) => n.val);
