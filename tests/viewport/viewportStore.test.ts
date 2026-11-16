@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { describe, it, expect, beforeEach } from 'vitest';
 import { useViewportStore } from '../../src/state/useViewportStore';
 import { getCameraPoseForPreset } from '../../src/components/viewport/cameraPoses';
 
