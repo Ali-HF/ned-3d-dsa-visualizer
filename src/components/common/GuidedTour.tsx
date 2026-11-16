@@ -25,7 +25,7 @@ const TOUR_STEPS: TourStep[] = [
     title: 'Structure Selection',
     description: [
       'Select any of the eight core data structures from the left sidebar.',
-      'Includes 1D contiguous arrays, singly and doubly linked lists, vertical LIFO stack slabs, circular queues, BST/AVL balance trees, binary heaps, and hash tables.',
+      'Includes 1D contiguous arrays, singly and doubly linked lists, vertical LIFO stack slabs, circular queues, BST/AVL balance trees, and binary heaps.',
     ],
     targetSelector: '[data-tour="structure-picker"]',
     placement: 'right',
@@ -249,19 +249,19 @@ export function GuidedTour({ isOpen, onClose }: GuidedTourProps) {
         style={
           targetRect && step.placement === 'right'
             ? {
-                top: Math.max(64, Math.min(window.innerHeight - 380, targetRect.top)),
-                left: Math.min(window.innerWidth - 440, targetRect.right + 18),
-              }
+              top: Math.max(64, Math.min(window.innerHeight - 380, targetRect.top)),
+              left: Math.min(window.innerWidth - 440, targetRect.right + 18),
+            }
             : targetRect && step.placement === 'bottom'
               ? {
-                  top: Math.min(window.innerHeight - 380, targetRect.bottom + 18),
-                  left: Math.max(18, Math.min(window.innerWidth - 440, targetRect.left + (targetRect.width - 410) / 2)),
-                }
+                top: Math.min(window.innerHeight - 380, targetRect.bottom + 18),
+                left: Math.max(18, Math.min(window.innerWidth - 440, targetRect.left + (targetRect.width - 410) / 2)),
+              }
               : targetRect && step.placement === 'top'
                 ? {
-                    top: Math.max(64, targetRect.top - 340),
-                    left: Math.max(18, Math.min(window.innerWidth - 440, targetRect.left + (targetRect.width - 410) / 2)),
-                  }
+                  top: Math.max(64, targetRect.top - 340),
+                  left: Math.max(18, Math.min(window.innerWidth - 440, targetRect.left + (targetRect.width - 410) / 2)),
+                }
                 : undefined
         }
       >

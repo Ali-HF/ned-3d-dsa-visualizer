@@ -115,7 +115,7 @@ function assertUniversalInvariants(
 }
 
 describe('Part A & Part B — General Custom C++ Tracer, 15+ Diverse Programs & Universal Invariants', () => {
-  it('Part B1 Report: executes ALL 33 cpp_corpus/ files natively through runCppTrace with zero unsupported syntax errors and valid line numbers', () => {
+  it('Part B1 Report: executes ALL 31 cpp_corpus/ files natively through runCppTrace with zero unsupported syntax errors and valid line numbers', () => {
     const report: { path: string; passed: boolean; steps: number; scene: string; error?: string }[] = [];
 
     for (const entry of CORPUS_FILE_CATALOG) {
@@ -153,7 +153,7 @@ describe('Part A & Part B — General Custom C++ Tracer, 15+ Diverse Programs & 
 
     const failed = report.filter((r) => !r.passed);
     expect(failed, `Failed corpus files: ${JSON.stringify(failed)}`).toEqual([]);
-    expect(report.length).toBe(33);
+    expect(report.length).toBe(31);
   });
 
   it('1. Sorting (Bubble Sort): sorts array, records swaps/compares, and verifies cout output', () => {
@@ -773,11 +773,11 @@ int main() {
     }
   });
 
-  it('Bug 3 Fix: tests all 33 cpp_corpus files AND every Library operation button (14 Array ops + 39 Structure ops) for unified trace & exact executable line highlighting', () => {
+  it('Bug 3 Fix: tests all 31 cpp_corpus files AND every Library operation button (14 Array ops + 36 Structure ops) for unified trace & exact executable line highlighting', () => {
     const store = useViewportStore.getState();
 
-    // 1. All 33 cpp_corpus files via selectAndRunCorpusFile
-    expect(CORPUS_FILE_CATALOG.length).toBe(33);
+    // 1. All 31 cpp_corpus files via selectAndRunCorpusFile
+    expect(CORPUS_FILE_CATALOG.length).toBe(31);
     for (const entry of CORPUS_FILE_CATALOG) {
       store.selectAndRunCorpusFile(entry.relativePath);
       const st = useViewportStore.getState();
@@ -834,8 +834,8 @@ int main() {
       }
     }
 
-    // 3. All 40 StructureOperationId buttons via runStructureOperationNow
-    expect(STRUCTURE_OP_CATALOG.length).toBe(40);
+    // 3. All 36 StructureOperationId buttons via runStructureOperationNow
+    expect(STRUCTURE_OP_CATALOG.length).toBe(36);
     for (const def of STRUCTURE_OP_CATALOG) {
       store.setCustomArray([42, 17, 68, 29, 84, 12]);
       store.runStructureOperationNow(def.id, 30, '{[()]}');

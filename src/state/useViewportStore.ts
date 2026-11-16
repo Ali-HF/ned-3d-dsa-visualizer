@@ -30,6 +30,7 @@ import {
   ARRAY_CORPUS_MAP,
   runCorpusArrayOperation,
   runCorpusStructureOperation,
+  type CorpusOperationTraceResult,
 } from '../engine/corpusRunner';
 
 export interface QueuedOperationEntry {
@@ -64,6 +65,7 @@ interface ViewportState {
 
   /** Trace Playback & Operations State */
   workingArray: number[];
+  libraryInputMode: 'default' | 'dataset';
   activeOperation: ArrayOperationId | null;
   activeStructureOp: StructureOperationId | null;
   selectedCorpusFile: string;
@@ -112,8 +114,8 @@ interface ViewportState {
   applyCustomInputValues: (values: number[]) => void;
   selectArrayOperation: (op: ArrayOperationId) => void;
   selectStructureOperation: (op: StructureOperationId) => void;
-  runOperationNow: (op: ArrayOperationId, paramIndex?: number, paramValue?: number) => void;
-  runStructureOperationNow: (op: StructureOperationId, paramValue?: number, paramText?: string) => void;
+  runOperationNow: (op: ArrayOperationId, paramIndex?: number, paramValue?: number, forceCustomValues?: boolean) => void;
+  runStructureOperationNow: (op: StructureOperationId, paramValue?: number, paramText?: string, forceCustomValues?: boolean) => void;
   selectCorpusFile: (relativePath: string) => void;
   selectAndRunCorpusFile: (relativePath: string) => void;
   previewCustomCode: (sourceCode: string, fileName?: string) => void;
@@ -306,31 +308,77 @@ function computeDynamicHashChainLayout(
 }
 
 /**
+ * Computes deterministic, collision-free 3D graph vertex positions for N in [2..15]
+ * with guaranteed minimum pairwise distance >= 2.4 units (strictly > 2 node diameters).
+ */
+export function computeCollisionFreeGraphLayout(
+  snapshot: TraceStateSnapshot,
+): Record<string, [number, number, number]> {
+  const ids = Object.keys(snapshot.nodes).sort();
+  const n = ids.length;
+  if (n === 0) return {};
+
+  const radius = Math.max(3.6, Math.sqrt(n) * 1.6);
+  const out: Record<string, [number, number, number]> = {};
+
+  // 1. Initial deterministic placement around an ellipse with alternating vertical elevation
+  ids.forEach((id, idx) => {
+    const angle = (idx / n) * Math.PI * 2 - Math.PI / 2;
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * (radius * 0.72);
+    const y = 2.0 + Math.sin(angle * 2) * 0.95 + ((idx % 2 === 1) ? 0.45 : -0.45);
+    out[id] = [Number(x.toFixed(3)), Number(y.toFixed(3)), Number(z.toFixed(3))];
+  });
+
+  // 2. Collision pass: enforce minimum pairwise distance >= 2.4 (2 node diameters = 2 * 1.16 = 2.32)
+  const MIN_DIST = 2.45;
+  const iterations = 15;
+  for (let iter = 0; iter < iterations; iter++) {
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        const idA = ids[i];
+        const idB = ids[j];
+        const posA = out[idA];
+        const posB = out[idB];
+        let dx = posB[0] - posA[0];
+        let dy = posB[1] - posA[1];
+        let dz = posB[2] - posA[2];
+        let dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist < 0.001) {
+          dx = 0.1;
+          dist = 0.1;
+        }
+        if (dist < MIN_DIST) {
+          const overlap = (MIN_DIST - dist) / 2;
+          const nx = dx / dist;
+          const ny = dy / dist;
+          const nz = dz / dist;
+          out[idA] = [
+            Number((posA[0] - nx * overlap).toFixed(3)),
+            Number(Math.max(0.6, posA[1] - ny * overlap * 0.5).toFixed(3)),
+            Number((posA[2] - nz * overlap).toFixed(3)),
+          ];
+          out[idB] = [
+            Number((posB[0] + nx * overlap).toFixed(3)),
+            Number(Math.max(0.6, posB[1] + ny * overlap * 0.5).toFixed(3)),
+            Number((posB[2] + nz * overlap).toFixed(3)),
+          ];
+        }
+      }
+    }
+  }
+
+  return out;
+}
+
+/**
  * Computes a 3D circular/elliptical graph layout when custom graph vertices
  * are not in the default `GRAPH_NODE_COORDS` map.
  */
 function computeDynamicGraphLayout(
   snapshot: TraceStateSnapshot,
 ): Record<string, [number, number, number]> {
-  const ids = Object.keys(snapshot.nodes);
-  if (ids.every((id) => id in GRAPH_NODE_COORDS)) {
-    return GRAPH_NODE_COORDS;
-  }
-  const out: Record<string, [number, number, number]> = {};
-  const n = Math.max(1, ids.length);
-  ids.forEach((id, idx) => {
-    if (id in GRAPH_NODE_COORDS) {
-      out[id] = GRAPH_NODE_COORDS[id];
-      return;
-    }
-    const angle = (idx / n) * Math.PI * 2 - Math.PI / 2;
-    out[id] = [
-      Number((Math.cos(angle) * 3.6).toFixed(2)),
-      Number((1.8 + Math.sin(angle * 2) * 0.75).toFixed(2)),
-      Number((Math.sin(angle) * 1.4).toFixed(2)),
-    ];
-  });
-  return out;
+  return computeCollisionFreeGraphLayout(snapshot);
 }
 
 /**
@@ -519,18 +567,76 @@ export function buildSceneObjectsForScene(
     return appendCallStackAndScalarFallback(buildArraySceneObjectsFromSnapshot(snapshot));
   }
 
+  // Heap scene: render ONLY the complete binary tree (no array cells/bars on 3D stage)
+  if (scene === 'heap') {
+    const heapArray = snapshot.arrays['arr'] ?? snapshot.arrays['aux'];
+    const heapValues = heapArray?.values ?? [];
+    const totalCount = heapValues.length;
+
+    // Detect active heap size if heapSize or i scalar is present (e.g. heapSort)
+    const scalarHeapSize =
+      typeof snapshot.scalars?.heapSize === 'number'
+        ? snapshot.scalars.heapSize
+        : typeof snapshot.scalars?.i === 'number' && snapshot.narration.toLowerCase().includes('sort')
+          ? snapshot.scalars.i + 1
+          : totalCount;
+    const activeHeapLimit = Math.max(0, Math.min(totalCount, scalarHeapSize));
+
+    const treeObjs: SceneObjectInfo[] = [];
+    if (totalCount > 0) {
+      const depth = Math.floor(Math.log2(totalCount));
+      const treeSpacingX = 2.6;
+      heapValues.forEach((val, i) => {
+        const nodeId = `heap-node-${i}`;
+        const isDetached = i >= activeHeapLimit;
+        const level = Math.floor(Math.log2(i + 1));
+        const indexInLevel = i - (Math.pow(2, level) - 1);
+        const countInLevel = Math.pow(2, level);
+        const levelWidth = countInLevel * treeSpacingX * Math.pow(0.72, Math.max(0, level - 1));
+        const x = (indexInLevel - (countInLevel - 1) / 2) * (levelWidth / countInLevel);
+        const y = isDetached ? 0.6 : 2.2 + (depth - level) * 1.55;
+        const z = isDetached ? 2.5 : -0.6 + level * 0.2;
+
+        const linksTo: SceneObjectInfo['linksTo'] = [];
+        if (!isDetached) {
+          const leftIdx = 2 * i + 1;
+          const rightIdx = 2 * i + 2;
+          if (leftIdx < activeHeapLimit) {
+            linksTo.push({ label: 'left', targetId: `heap-node-${leftIdx}` });
+          }
+          if (rightIdx < activeHeapLimit) {
+            linksTo.push({ label: 'right', targetId: `heap-node-${rightIdx}` });
+          }
+        }
+
+        treeObjs.push({
+          id: nodeId,
+          kind: 'tree-node',
+          label: isDetached ? `sorted[${i}] (${String(val)})` : `heap[${i}] (${String(val)})`,
+          value: val,
+          memoryAddress: `0x8000${(i * 4).toString(16).toUpperCase()}`,
+          position: [Number(x.toFixed(3)), Number(y.toFixed(3)), Number(z.toFixed(3))],
+          fields: {
+            id: nodeId,
+            heapIndex: i,
+            value: val,
+            links: linksTo.length,
+            isSorted: isDetached,
+            dimmed: isDetached,
+          },
+          linksTo,
+        });
+      });
+    }
+
+    if (treeObjs.length > 0) {
+      return appendCallStackAndScalarFallback(treeObjs);
+    }
+  }
+
   // If Stack or Queue is backed by a flat array (`arr`, e.g. stack_array.cpp, queue_array_and_circular.cpp, deque.cpp), render as 3D bars
   if (
     (scene === 'stack' || scene === 'queue') &&
-    Object.keys(snapshot.nodes).length === 0 &&
-    Object.keys(snapshot.arrays).length > 0
-  ) {
-    return appendCallStackAndScalarFallback(buildArraySceneObjectsFromSnapshot(snapshot));
-  }
-
-  // If Heap is backed by a flat array (`arr`, e.g. std::priority_queue), render as 3D heap bars
-  if (
-    scene === 'heap' &&
     Object.keys(snapshot.nodes).length === 0 &&
     Object.keys(snapshot.arrays).length > 0
   ) {
@@ -743,6 +849,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
   wireframe: false,
 
   workingArray: INITIAL_ARRAY,
+  libraryInputMode: 'default',
   activeOperation: null,
   activeStructureOp: null,
   selectedCorpusFile: '01_arrays_and_searching/array_operations.cpp',
@@ -783,6 +890,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       );
       set({
         previewScene: 'array',
+        libraryInputMode: 'default',
         activeOperation: null,
         selectedCorpusFile: '01_arrays_and_searching/array_operations.cpp',
         timeline,
@@ -812,6 +920,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
 
     set({
       previewScene: scene,
+      libraryInputMode: 'default',
       activeStructureOp: null,
       activeMetadata: result.meta,
       timeline,
@@ -981,6 +1090,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       const { timeline, snapshot, objs } = buildStaticArrayState(arr);
       set({
         workingArray: arr,
+        libraryInputMode: 'dataset',
         timeline,
         currentStep: timeline.totalSteps,
         totalSteps: timeline.totalSteps,
@@ -1002,6 +1112,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
     const objs = buildSceneObjectsForScene(state.previewScene, snapshot);
     set({
       workingArray: arr,
+      libraryInputMode: 'dataset',
       timeline,
       currentStep: startStep,
       totalSteps: timeline.totalSteps,
@@ -1020,6 +1131,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
     const corpusLines = getCorpusCodeLines(corpusPath, baseMeta.code);
     set({
       activeOperation: op,
+      libraryInputMode: 'default',
       selectedCorpusFile: corpusPath,
       activeMetadata: {
         ...baseMeta,
@@ -1033,12 +1145,13 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
   selectStructureOperation: (op) => {
     const def = STRUCTURE_OP_CATALOG.find((item) => item.id === op);
     if (!def) {
-      set({ activeStructureOp: op, isPlaying: false, hasPendingOperationRun: true });
+      set({ activeStructureOp: op, libraryInputMode: 'default', isPlaying: false, hasPendingOperationRun: true });
       return;
     }
     const corpusLines = getCorpusCodeLines(def.corpusPath, []);
     set((s) => ({
       activeStructureOp: op,
+      libraryInputMode: 'default',
       selectedCorpusFile: def.corpusPath,
       activeMetadata: {
         ...s.activeMetadata,
@@ -1052,16 +1165,35 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
     }));
   },
 
-  runOperationNow: (op, paramIndex = 0, paramValue = 42) => {
+  runOperationNow: (op, paramIndex = 0, paramValue = 42, forceCustomValues = false) => {
     const state = get();
-    const baseArr = state.workingArray;
-    const result = runCorpusArrayOperation(op, baseArr, paramIndex, paramValue);
+    const isDatasetMode = forceCustomValues || state.libraryInputMode === 'dataset';
+    let result: CorpusOperationTraceResult;
+
+    if (!isDatasetMode) {
+      const corpusPath = ARRAY_CORPUS_MAP[op];
+      const rawCpp = getCorpusRawText(corpusPath);
+      const fileName = corpusPath.split('/')[1] ?? corpusPath;
+      const customTrace = executeCustomCodeTrace(rawCpp, [], corpusPath, fileName);
+      result = {
+        scene: 'array',
+        meta: customTrace.meta,
+        events: customTrace.events,
+        finalArray: customTrace.extractedArray,
+        operationStartStep: 1,
+        unsupportedCorpusReason: null,
+        corpusPath,
+      };
+    } else {
+      const baseArr = state.workingArray;
+      result = runCorpusArrayOperation(op, baseArr, paramIndex, paramValue);
+    }
     const timeline = new TraceTimeline(result.events);
     let startStep = Math.max(1, Math.min(result.operationStartStep, timeline.totalSteps));
     let snapshot = timeline.getSnapshotAt(startStep);
     let objs = buildArraySceneObjectsFromSnapshot(snapshot);
     if (objs.length === 0 && timeline.totalSteps > 1) {
-      const nonEmptyIdx = result.events.findIndex((e, idx) => {
+      const nonEmptyIdx = result.events.findIndex((e: TraceEvent, idx: number) => {
         if (e.t !== 'note') return false;
         const snap = timeline.getSnapshotAt(idx + 1);
         return buildArraySceneObjectsFromSnapshot(snap).length > 0;
@@ -1099,15 +1231,35 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
     });
   },
 
-  runStructureOperationNow: (op, paramValue = 40, paramText) => {
+  runStructureOperationNow: (op, paramValue = 40, paramText, forceCustomValues = false) => {
     const state = get();
-    const result = runCorpusStructureOperation(op, state.workingArray, paramValue, paramText);
+    const isDatasetMode = forceCustomValues || state.libraryInputMode === 'dataset';
+    let result: CorpusOperationTraceResult;
+
+    if (!isDatasetMode) {
+      const def = STRUCTURE_OP_CATALOG.find((item) => item.id === op);
+      const corpusPath = def?.corpusPath ?? '02_singly_linked_list/singly_linked_list.cpp';
+      const rawCpp = getCorpusRawText(corpusPath);
+      const fileName = corpusPath.split('/')[1] ?? corpusPath;
+      const customTrace = executeCustomCodeTrace(rawCpp, [], corpusPath, fileName);
+      result = {
+        meta: customTrace.meta,
+        events: customTrace.events,
+        finalArray: customTrace.extractedArray,
+        operationStartStep: 1,
+        unsupportedCorpusReason: null,
+        corpusPath,
+        scene: def?.scene ?? customTrace.scene,
+      };
+    } else {
+      result = runCorpusStructureOperation(op, state.workingArray, paramValue, paramText);
+    }
     const timeline = new TraceTimeline(result.events);
     let startStep = Math.max(1, Math.min(result.operationStartStep, timeline.totalSteps));
     let snapshot = timeline.getSnapshotAt(startStep);
     let objs = buildSceneObjectsForScene(result.scene, snapshot);
     if (objs.length === 0 && timeline.totalSteps > 1) {
-      const nonEmptyIdx = result.events.findIndex((e, idx) => {
+      const nonEmptyIdx = result.events.findIndex((e: TraceEvent, idx: number) => {
         if (e.t !== 'note') return false;
         const snap = timeline.getSnapshotAt(idx + 1);
         return buildSceneObjectsForScene(result.scene, snap).length > 0;
@@ -1152,6 +1304,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
     const lines = getCorpusCodeLines(relativePath, get().activeMetadata.code);
     set((s) => ({
       selectedCorpusFile: relativePath,
+      libraryInputMode: 'default',
       activeMetadata: {
         ...s.activeMetadata,
         title: `${entry.title} (${relativePath.split('/')[1]})`,
@@ -1196,6 +1349,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
       set({
         previewScene: entry.scene,
         selectedCorpusFile: relativePath,
+        libraryInputMode: 'default',
         activeOperation: entry.scene === 'array' ? (entry.operationId as ArrayOperationId) : null,
         activeStructureOp:
           entry.scene !== 'array' ? (entry.operationId as StructureOperationId) : null,

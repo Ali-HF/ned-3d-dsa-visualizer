@@ -60,7 +60,7 @@ export interface CorpusOperationTraceResult {
   /**
    * Non-null ONLY when an operation button has no implementation in the corpus
    * file (e.g., `rotate` left, `recursion-factorial`, `recursion-hanoi`,
-   * `graph-prim`, `hash-quadratic`, `hash-double`).
+   * `graph-prim`).
    */
   unsupportedCorpusReason: string | null;
 }
@@ -592,10 +592,12 @@ export function runCorpusStructureOperation(
     // QUEUE & DEQUE (Week 5)
     // ==========================================
     case 'queue-enqueue': {
-      const baseVals = safeArr.slice(0, 4);
-      const replaced = replaceMainPreservingLines(rawCpp, [
+      // Dynamic queue capacity to comfortably accommodate user values
+      const queueCap = Math.max(16, safeArr.length + 6);
+      const queueSource = rawCpp.replace(/#define\s+SIZE\s+\d+/, `#define SIZE ${queueCap}`);
+      const replaced = replaceMainPreservingLines(queueSource, [
         `LinearQueue lq;`,
-        ...baseVals.map((v) => `lq.enqueue(${v});`),
+        ...safeArr.map((v) => `lq.enqueue(${v});`),
         `__markOperationStart();`,
         `lq.enqueue(${paramValue});`,
         `lq.display();`,
@@ -606,10 +608,11 @@ export function runCorpusStructureOperation(
     }
 
     case 'queue-dequeue': {
-      const baseVals = safeArr.slice(0, 4);
-      const replaced = replaceMainPreservingLines(rawCpp, [
+      const queueCap = Math.max(16, safeArr.length + 6);
+      const queueSource = rawCpp.replace(/#define\s+SIZE\s+\d+/, `#define SIZE ${queueCap}`);
+      const replaced = replaceMainPreservingLines(queueSource, [
         `LinearQueue lq;`,
-        ...baseVals.map((v) => `lq.enqueue(${v});`),
+        ...safeArr.map((v) => `lq.enqueue(${v});`),
         `__markOperationStart();`,
         `lq.dequeue();`,
         `lq.display();`,
@@ -620,12 +623,12 @@ export function runCorpusStructureOperation(
     }
 
     case 'circular-queue': {
-      const replaced = replaceMainPreservingLines(rawCpp, [
+      const queueCap = Math.max(16, safeArr.length + 6);
+      const queueSource = rawCpp.replace(/#define\s+SIZE\s+\d+/, `#define SIZE ${queueCap}`);
+      const initVals = safeArr.length > 0 ? safeArr : [10, 20, 30, 40];
+      const replaced = replaceMainPreservingLines(queueSource, [
         `CircularQueue cq;`,
-        `cq.enqueue(10);`,
-        `cq.enqueue(20);`,
-        `cq.enqueue(30);`,
-        `cq.enqueue(40);`,
+        ...initVals.map((v) => `cq.enqueue(${v});`),
         `__markOperationStart();`,
         `cq.dequeue();`,
         `cq.enqueue(${paramValue});`,
@@ -637,7 +640,20 @@ export function runCorpusStructureOperation(
     }
 
     case 'deque-ops': {
-      // Run deque.cpp unmodified
+      const dequeCap = Math.max(16, safeArr.length + 6);
+      const dequeSource = rawCpp.replace(/#define\s+SIZE\s+\d+/, `#define SIZE ${dequeCap}`);
+      const firstHalf = safeArr.slice(0, Math.ceil(safeArr.length / 2));
+      const secondHalf = safeArr.slice(Math.ceil(safeArr.length / 2));
+      const replaced = replaceMainPreservingLines(dequeSource, [
+        `Deque d;`,
+        ...firstHalf.map((v) => `d.insertRear(${v});`),
+        ...secondHalf.map((v) => `d.insertFront(${v});`),
+        `__markOperationStart();`,
+        `d.insertRear(${paramValue});`,
+        `d.display();`,
+      ]);
+      sourceToRun = replaced.modifiedSource;
+      mainStartLine = replaced.mainStartLine;
       break;
     }
 
@@ -839,49 +855,6 @@ export function runCorpusStructureOperation(
     case 'graph-prim': {
       unsupportedReason =
         "14_graph_mst_toposort/kruskal_mst.cpp implements Kruskal's MST (sortEdges, find, unionSets, kruskal), not Prim's MST. Executing kruskal() from the corpus file.";
-      break;
-    }
-
-    // ==========================================
-    // HASH TABLE (Week 15)
-    // ==========================================
-    case 'hash-linear':
-    case 'hash-quadratic':
-    case 'hash-double': {
-      if (op === 'hash-quadratic') {
-        unsupportedReason =
-          '15_hashing/linear_probing.cpp implements HashTableLinearProbing, not Quadratic Probing. Executing HashTableLinearProbing::insert from the corpus file.';
-      } else if (op === 'hash-double') {
-        unsupportedReason =
-          '15_hashing/linear_probing.cpp implements HashTableLinearProbing, not Double Hashing. Executing HashTableLinearProbing::insert from the corpus file.';
-      }
-      const replaced = replaceMainPreservingLines(rawCpp, [
-        `HashTableLinearProbing ht(7);`,
-        `ht.insert(10);`,
-        `ht.insert(17);`,
-        `ht.insert(24);`,
-        `__markOperationStart();`,
-        `ht.insert(${paramValue});`,
-        `ht.display();`,
-      ]);
-      sourceToRun = replaced.modifiedSource;
-      mainStartLine = replaced.mainStartLine;
-      break;
-    }
-
-    case 'hash-chaining': {
-      const replaced = replaceMainPreservingLines(rawCpp, [
-        `HashTableSeparateChaining ht(5);`,
-        `ht.insert(10);`,
-        `ht.insert(15);`,
-        `ht.insert(7);`,
-        `ht.insert(12);`,
-        `__markOperationStart();`,
-        `ht.insert(${paramValue});`,
-        `ht.display();`,
-      ]);
-      sourceToRun = replaced.modifiedSource;
-      mainStartLine = replaced.mainStartLine;
       break;
     }
   }

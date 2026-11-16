@@ -62,7 +62,7 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     expect(useViewportStore.getState().autoFollowCamera).toBe(false);
   });
 
-  it('runs interactive 3D traces for Stack, Queue, Heap, Graph, and Hash Table scenes', () => {
+  it('runs interactive 3D traces for Stack, Queue, Heap, and Graph scenes', () => {
     const store = useViewportStore.getState();
 
     store.setPreviewScene('stack');
@@ -84,10 +84,6 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     store.setPreviewScene('graph');
     expect(useViewportStore.getState().previewScene).toBe('graph');
     expect(Object.keys(useViewportStore.getState().sceneObjects).length).toBe(6);
-
-    store.setPreviewScene('hash-table');
-    expect(useViewportStore.getState().previewScene).toBe('hash-table');
-    expect(Object.keys(useViewportStore.getState().sceneObjects).length).toBeGreaterThan(0);
   });
 
   it('loads C++ source code directly from cpp_corpus/ when selecting a corpus file', () => {
@@ -357,7 +353,7 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     expect(state.activeMetadata.title).toContain('quick_sort.cpp');
   });
 
-  it('honors user-supplied values across Linked List, BST, Heap, and Hash Table operations', () => {
+  it('honors user-supplied values across Linked List, BST, and Heap operations', () => {
     const store = useViewportStore.getState();
 
     // Linked list search & delete with custom target
@@ -395,12 +391,6 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     state = useViewportStore.getState();
     expect(state.currentSnapshot.nodes['bst-50']?.value).toBe(90);
     expect(state.currentSnapshot.narration).toContain('no swap is needed');
-
-    // Hash table linear probing uses actual key % 7 (e.g. 21 % 7 = 0, empty!)
-    store.runStructureOperationNow('hash-linear', 21);
-    useViewportStore.getState().skipToEnd();
-    state = useViewportStore.getState();
-    expect(state.currentSnapshot.arrays['arr']?.values[0]).toBe(21);
   });
 
   it('positions new head node on the left when inserting at front of linked list', () => {

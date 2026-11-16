@@ -124,7 +124,7 @@ export function DirectedEdge3D({
       </mesh>
       {label && (
         <Suspense fallback={null}>
-          <Billboard position={midPoint}>
+          <Billboard position={[midPoint[0], midPoint[1] + 0.38, midPoint[2] + 0.12]}>
             <Text
               fontSize={0.24}
               color={textColor}

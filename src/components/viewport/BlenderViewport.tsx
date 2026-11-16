@@ -254,7 +254,10 @@ function SceneObjectMesh({
   let fillColor = '#a8a8a8';
   let edgeColor = '#2b2b2b';
 
-  if (isSwapped) {
+  if (Boolean(obj.fields.dimmed) || Boolean(obj.fields.isSorted)) {
+    fillColor = '#606060';
+    edgeColor = '#3a3a3a';
+  } else if (isSwapped) {
     fillColor = '#b8b0a4';
     edgeColor = '#ffa834';
   } else if (isCompared) {
@@ -830,15 +833,31 @@ function SceneContents() {
 
   const comparePair = useMemo(() => {
     if (!currentSnapshot.comparedRefs) return null;
-    const a = sceneObjects[formatRefLabel(currentSnapshot.comparedRefs[0])];
-    const b = sceneObjects[formatRefLabel(currentSnapshot.comparedRefs[1])];
+    const refA = currentSnapshot.comparedRefs[0];
+    const refB = currentSnapshot.comparedRefs[1];
+    let a = sceneObjects[formatRefLabel(refA)];
+    let b = sceneObjects[formatRefLabel(refB)];
+    if (!a && refA.id === 'arr' && typeof refA.index === 'number') {
+      a = sceneObjects[`heap-node-${refA.index}`];
+    }
+    if (!b && refB.id === 'arr' && typeof refB.index === 'number') {
+      b = sceneObjects[`heap-node-${refB.index}`];
+    }
     return a && b ? { a, b } : null;
   }, [currentSnapshot.comparedRefs, sceneObjects]);
 
   const swapPair = useMemo(() => {
     if (!currentSnapshot.swappedRefs) return null;
-    const a = sceneObjects[formatRefLabel(currentSnapshot.swappedRefs[0])];
-    const b = sceneObjects[formatRefLabel(currentSnapshot.swappedRefs[1])];
+    const refA = currentSnapshot.swappedRefs[0];
+    const refB = currentSnapshot.swappedRefs[1];
+    let a = sceneObjects[formatRefLabel(refA)];
+    let b = sceneObjects[formatRefLabel(refB)];
+    if (!a && refA.id === 'arr' && typeof refA.index === 'number') {
+      a = sceneObjects[`heap-node-${refA.index}`];
+    }
+    if (!b && refB.id === 'arr' && typeof refB.index === 'number') {
+      b = sceneObjects[`heap-node-${refB.index}`];
+    }
     return a && b ? { a, b } : null;
   }, [currentSnapshot.swappedRefs, sceneObjects]);
 
@@ -1053,6 +1072,13 @@ export function BlenderViewport() {
                   .map(([k, v]) => `${k}=${typeof v === 'string' ? `"${v}"` : String(v)}`)
                   .join(' | ')}
               </span>
+            </div>
+          )}
+
+          {previewScene === 'heap' && currentArrayValues.length > 0 && (
+            <div className="stitch-hud-pill telemetry" role="status">
+              <span className="hud-scene-name">HEAP ARRAY:</span>
+              <span className="cyan">[{currentArrayValues.join(', ')}]</span>
             </div>
           )}
 

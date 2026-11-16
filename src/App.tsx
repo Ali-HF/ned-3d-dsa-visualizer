@@ -160,13 +160,6 @@ const STRUCTURE_CARDS: {
       metaTag: 'Adj • Weight',
       icon: '◈',
     },
-    {
-      id: 'hash-table',
-      name: 'Hash Table',
-      cppType: 'HashMap<K,V>',
-      metaTag: 'Mod • Probe',
-      icon: '#',
-    },
   ];
 
 const CUSTOM_CODE_TEMPLATES: { label: string; fileName: string; code: string }[] = [
@@ -247,6 +240,7 @@ export function App() {
   const toggleWireframe = useViewportStore((s) => s.toggleWireframe);
 
   const workingArray = useViewportStore((s) => s.workingArray);
+  const libraryInputMode = useViewportStore((s) => s.libraryInputMode);
   const activeOperation = useViewportStore((s) => s.activeOperation);
   const activeStructureOp = useViewportStore((s) => s.activeStructureOp);
   const selectedCorpusFile = useViewportStore((s) => s.selectedCorpusFile);
@@ -475,7 +469,9 @@ export function App() {
     setParamIndexText(String(parsedIdx));
     setParamValueText(String(parsedVal));
 
-    applyCustomInputValues(nums);
+    if (libraryInputMode === 'dataset') {
+      applyCustomInputValues(nums);
+    }
     if (previewScene === 'array') {
       if (!activeOperation) return;
       if (activeOperation === 'binary-search' && !isArraySortedAscending(nums)) {
@@ -964,54 +960,84 @@ export function App() {
                 <div className="st-card-header">
                   <span className="st-step-circle">3</span>
                   <span className="st-card-title">Dataset &amp; Params</span>
-                  <Screentip
-                    title="Apply Dataset"
-                    description="Commit the comma-separated elements into the 3D scene."
-                    placement="top"
-                  >
-                    <button
-                      type="button"
-                      className="st-edit-link"
-                      onClick={handleApplyInputNumbers}
+                  {libraryInputMode === 'dataset' && (
+                    <Screentip
+                      title="Apply Dataset"
+                      description="Commit the comma-separated elements into the 3D scene."
+                      placement="top"
                     >
-                      Apply
-                    </button>
-                  </Screentip>
+                      <button
+                        type="button"
+                        className="st-edit-link"
+                        onClick={handleApplyInputNumbers}
+                      >
+                        Apply
+                      </button>
+                    </Screentip>
+                  )}
+                </div>
+
+                {/* Custom Dataset Opt-in Toggle */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 2px 8px 2px', fontSize: '11.5px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none', color: libraryInputMode === 'dataset' ? '#f59e0b' : '#94a3b8' }}>
+                    <input
+                      type="checkbox"
+                      checked={libraryInputMode === 'dataset'}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        useViewportStore.setState({ libraryInputMode: checked ? 'dataset' : 'default' });
+                        if (checked) {
+                          handleApplyInputNumbers();
+                        }
+                      }}
+                      style={{ cursor: 'pointer', accentColor: '#f59e0b' }}
+                    />
+                    <span>Use custom dataset</span>
+                  </label>
+                  <span style={{ fontSize: '10px', color: '#64748b' }}>
+                    {libraryInputMode === 'dataset' ? 'Custom values active' : 'File values (default)'}
+                  </span>
                 </div>
 
                 <div className="st-input-well-wrap">
                   <Screentip
-                    title="Edit Dataset Elements"
-                    description="Enter comma-separated values for the structure (press Enter to apply)."
+                    title={libraryInputMode === 'dataset' ? 'Edit Dataset Elements' : 'Dataset (Read-only: toggle "Use custom dataset" above to edit)'}
+                    description="Comma-separated values for the structure."
                     placement="top"
                   >
                     <input
                       type="text"
                       className="st-numbers-input"
-                      value={arrayInputText}
+                      value={libraryInputMode === 'dataset' ? arrayInputText : ''}
+                      placeholder={workingArray.join(', ')}
+                      readOnly={libraryInputMode !== 'dataset'}
+                      disabled={libraryInputMode !== 'dataset'}
+                      style={libraryInputMode !== 'dataset' ? { opacity: 0.65, cursor: 'not-allowed' } : undefined}
                       onChange={(e) => setArrayInputText(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleApplyInputNumbers();
+                        if (e.key === 'Enter' && libraryInputMode === 'dataset') handleApplyInputNumbers();
                       }}
                       aria-label="Dataset Elements"
                     />
                   </Screentip>
 
-                  <Screentip
-                    title="Surprise Me (Randomize)"
-                    description="Generate 6 random numbers to test the algorithm with a surprise dataset."
-                    shortcut="↻"
-                    placement="top"
-                  >
-                    <button
-                      type="button"
-                      className="st-refresh-btn"
-                      onClick={handleRandomizeNumbers}
-                      aria-label="Randomize numbers"
+                  {libraryInputMode === 'dataset' && (
+                    <Screentip
+                      title="Surprise Me (Randomize)"
+                      description="Generate 6 random numbers to test the algorithm with a surprise dataset."
+                      shortcut="↻"
+                      placement="top"
                     >
-                      ↻
-                    </button>
-                  </Screentip>
+                      <button
+                        type="button"
+                        className="st-refresh-btn"
+                        onClick={handleRandomizeNumbers}
+                        aria-label="Randomize numbers"
+                      >
+                        ↻
+                      </button>
+                    </Screentip>
+                  )}
                 </div>
 
                 {(previewScene === 'array' ? selectedArrayAction !== null : selectedStructAction !== null) ? (
@@ -1157,10 +1183,7 @@ export function App() {
                       className="st-mini-run-btn"
                       onClick={handleRunActiveOperation}
                     >
-                      ▶ Run{' '}
-                      {previewScene === 'array'
-                        ? selectedArrayAction?.label
-                        : selectedStructAction?.label}
+                      ▶ {libraryInputMode === 'dataset' ? 'Run with my values' : 'Run with code values'}
                     </button>
                   </div>
                 ) : (
