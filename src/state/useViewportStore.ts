@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type {
   CameraPreset,
   PreviewSceneKind,
+  Primitive,
   SceneObjectInfo,
   TraceEvent,
   TraceStateSnapshot,
@@ -30,6 +31,7 @@ import {
 } from '../engine/codeRunner';
 import {
   ARRAY_CORPUS_MAP,
+  carryForwardQueueScalars,
   runCorpusArrayOperation,
   runCorpusStructureOperation,
 } from '../engine/corpusRunner';
@@ -664,9 +666,74 @@ export function buildSceneObjectsForScene(
     }
   }
 
-  // If Stack, Queue, or Deque is backed by a flat array (`arr`, e.g. stack_array.cpp, queue_array_and_circular.cpp, deque.cpp), render as 3D bars
+  // Queue or Deque backed by a flat C++ array (`arr`, e.g. queue_array_and_circular.cpp, deque.cpp):
+  // Extract the active logical elements in [front .. rear] order and render them as 3D nodes,
+  // avoiding sparse 16-bar arrays with empty zero slots in the middle.
   if (
-    (scene === 'stack' || scene === 'queue' || scene === 'deque') &&
+    (scene === 'queue' || scene === 'deque') &&
+    Object.keys(snapshot.nodes).length === 0 &&
+    Object.keys(snapshot.arrays).length > 0
+  ) {
+    const backingArr = snapshot.arrays['arr'] ?? Object.values(snapshot.arrays)[0];
+    const arrVals = backingArr?.values ?? [];
+    const cap = arrVals.length;
+    const fScalar = snapshot.scalars?.front;
+    const rScalar = snapshot.scalars?.rear;
+    const cScalar = snapshot.scalars?.count;
+
+    if (typeof fScalar === 'number' && (typeof cScalar === 'number' || typeof rScalar === 'number')) {
+      let activeVals: Primitive[] = [];
+      if (typeof cScalar === 'number') {
+        const cnt = Math.max(0, Math.min(cap, Math.trunc(cScalar)));
+        if (cnt > 0 && cap > 0) {
+          const frontIdx = ((Math.trunc(fScalar) % cap) + cap) % cap;
+          activeVals = Array.from({ length: cnt }, (_, k) => arrVals[(frontIdx + k) % cap]);
+        }
+      } else if (typeof rScalar === 'number' && cap > 0) {
+        const f = Math.max(0, Math.trunc(fScalar));
+        const r = Math.min(cap - 1, Math.trunc(rScalar));
+        if (r >= f) {
+          activeVals = arrVals.slice(f, r + 1);
+        }
+      }
+
+      const prefix = scene === 'deque' ? 'dq-' : 'q-';
+      const spacing = 2.4;
+      const startX = -((activeVals.length - 1) * spacing) / 2;
+      const queueObjs: SceneObjectInfo[] = activeVals.map((val, idx) => {
+        const id = `${prefix}${idx}`;
+        const hasPrev = idx > 0;
+        const hasNext = idx < activeVals.length - 1;
+        return {
+          id,
+          kind: 'list-node',
+          label: `${id} (${String(val)})`,
+          value: val,
+          memoryAddress: `0x${(0x2040 + idx * 0x40).toString(16).toUpperCase()}`,
+          position: [startX + idx * spacing, 1.0, 0],
+          fields: {
+            id,
+            value: val,
+            links: hasNext ? 1 : 0,
+            hasIncomingNext: hasPrev,
+            queueSize: activeVals.length,
+          },
+          linksTo: hasNext ? [{ label: 'next', targetId: `${prefix}${idx + 1}` }] : [],
+        };
+      });
+
+      if (queueObjs.length > 0) {
+        return appendCallStackAndScalarFallback(queueObjs);
+      }
+      return appendCallStackAndScalarFallback([]);
+    }
+
+    return appendCallStackAndScalarFallback(buildArraySceneObjectsFromSnapshot(snapshot));
+  }
+
+  // If Stack is backed by a flat array (`arr`, e.g. stack_array.cpp), render as 3D bars
+  if (
+    scene === 'stack' &&
     Object.keys(snapshot.nodes).length === 0 &&
     Object.keys(snapshot.arrays).length > 0
   ) {
@@ -1431,8 +1498,12 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
         relativePath,
         fileName,
       );
-      const timeline = new TraceTimeline(res.events);
-      const firstNoteIdx = res.events.findIndex((e) => e.t === 'note');
+      const traceEvents =
+        entry.scene === 'queue' || entry.scene === 'deque'
+          ? carryForwardQueueScalars(res.events)
+          : res.events;
+      const timeline = new TraceTimeline(traceEvents);
+      const firstNoteIdx = traceEvents.findIndex((e) => e.t === 'note');
       let startStep = firstNoteIdx >= 0 ? firstNoteIdx + 1 : 1;
       let snapshot = timeline.getSnapshotAt(startStep);
       let objs = buildSceneObjectsForScene(entry.scene, snapshot);

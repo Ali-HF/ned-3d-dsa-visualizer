@@ -127,17 +127,24 @@ function SceneObjectMesh({
     obj.id.startsWith('cq-') ||
     obj.id.startsWith('dq-');
   const isListNode = obj.id.startsWith('node-') || obj.id.startsWith('ll-');
-  const hasIncomingNext = snapshot.edges.some(
-    (e) =>
-      e.to === obj.id &&
-      (e.label === 'next' || e.label === 'wrap % N' || !e.label),
-  );
-  const hasOutgoingNext = snapshot.edges.some(
-    (e) =>
-      e.from === obj.id &&
-      (e.label === 'next' || e.label === 'wrap % N' || !e.label),
-  );
-  const nodeCount = Object.keys(snapshot.nodes).length;
+  const hasIncomingNext =
+    Boolean(obj.fields.hasIncomingNext) ||
+    snapshot.edges.some(
+      (e) =>
+        e.to === obj.id &&
+        (e.label === 'next' || e.label === 'wrap % N' || !e.label),
+    );
+  const hasOutgoingNext =
+    obj.linksTo.some((l) => l.label === 'next' || l.label === 'wrap % N') ||
+    snapshot.edges.some(
+      (e) =>
+        e.from === obj.id &&
+        (e.label === 'next' || e.label === 'wrap % N' || !e.label),
+    );
+  const nodeCount =
+    typeof obj.fields.queueSize === 'number'
+      ? obj.fields.queueSize
+      : Object.keys(snapshot.nodes).length;
   const pointerTag = isQueueNode
     ? !hasIncomingNext && !hasOutgoingNext
       ? 'FRONT / REAR'

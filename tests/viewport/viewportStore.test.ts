@@ -760,5 +760,20 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     useViewportStore.getState().skipToEnd();
     state = useViewportStore.getState();
     expect(state.workingArray).toEqual([10, 20, 30]);
+
+    // 3. Deque insertFront with Code Viewer open renders logical ordered nodes (no sparse 16-bar array)
+    store.setDetailsOpen(true);
+    try {
+      store.applyCustomInputValues([100, 20, 30, 500]);
+      store.runStructureOperationNow('deque-push-front', 42);
+      useViewportStore.getState().skipToEnd();
+      const dequeCodeState = useViewportStore.getState();
+      const objs = Object.values(dequeCodeState.sceneObjects);
+      expect(objs.length).toBe(5);
+      expect(objs.every((o) => o.kind === 'list-node')).toBe(true);
+      expect(objs.map((o) => o.value)).toEqual([42, 100, 20, 30, 500]);
+    } finally {
+      store.setDetailsOpen(false);
+    }
   });
 });

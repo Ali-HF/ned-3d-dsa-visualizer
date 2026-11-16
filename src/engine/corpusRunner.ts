@@ -26,7 +26,7 @@ import {
   getCorpusCodeLines,
   getCorpusRawText,
 } from '../corpus/cppCorpusRegistry';
-import type { PreviewSceneKind, TraceEvent } from '../types/trace';
+import type { PreviewSceneKind, Primitive, TraceEvent } from '../types/trace';
 import { runCppTrace } from './cppInterpreter';
 
 export const ARRAY_CORPUS_MAP: Record<ArrayOperationId, string> = {
@@ -1062,6 +1062,10 @@ export function runCorpusStructureOperation(
     }
   }
 
+  if (scene === 'queue' || scene === 'deque') {
+    rawEvents = carryForwardQueueScalars(rawEvents);
+  }
+
   const { cleanedEvents, operationStartStep } = extractOperationStartStepAndCleanMarkers(
     rawEvents,
     corpusPath,
@@ -1073,6 +1077,11 @@ export function runCorpusStructureOperation(
     corpusLines,
     mainStartLine,
   );
+
+  const finalArray =
+    scene === 'queue' || scene === 'deque'
+      ? extractLogicalQueueArray(normalizedEvents, traceRes.extractedArray)
+      : traceRes.extractedArray;
 
   const meta: AlgorithmMetadata = {
     id: 'bubble-sort',
@@ -1087,11 +1096,69 @@ export function runCorpusStructureOperation(
     scene,
     corpusPath,
     events: normalizedEvents,
-    finalArray: traceRes.extractedArray,
+    finalArray,
     meta,
     operationStartStep,
     unsupportedCorpusReason: unsupportedReason,
   };
+}
+
+/**
+ * Preserves the last `front` / `rear` / `count` class-field scalars onto trailing
+ * `main()` events (`return 0;` / `done`) so queue/deque 3D views stay accurate
+ * after `display()` or mutating methods return.
+ */
+export function carryForwardQueueScalars(events: TraceEvent[]): TraceEvent[] {
+  let lastFront: number | undefined;
+  let lastRear: number | undefined;
+  let lastCount: number | undefined;
+  let sawMethodScalars = false;
+
+  return events.map((ev) => {
+    const sc = ev.scalars;
+    if (sc && typeof sc.front === 'number') {
+      sawMethodScalars = true;
+      lastFront = sc.front;
+      lastRear = typeof sc.rear === 'number' ? sc.rear : lastRear;
+      lastCount = typeof sc.count === 'number' ? sc.count : lastCount;
+      return ev;
+    }
+    if (sawMethodScalars && lastFront !== undefined) {
+      const merged: Record<string, Primitive> = { ...(sc ?? {}), front: lastFront };
+      if (lastRear !== undefined) merged.rear = lastRear;
+      if (lastCount !== undefined) merged.count = lastCount;
+      return { ...ev, scalars: merged };
+    }
+    return ev;
+  });
+}
+
+function extractLogicalQueueArray(events: TraceEvent[], fallback: number[]): number[] {
+  let lastFront: number | undefined;
+  let lastRear: number | undefined;
+  let lastCount: number | undefined;
+  for (let i = events.length - 1; i >= 0; i--) {
+    const sc = events[i].scalars;
+    if (sc && typeof sc.front === 'number') {
+      lastFront = sc.front;
+      lastRear = typeof sc.rear === 'number' ? sc.rear : undefined;
+      lastCount = typeof sc.count === 'number' ? sc.count : undefined;
+      break;
+    }
+  }
+  const cap = fallback.length;
+  if (cap === 0 || lastFront === undefined) return fallback;
+  if (typeof lastCount === 'number') {
+    const cnt = Math.max(0, Math.min(cap, Math.trunc(lastCount)));
+    const frontIdx = ((Math.trunc(lastFront) % cap) + cap) % cap;
+    return Array.from({ length: cnt }, (_, k) => fallback[(frontIdx + k) % cap]);
+  }
+  if (typeof lastRear === 'number') {
+    const f = Math.max(0, Math.trunc(lastFront));
+    const r = Math.min(cap - 1, Math.trunc(lastRear));
+    return r >= f ? fallback.slice(f, r + 1) : [];
+  }
+  return fallback;
 }
 
 /**
