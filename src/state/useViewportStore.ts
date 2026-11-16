@@ -30,7 +30,6 @@ import {
   ARRAY_CORPUS_MAP,
   runCorpusArrayOperation,
   runCorpusStructureOperation,
-  type CorpusOperationTraceResult,
 } from '../engine/corpusRunner';
 
 export interface QueuedOperationEntry {
@@ -1067,6 +1066,7 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
     set({
       previewScene: 'array',
       workingArray: arr,
+      libraryInputMode: 'dataset',
       timeline,
       currentStep: timeline.totalSteps,
       totalSteps: timeline.totalSteps,
@@ -1168,26 +1168,8 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
   runOperationNow: (op, paramIndex = 0, paramValue = 42, forceCustomValues = false) => {
     const state = get();
     const isDatasetMode = forceCustomValues || state.libraryInputMode === 'dataset';
-    let result: CorpusOperationTraceResult;
-
-    if (!isDatasetMode) {
-      const corpusPath = ARRAY_CORPUS_MAP[op];
-      const rawCpp = getCorpusRawText(corpusPath);
-      const fileName = corpusPath.split('/')[1] ?? corpusPath;
-      const customTrace = executeCustomCodeTrace(rawCpp, [], corpusPath, fileName);
-      result = {
-        scene: 'array',
-        meta: customTrace.meta,
-        events: customTrace.events,
-        finalArray: customTrace.extractedArray,
-        operationStartStep: 1,
-        unsupportedCorpusReason: null,
-        corpusPath,
-      };
-    } else {
-      const baseArr = state.workingArray;
-      result = runCorpusArrayOperation(op, baseArr, paramIndex, paramValue);
-    }
+    const baseArr = isDatasetMode ? state.workingArray : [];
+    const result = runCorpusArrayOperation(op, baseArr, paramIndex, paramValue);
     const timeline = new TraceTimeline(result.events);
     let startStep = Math.max(1, Math.min(result.operationStartStep, timeline.totalSteps));
     let snapshot = timeline.getSnapshotAt(startStep);
@@ -1234,26 +1216,8 @@ export const useViewportStore = create<ViewportState>((set, get) => ({
   runStructureOperationNow: (op, paramValue = 40, paramText, forceCustomValues = false) => {
     const state = get();
     const isDatasetMode = forceCustomValues || state.libraryInputMode === 'dataset';
-    let result: CorpusOperationTraceResult;
-
-    if (!isDatasetMode) {
-      const def = STRUCTURE_OP_CATALOG.find((item) => item.id === op);
-      const corpusPath = def?.corpusPath ?? '02_singly_linked_list/singly_linked_list.cpp';
-      const rawCpp = getCorpusRawText(corpusPath);
-      const fileName = corpusPath.split('/')[1] ?? corpusPath;
-      const customTrace = executeCustomCodeTrace(rawCpp, [], corpusPath, fileName);
-      result = {
-        meta: customTrace.meta,
-        events: customTrace.events,
-        finalArray: customTrace.extractedArray,
-        operationStartStep: 1,
-        unsupportedCorpusReason: null,
-        corpusPath,
-        scene: def?.scene ?? customTrace.scene,
-      };
-    } else {
-      result = runCorpusStructureOperation(op, state.workingArray, paramValue, paramText);
-    }
+    const baseArr = isDatasetMode ? state.workingArray : [];
+    const result = runCorpusStructureOperation(op, baseArr, paramValue, paramText);
     const timeline = new TraceTimeline(result.events);
     let startStep = Math.max(1, Math.min(result.operationStartStep, timeline.totalSteps));
     let snapshot = timeline.getSnapshotAt(startStep);

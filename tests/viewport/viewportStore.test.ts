@@ -113,7 +113,7 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
 
   it('applies custom input numbers across non-array structures and persists mutations', () => {
     const store = useViewportStore.getState();
-    store.setCustomArray([11, 22, 33, 44]);
+    store.applyCustomInputValues([11, 22, 33, 44]);
     store.runStructureOperationNow('sll-insert-head', 99);
     const sllState = useViewportStore.getState();
     expect(sllState.previewScene).toBe('linked-list');
