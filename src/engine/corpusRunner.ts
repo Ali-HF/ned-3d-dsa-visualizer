@@ -639,6 +639,70 @@ export function runCorpusStructureOperation(
       break;
     }
 
+    case 'deque-push-front': {
+      const dequeCap = Math.max(16, safeArr.length + 6);
+      const dequeSource = rawCpp.replace(/#define\s+SIZE\s+\d+/, `#define SIZE ${dequeCap}`);
+      const baseVals = safeArr.slice(0, 8);
+      const replaced = replaceMainPreservingLines(dequeSource, [
+        `Deque d;`,
+        ...baseVals.map((v) => `d.insertRear(${v});`),
+        `__markOperationStart();`,
+        `d.insertFront(${paramValue});`,
+        `d.display();`,
+      ]);
+      sourceToRun = replaced.modifiedSource;
+      mainStartLine = replaced.mainStartLine;
+      break;
+    }
+
+    case 'deque-push-rear': {
+      const dequeCap = Math.max(16, safeArr.length + 6);
+      const dequeSource = rawCpp.replace(/#define\s+SIZE\s+\d+/, `#define SIZE ${dequeCap}`);
+      const baseVals = safeArr.slice(0, 8);
+      const replaced = replaceMainPreservingLines(dequeSource, [
+        `Deque d;`,
+        ...baseVals.map((v) => `d.insertRear(${v});`),
+        `__markOperationStart();`,
+        `d.insertRear(${paramValue});`,
+        `d.display();`,
+      ]);
+      sourceToRun = replaced.modifiedSource;
+      mainStartLine = replaced.mainStartLine;
+      break;
+    }
+
+    case 'deque-pop-front': {
+      const dequeCap = Math.max(16, safeArr.length + 6);
+      const dequeSource = rawCpp.replace(/#define\s+SIZE\s+\d+/, `#define SIZE ${dequeCap}`);
+      const baseVals = safeArr.slice(0, 8);
+      const replaced = replaceMainPreservingLines(dequeSource, [
+        `Deque d;`,
+        ...baseVals.map((v) => `d.insertRear(${v});`),
+        `__markOperationStart();`,
+        `d.deleteFront();`,
+        `d.display();`,
+      ]);
+      sourceToRun = replaced.modifiedSource;
+      mainStartLine = replaced.mainStartLine;
+      break;
+    }
+
+    case 'deque-pop-rear': {
+      const dequeCap = Math.max(16, safeArr.length + 6);
+      const dequeSource = rawCpp.replace(/#define\s+SIZE\s+\d+/, `#define SIZE ${dequeCap}`);
+      const baseVals = safeArr.slice(0, 8);
+      const replaced = replaceMainPreservingLines(dequeSource, [
+        `Deque d;`,
+        ...baseVals.map((v) => `d.insertRear(${v});`),
+        `__markOperationStart();`,
+        `d.deleteRear();`,
+        `d.display();`,
+      ]);
+      sourceToRun = replaced.modifiedSource;
+      mainStartLine = replaced.mainStartLine;
+      break;
+    }
+
     case 'deque-ops': {
       const dequeCap = Math.max(16, safeArr.length + 6);
       const dequeSource = rawCpp.replace(/#define\s+SIZE\s+\d+/, `#define SIZE ${dequeCap}`);
@@ -736,6 +800,51 @@ export function runCorpusStructureOperation(
         `for (int i = 1; i <= 7; i++) { tree.insertLevelOrder(i); }`,
         `__markOperationStart();`,
         methodCall,
+      ]);
+      sourceToRun = replaced.modifiedSource;
+      mainStartLine = replaced.mainStartLine;
+      break;
+    }
+
+    case 'avl-ll':
+    case 'avl-rr':
+    case 'avl-lr':
+    case 'avl-rl': {
+      const distinct: number[] = [];
+      for (const n of safeArr) {
+        if (!distinct.includes(n)) distinct.push(n);
+        if (distinct.length === 3) break;
+      }
+      const triple = distinct.length === 3 ? distinct : [10, 20, 30];
+      const [minV, midV, maxV] = [...triple].sort((a, b) => a - b);
+      const orderMap: Record<'avl-ll' | 'avl-rr' | 'avl-lr' | 'avl-rl', [number, number, number]> = {
+        'avl-ll': [maxV, midV, minV],
+        'avl-rr': [minV, midV, maxV],
+        'avl-lr': [maxV, minV, midV],
+        'avl-rl': [minV, maxV, midV],
+      };
+      const [k1, k2, k3] = orderMap[op];
+      const replaced = replaceMainPreservingLines(rawCpp, [
+        `AVLTree tree;`,
+        `tree.insert(${k1});`,
+        `tree.insert(${k2});`,
+        `__markOperationStart();`,
+        `tree.insert(${k3});`,
+        `tree.preOrder();`,
+      ]);
+      sourceToRun = replaced.modifiedSource;
+      mainStartLine = replaced.mainStartLine;
+      break;
+    }
+
+    case 'avl-insert': {
+      const baseVals = buildBalancedBstInsertionOrder(safeArr.slice(0, 7));
+      const replaced = replaceMainPreservingLines(rawCpp, [
+        `AVLTree tree;`,
+        ...baseVals.map((v) => `tree.insert(${v});`),
+        `__markOperationStart();`,
+        `tree.insert(${paramValue});`,
+        `tree.preOrder();`,
       ]);
       sourceToRun = replaced.modifiedSource;
       mainStartLine = replaced.mainStartLine;

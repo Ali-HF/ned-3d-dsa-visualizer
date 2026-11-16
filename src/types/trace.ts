@@ -92,7 +92,9 @@ export type PreviewSceneKind =
   | 'linked-list'
   | 'stack'
   | 'queue'
+  | 'deque'
   | 'bst'
+  | 'avl'
   | 'heap'
   | 'graph'
   | 'hash-table';

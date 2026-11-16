@@ -110,7 +110,7 @@ describe('Library Deep Audit Tests: Heap Dual Rendering, Queue Custom Inputs & G
 
         const activeTimeline = useViewportStore.getState().timeline;
         const snapEnd = activeTimeline.getSnapshotAt(activeTimeline.totalSteps);
-        const objs = buildSceneObjectsForScene('queue', snapEnd);
+        const objs = buildSceneObjectsForScene('deque', snapEnd);
         expect(objs.length).toBeGreaterThan(0);
       });
     }

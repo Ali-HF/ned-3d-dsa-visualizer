@@ -95,7 +95,7 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     const store = useViewportStore.getState();
     store.selectAndRunCorpusFile('12_avl_tree/avl_tree.cpp');
     const state = useViewportStore.getState();
-    expect(state.previewScene).toBe('bst');
+    expect(state.previewScene).toBe('avl');
     expect(state.selectedCorpusFile).toBe('12_avl_tree/avl_tree.cpp');
     expect(state.activeMetadata.code.join('\n')).toContain('rotateRight');
   });
@@ -696,5 +696,69 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     const arrayCodeState = useViewportStore.getState();
     expect(arrayCodeState.totalSteps).toBeGreaterThan(arrayFastSteps);
     expect(arrayCodeState.currentSnapshot.activeLine).not.toBeNull();
+  });
+
+  it('separates AVL Tree (with LL, RR, LR, RL rotations and AVL insert) and Deque (front/rear push & pop) from BST and Queue', () => {
+    const store = useViewportStore.getState();
+
+    // 1. Separated AVL Tree scene & explicit LL, RR, LR, RL rotations
+    store.setPreviewScene('avl');
+    expect(useViewportStore.getState().previewScene).toBe('avl');
+
+    store.applyCustomInputValues([15, 25, 40]);
+    const rotationAssertions: Array<{
+      op: 'avl-ll' | 'avl-rr' | 'avl-lr' | 'avl-rl';
+      expectedNote: string;
+    }> = [
+      { op: 'avl-ll', expectedNote: 'AVL Right Rotation complete (LL)' },
+      { op: 'avl-rr', expectedNote: 'AVL Left Rotation complete (RR)' },
+      { op: 'avl-lr', expectedNote: 'LR Step 2' },
+      { op: 'avl-rl', expectedNote: 'RL Step 2' },
+    ];
+    for (const { op, expectedNote } of rotationAssertions) {
+      store.runStructureOperationNow(op);
+      useViewportStore.getState().skipToEnd();
+      const s = useViewportStore.getState();
+      expect(s.previewScene).toBe('avl');
+      expect(s.currentSnapshot.nodes['bst-50']?.value).toBe(25);
+      expect(s.currentSnapshot.nodes['bst-30']?.value).toBe(15);
+      expect(s.currentSnapshot.nodes['bst-70']?.value).toBe(40);
+      expect(s.currentSnapshot.narration).toContain(expectedNote);
+    }
+
+    // AVL Insert & Auto-Balance triggers RL rotation on [10, 30] + 20 -> root becomes 20
+    store.applyCustomInputValues([10, 30]);
+    store.runStructureOperationNow('avl-insert', 20);
+    useViewportStore.getState().skipToEnd();
+    let state = useViewportStore.getState();
+    expect(state.previewScene).toBe('avl');
+    expect(state.currentSnapshot.narration).toContain('RL Double Rotation complete');
+    expect(Object.keys(state.currentSnapshot.nodes).length).toBe(3);
+
+    // 2. Separated Deque scene & front/rear push/pop operations
+    store.setPreviewScene('deque');
+    expect(useViewportStore.getState().previewScene).toBe('deque');
+    store.applyCustomInputValues([10, 20, 30]);
+
+    store.runStructureOperationNow('deque-push-front', 5);
+    useViewportStore.getState().skipToEnd();
+    state = useViewportStore.getState();
+    expect(state.previewScene).toBe('deque');
+    expect(state.workingArray).toEqual([5, 10, 20, 30]);
+
+    store.runStructureOperationNow('deque-push-rear', 40);
+    useViewportStore.getState().skipToEnd();
+    state = useViewportStore.getState();
+    expect(state.workingArray).toEqual([5, 10, 20, 30, 40]);
+
+    store.runStructureOperationNow('deque-pop-front');
+    useViewportStore.getState().skipToEnd();
+    state = useViewportStore.getState();
+    expect(state.workingArray).toEqual([10, 20, 30, 40]);
+
+    store.runStructureOperationNow('deque-pop-rear');
+    useViewportStore.getState().skipToEnd();
+    state = useViewportStore.getState();
+    expect(state.workingArray).toEqual([10, 20, 30]);
   });
 });

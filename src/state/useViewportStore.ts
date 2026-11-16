@@ -664,9 +664,9 @@ export function buildSceneObjectsForScene(
     }
   }
 
-  // If Stack or Queue is backed by a flat array (`arr`, e.g. stack_array.cpp, queue_array_and_circular.cpp, deque.cpp), render as 3D bars
+  // If Stack, Queue, or Deque is backed by a flat array (`arr`, e.g. stack_array.cpp, queue_array_and_circular.cpp, deque.cpp), render as 3D bars
   if (
-    (scene === 'stack' || scene === 'queue') &&
+    (scene === 'stack' || scene === 'queue' || scene === 'deque') &&
     Object.keys(snapshot.nodes).length === 0 &&
     Object.keys(snapshot.arrays).length > 0
   ) {
@@ -681,7 +681,7 @@ export function buildSceneObjectsForScene(
   const nodeEntries = Object.values(snapshot.nodes);
   const count = nodeEntries.length;
   const dynamicTreeCoords =
-    (scene === 'bst' || scene === 'heap') &&
+    (scene === 'bst' || scene === 'avl' || scene === 'heap') &&
       nodeEntries.some((n) => !(n.id in TREE_NODE_COORDS))
       ? computeDynamicTreeLayout(snapshot)
       : null;
@@ -772,7 +772,7 @@ export function buildSceneObjectsForScene(
           ? [2.6, 0.24 + idx * slabSpacing + 1.85, 0]
           : [0, 0.24 + idx * slabSpacing, 0]);
       kind = 'stack-slab';
-    } else if (scene === 'queue') {
+    } else if (scene === 'queue' || scene === 'deque') {
       if (node.id.startsWith('cq-')) {
         // Circular Queue ring layout
         const angle = (idx / Math.max(4, count)) * Math.PI * 2;
@@ -783,7 +783,7 @@ export function buildSceneObjectsForScene(
         pos = [startX + idx * spacing, 1.0, 0];
       }
       kind = 'list-node';
-    } else if (scene === 'bst' || scene === 'heap') {
+    } else if (scene === 'bst' || scene === 'avl' || scene === 'heap') {
       pos = dynamicTreeCoords?.[node.id] ?? TREE_NODE_COORDS[node.id] ?? [idx * 1.8 - 2.5, 0.6, 0];
       kind = 'tree-node';
     } else if (scene === 'graph') {

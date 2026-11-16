@@ -841,8 +841,8 @@ int main() {
         }
       }
 
-      // 3. All 40 StructureOperationId buttons via runStructureOperationNow (with code viewer open)
-      expect(STRUCTURE_OP_CATALOG.length).toBe(40);
+      // 3. All 49 StructureOperationId buttons via runStructureOperationNow (with code viewer open)
+      expect(STRUCTURE_OP_CATALOG.length).toBe(49);
       for (const def of STRUCTURE_OP_CATALOG) {
         store.setCustomArray([42, 17, 68, 29, 84, 12]);
         store.runStructureOperationNow(def.id, 30, '{[()]}');

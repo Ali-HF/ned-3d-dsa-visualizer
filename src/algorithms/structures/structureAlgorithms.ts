@@ -19,12 +19,17 @@ export type StructureOperationId =
   | 'stack-brackets'
   | 'recursion-factorial'
   | 'recursion-hanoi'
-  // Queue & Deque (Week 5)
+  // Queue (Week 5)
   | 'queue-enqueue'
   | 'queue-dequeue'
   | 'circular-queue'
+  // Deque (Week 5)
+  | 'deque-push-front'
+  | 'deque-push-rear'
+  | 'deque-pop-front'
+  | 'deque-pop-rear'
   | 'deque-ops'
-  // Binary Tree, BST & AVL (Weeks 9, 11, 12)
+  // Binary Tree & BST (Weeks 9 & 11)
   | 'bst-insert'
   | 'bst-search'
   | 'bst-delete'
@@ -32,6 +37,12 @@ export type StructureOperationId =
   | 'tree-preorder'
   | 'tree-postorder'
   | 'tree-levelorder'
+  // AVL Tree (Week 12)
+  | 'avl-ll'
+  | 'avl-rr'
+  | 'avl-lr'
+  | 'avl-rl'
+  | 'avl-insert'
   | 'avl-rotation'
   // Binary Heap & Priority Queue (Week 10)
   | 'heap-insert'
@@ -248,10 +259,53 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     timeComplexity: 'O(1)',
     spaceComplexity: 'O(1)',
   },
+  // ==========================================
+  // DEQUE (Week 5)
+  // ==========================================
+  {
+    id: 'deque-push-front',
+    scene: 'deque',
+    label: 'Insert at Front',
+    group: 'Add',
+    corpusPath: '05_queues_and_deque/deque.cpp',
+    timeComplexity: 'O(1)',
+    spaceComplexity: 'O(1)',
+    needsNumber: true,
+    numberLabel: 'Value',
+  },
+  {
+    id: 'deque-push-rear',
+    scene: 'deque',
+    label: 'Insert at Rear',
+    group: 'Add',
+    corpusPath: '05_queues_and_deque/deque.cpp',
+    timeComplexity: 'O(1)',
+    spaceComplexity: 'O(1)',
+    needsNumber: true,
+    numberLabel: 'Value',
+  },
+  {
+    id: 'deque-pop-front',
+    scene: 'deque',
+    label: 'Delete from Front',
+    group: 'Remove',
+    corpusPath: '05_queues_and_deque/deque.cpp',
+    timeComplexity: 'O(1)',
+    spaceComplexity: 'O(1)',
+  },
+  {
+    id: 'deque-pop-rear',
+    scene: 'deque',
+    label: 'Delete from Rear',
+    group: 'Remove',
+    corpusPath: '05_queues_and_deque/deque.cpp',
+    timeComplexity: 'O(1)',
+    spaceComplexity: 'O(1)',
+  },
   {
     id: 'deque-ops',
-    scene: 'queue',
-    label: 'Deque Add & Remove Both Ends',
+    scene: 'deque',
+    label: 'Deque Add Both Ends Demo',
     group: 'Add',
     corpusPath: '05_queues_and_deque/deque.cpp',
     timeComplexity: 'O(1)',
@@ -330,10 +384,60 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     timeComplexity: 'O(n)',
     spaceComplexity: 'O(n)',
   },
+  // ==========================================
+  // AVL TREE (Week 12)
+  // ==========================================
+  {
+    id: 'avl-ll',
+    scene: 'avl',
+    label: 'LL Rotation (Right Rotate)',
+    group: 'Sort',
+    corpusPath: '12_avl_tree/avl_tree.cpp',
+    timeComplexity: 'O(1)',
+    spaceComplexity: 'O(1)',
+  },
+  {
+    id: 'avl-rr',
+    scene: 'avl',
+    label: 'RR Rotation (Left Rotate)',
+    group: 'Sort',
+    corpusPath: '12_avl_tree/avl_tree.cpp',
+    timeComplexity: 'O(1)',
+    spaceComplexity: 'O(1)',
+  },
+  {
+    id: 'avl-lr',
+    scene: 'avl',
+    label: 'LR Rotation (Left-Right)',
+    group: 'Sort',
+    corpusPath: '12_avl_tree/avl_tree.cpp',
+    timeComplexity: 'O(1)',
+    spaceComplexity: 'O(1)',
+  },
+  {
+    id: 'avl-rl',
+    scene: 'avl',
+    label: 'RL Rotation (Right-Left)',
+    group: 'Sort',
+    corpusPath: '12_avl_tree/avl_tree.cpp',
+    timeComplexity: 'O(1)',
+    spaceComplexity: 'O(1)',
+  },
+  {
+    id: 'avl-insert',
+    scene: 'avl',
+    label: 'Insert & Auto-Balance',
+    group: 'Add',
+    corpusPath: '12_avl_tree/avl_tree.cpp',
+    timeComplexity: 'O(log n)',
+    spaceComplexity: 'O(h)',
+    needsNumber: true,
+    numberLabel: 'Value',
+  },
   {
     id: 'avl-rotation',
-    scene: 'bst',
-    label: 'AVL Tree Rebalance Rotation',
+    scene: 'avl',
+    label: 'Auto-Rebalance (Dataset)',
     group: 'Add',
     corpusPath: '12_avl_tree/avl_tree.cpp',
     timeComplexity: 'O(log n)',
@@ -730,9 +834,17 @@ const STRUCTURE_LABELS: Record<Exclude<PreviewSceneKind, 'array'>, { title: stri
     title: 'Queue (Select an Operation)',
     defaultCorpus: '05_queues_and_deque/queue_array_and_circular.cpp',
   },
+  deque: {
+    title: 'Deque (Select an Operation)',
+    defaultCorpus: '05_queues_and_deque/deque.cpp',
+  },
   bst: {
     title: 'Binary Search Tree (Select an Operation)',
     defaultCorpus: '11_binary_search_tree/binary_search_tree.cpp',
+  },
+  avl: {
+    title: 'AVL Tree (Select an Operation)',
+    defaultCorpus: '12_avl_tree/avl_tree.cpp',
   },
   heap: {
     title: 'Binary Max-Heap (Select an Operation)',
@@ -810,6 +922,18 @@ export function buildStaticStructureTrace(
       );
       break;
     }
+    case 'deque': {
+      const dqVals = emitBaseDeque(events, customValues);
+      events.push(
+        {
+          t: 'note',
+          text: `Loaded Deque: ${dqVals.join(' ⇄ ')} (front ${dqVals[0]}, rear ${dqVals[dqVals.length - 1]}).`,
+        },
+        { t: 'note', text: 'Select a front/rear operation, set Value if needed, then click Run.' },
+        { t: 'done' },
+      );
+      break;
+    }
     case 'bst': {
       const { rootId, nodes, sorted } = emitBaseBst(events, customValues);
       events.push(
@@ -818,6 +942,18 @@ export function buildStaticStructureTrace(
           text: `Loaded Binary Search Tree with root ${nodes[rootId].val} (${sorted.join(', ')}).`,
         },
         { t: 'note', text: 'Select an operation, set Value/Target if needed, then click Run.' },
+        { t: 'done' },
+      );
+      break;
+    }
+    case 'avl': {
+      const { rootId, nodes, sorted } = emitBaseBst(events, customValues);
+      events.push(
+        {
+          t: 'note',
+          text: `Loaded Self-Balancing AVL Tree with root ${nodes[rootId].val} (${sorted.join(', ')}, |BF| ≤ 1).`,
+        },
+        { t: 'note', text: 'Pick an LL, RR, LR, RL rotation or Insert & Auto-Balance, then click Run.' },
         { t: 'done' },
       );
       break;
@@ -864,6 +1000,494 @@ export function buildStaticStructureTrace(
   }
 
   return { events, meta, scene };
+}
+
+function emitBaseDeque(
+  events: TraceEvent[],
+  customValues?: number[],
+  fallback: number[] = [10, 20, 30, 40],
+): number[] {
+  const dqVals =
+    customValues && customValues.length >= 1
+      ? customValues.slice(0, 22)
+      : fallback;
+  for (let i = 0; i < dqVals.length; i++) {
+    events.push({ t: 'create', id: `dq-${i + 1}`, kind: 'node', value: dqVals[i] });
+    if (i > 0) {
+      events.push({ t: 'link', from: `dq-${i}`, to: `dq-${i + 1}`, label: 'next' });
+    }
+  }
+  return dqVals;
+}
+
+type AvlRotationKind = 'LL' | 'RR' | 'LR' | 'RL';
+
+function pickThreeDistinctSorted(customValues?: number[]): [number, number, number] {
+  const distinct: number[] = [];
+  if (customValues) {
+    for (const n of customValues) {
+      if (!distinct.includes(n)) distinct.push(n);
+      if (distinct.length === 3) break;
+    }
+  }
+  const triple = distinct.length === 3 ? distinct : [10, 20, 30];
+  const sorted = [...triple].sort((a, b) => a - b);
+  return [sorted[0], sorted[1], sorted[2]];
+}
+
+function emitAvlRotationCase(
+  events: TraceEvent[],
+  kind: AvlRotationKind,
+  minV: number,
+  midV: number,
+  maxV: number,
+  customIntro?: string,
+): void {
+  if (kind === 'LL') {
+    events.push(
+      { t: 'create', id: 'bst-50', kind: 'node', value: maxV },
+      { t: 'create', id: 'bst-30', kind: 'node', value: midV },
+      { t: 'create', id: 'bst-20', kind: 'node', value: minV },
+      { t: 'link', from: 'bst-50', to: 'bst-30', label: 'left' },
+      { t: 'link', from: 'bst-30', to: 'bst-20', label: 'left' },
+      {
+        t: 'note',
+        text:
+          customIntro ??
+          `LL Case: inserted ${maxV} → ${midV} → ${minV}, leaning heavily left (balance factor = +2).`,
+      },
+      { t: 'compare', a: { id: 'bst-50' }, b: { id: 'bst-30' } },
+      {
+        t: 'note',
+        text: `Performing Single Right Rotation (LL) around ${maxV} so ${midV} rises up to become the balanced root!`,
+      },
+      { t: 'set', target: { id: 'bst-50' }, value: midV },
+      { t: 'set', target: { id: 'bst-30' }, value: minV },
+      { t: 'unlink', from: 'bst-30', to: 'bst-20' },
+      { t: 'remove', id: 'bst-20' },
+      { t: 'create', id: 'bst-70', kind: 'node', value: maxV },
+      { t: 'link', from: 'bst-50', to: 'bst-70', label: 'right' },
+      { t: 'visit', id: 'bst-50' },
+      {
+        t: 'note',
+        text: `AVL Right Rotation complete (LL)! Root is now ${midV} with left child ${minV} and right child ${maxV} (height balanced).`,
+      },
+      { t: 'done' },
+    );
+    return;
+  }
+
+  if (kind === 'RR') {
+    events.push(
+      { t: 'create', id: 'bst-50', kind: 'node', value: minV },
+      { t: 'create', id: 'bst-70', kind: 'node', value: midV },
+      { t: 'create', id: 'bst-85', kind: 'node', value: maxV },
+      { t: 'link', from: 'bst-50', to: 'bst-70', label: 'right' },
+      { t: 'link', from: 'bst-70', to: 'bst-85', label: 'right' },
+      {
+        t: 'note',
+        text:
+          customIntro ??
+          `RR Case: inserted ${minV} → ${midV} → ${maxV}, leaning heavily right (balance factor = -2).`,
+      },
+      { t: 'compare', a: { id: 'bst-50' }, b: { id: 'bst-70' } },
+      {
+        t: 'note',
+        text: `Performing Single Left Rotation (RR) around ${minV} so ${midV} rises up to become the balanced root!`,
+      },
+      { t: 'set', target: { id: 'bst-50' }, value: midV },
+      { t: 'set', target: { id: 'bst-70' }, value: maxV },
+      { t: 'unlink', from: 'bst-70', to: 'bst-85' },
+      { t: 'remove', id: 'bst-85' },
+      { t: 'create', id: 'bst-30', kind: 'node', value: minV },
+      { t: 'link', from: 'bst-50', to: 'bst-30', label: 'left' },
+      { t: 'visit', id: 'bst-50' },
+      {
+        t: 'note',
+        text: `AVL Left Rotation complete (RR)! Root is now ${midV} with left child ${minV} and right child ${maxV} (height balanced).`,
+      },
+      { t: 'done' },
+    );
+    return;
+  }
+
+  if (kind === 'LR') {
+    events.push(
+      { t: 'create', id: 'bst-50', kind: 'node', value: maxV },
+      { t: 'create', id: 'bst-30', kind: 'node', value: minV },
+      { t: 'create', id: 'bst-40', kind: 'node', value: midV },
+      { t: 'link', from: 'bst-50', to: 'bst-30', label: 'left' },
+      { t: 'link', from: 'bst-30', to: 'bst-40', label: 'right' },
+      {
+        t: 'note',
+        text:
+          customIntro ??
+          `LR Case: inserted ${maxV} → ${minV} → ${midV}; Left-Right zig-zag imbalance at ${maxV} (balance factor = +2).`,
+      },
+      { t: 'compare', a: { id: 'bst-30' }, b: { id: 'bst-40' } },
+      { t: 'set', target: { id: 'bst-30' }, value: midV },
+      { t: 'unlink', from: 'bst-30', to: 'bst-40' },
+      { t: 'remove', id: 'bst-40' },
+      { t: 'create', id: 'bst-20', kind: 'node', value: minV },
+      { t: 'link', from: 'bst-30', to: 'bst-20', label: 'left' },
+      {
+        t: 'note',
+        text: `LR Step 1: Left Rotation around ${minV} converts Left-Right into an LL line (${maxV} → ${midV} → ${minV}).`,
+      },
+      { t: 'set', target: { id: 'bst-50' }, value: midV },
+      { t: 'set', target: { id: 'bst-30' }, value: minV },
+      { t: 'unlink', from: 'bst-30', to: 'bst-20' },
+      { t: 'remove', id: 'bst-20' },
+      { t: 'create', id: 'bst-70', kind: 'node', value: maxV },
+      { t: 'link', from: 'bst-50', to: 'bst-70', label: 'right' },
+      { t: 'visit', id: 'bst-50' },
+      {
+        t: 'note',
+        text: `LR Step 2 (Right Rotate around ${maxV}) complete! Root is now ${midV} with left ${minV} and right ${maxV}.`,
+      },
+      { t: 'done' },
+    );
+    return;
+  }
+
+  // RL case
+  events.push(
+    { t: 'create', id: 'bst-50', kind: 'node', value: minV },
+    { t: 'create', id: 'bst-70', kind: 'node', value: maxV },
+    { t: 'create', id: 'bst-60', kind: 'node', value: midV },
+    { t: 'link', from: 'bst-50', to: 'bst-70', label: 'right' },
+    { t: 'link', from: 'bst-70', to: 'bst-60', label: 'left' },
+    {
+      t: 'note',
+      text:
+        customIntro ??
+        `RL Case: inserted ${minV} → ${maxV} → ${midV}; Right-Left zig-zag imbalance at ${minV} (balance factor = -2).`,
+    },
+    { t: 'compare', a: { id: 'bst-70' }, b: { id: 'bst-60' } },
+    { t: 'set', target: { id: 'bst-70' }, value: midV },
+    { t: 'unlink', from: 'bst-70', to: 'bst-60' },
+    { t: 'remove', id: 'bst-60' },
+    { t: 'create', id: 'bst-85', kind: 'node', value: maxV },
+    { t: 'link', from: 'bst-70', to: 'bst-85', label: 'right' },
+    {
+      t: 'note',
+      text: `RL Step 1: Right Rotation around ${maxV} converts Right-Left into an RR line (${minV} → ${midV} → ${maxV}).`,
+    },
+    { t: 'set', target: { id: 'bst-50' }, value: midV },
+    { t: 'set', target: { id: 'bst-70' }, value: maxV },
+    { t: 'unlink', from: 'bst-70', to: 'bst-85' },
+    { t: 'remove', id: 'bst-85' },
+    { t: 'create', id: 'bst-30', kind: 'node', value: minV },
+    { t: 'link', from: 'bst-50', to: 'bst-30', label: 'left' },
+    { t: 'visit', id: 'bst-50' },
+    {
+      t: 'note',
+      text: `RL Step 2 (Left Rotate around ${minV}) complete! Root is now ${midV} with left ${minV} and right ${maxV}.`,
+    },
+    { t: 'done' },
+  );
+}
+
+interface AvlSimNode {
+  id: string;
+  val: number;
+  left?: AvlSimNode;
+  right?: AvlSimNode;
+  height: number;
+}
+
+function avlHeight(n?: AvlSimNode): number {
+  return n ? n.height : 0;
+}
+
+function avlUpdateHeight(n: AvlSimNode): void {
+  n.height = 1 + Math.max(avlHeight(n.left), avlHeight(n.right));
+}
+
+function avlBalanceFactor(n?: AvlSimNode): number {
+  return n ? avlHeight(n.left) - avlHeight(n.right) : 0;
+}
+
+function avlRotateRightSim(y: AvlSimNode, events?: TraceEvent[]): AvlSimNode {
+  const x = y.left!;
+  const t2 = x.right;
+  if (events) {
+    events.push({ t: 'unlink', from: y.id, to: x.id });
+    if (t2) events.push({ t: 'unlink', from: x.id, to: t2.id });
+  }
+  x.right = y;
+  y.left = t2;
+  avlUpdateHeight(y);
+  avlUpdateHeight(x);
+  if (events) {
+    events.push({ t: 'link', from: x.id, to: y.id, label: 'right' });
+    if (t2) events.push({ t: 'link', from: y.id, to: t2.id, label: 'left' });
+  }
+  return x;
+}
+
+function avlRotateLeftSim(x: AvlSimNode, events?: TraceEvent[]): AvlSimNode {
+  const y = x.right!;
+  const t2 = y.left;
+  if (events) {
+    events.push({ t: 'unlink', from: x.id, to: y.id });
+    if (t2) events.push({ t: 'unlink', from: y.id, to: t2.id });
+  }
+  y.left = x;
+  x.right = t2;
+  avlUpdateHeight(x);
+  avlUpdateHeight(y);
+  if (events) {
+    events.push({ t: 'link', from: y.id, to: x.id, label: 'left' });
+    if (t2) events.push({ t: 'link', from: x.id, to: t2.id, label: 'right' });
+  }
+  return y;
+}
+
+function avlInsertSilent(node: AvlSimNode | undefined, val: number, id: string): AvlSimNode {
+  if (!node) return { id, val, height: 1 };
+  if (val < node.val) node.left = avlInsertSilent(node.left, val, id);
+  else if (val > node.val) node.right = avlInsertSilent(node.right, val, id);
+  else return node;
+  avlUpdateHeight(node);
+  const bf = avlBalanceFactor(node);
+  if (bf > 1 && val < node.left!.val) return avlRotateRightSim(node);
+  if (bf < -1 && val > node.right!.val) return avlRotateLeftSim(node);
+  if (bf > 1 && val > node.left!.val) {
+    node.left = avlRotateLeftSim(node.left!);
+    return avlRotateRightSim(node);
+  }
+  if (bf < -1 && val < node.right!.val) {
+    node.right = avlRotateRightSim(node.right!);
+    return avlRotateLeftSim(node);
+  }
+  return node;
+}
+
+function runAvlInsertTrace(
+  events: TraceEvent[],
+  customValues: number[] | undefined,
+  insertVal: number,
+): number[] {
+  const rawBase =
+    customValues && customValues.length >= 1
+      ? customValues.slice(0, 23)
+      : [30, 20, 40, 10];
+  const uniqueBase: number[] = [];
+  for (const v of rawBase) {
+    if (!uniqueBase.includes(v)) uniqueBase.push(v);
+  }
+
+  let root: AvlSimNode | undefined;
+  uniqueBase.forEach((v, idx) => {
+    root = avlInsertSilent(root, v, `avl-${idx + 1}`);
+  });
+
+  // Emit initial balanced AVL tree in BFS order
+  const initQueue: AvlSimNode[] = root ? [root] : [];
+  while (initQueue.length > 0) {
+    const cur = initQueue.shift()!;
+    events.push({ t: 'create', id: cur.id, kind: 'node', value: cur.val });
+    if (cur.left) {
+      events.push({ t: 'link', from: cur.id, to: cur.left.id, label: 'left' });
+      initQueue.push(cur.left);
+    }
+    if (cur.right) {
+      events.push({ t: 'link', from: cur.id, to: cur.right.id, label: 'right' });
+      initQueue.push(cur.right);
+    }
+  }
+
+  if (!root) {
+    events.push(
+      { t: 'create', id: 'bst-new', kind: 'node', value: insertVal },
+      { t: 'visit', id: 'bst-new' },
+      { t: 'note', text: `Inserted ${insertVal} as the AVL root (BF = 0).` },
+      { t: 'done' },
+    );
+    return [insertVal];
+  }
+
+  events.push({
+    t: 'note',
+    text: `AVL Insert ${insertVal}: descending from root ${root.val} to find insertion spot.`,
+  });
+
+  // Descend and record ancestor path
+  const path: { node: AvlSimNode; dir: 'left' | 'right' }[] = [];
+  let cur: AvlSimNode | undefined = root;
+  let duplicate = false;
+  while (cur) {
+    events.push({ t: 'visit', id: cur.id });
+    if (insertVal === cur.val) {
+      duplicate = true;
+      events.push({
+        t: 'note',
+        text: `${insertVal} is already in the AVL tree — duplicate keys are ignored.`,
+      });
+      break;
+    }
+    const dir: 'left' | 'right' = insertVal < cur.val ? 'left' : 'right';
+    const nextNode: AvlSimNode | undefined = dir === 'left' ? cur.left : cur.right;
+    path.push({ node: cur, dir });
+    if (nextNode) {
+      events.push({
+        t: 'note',
+        text: `${insertVal} ${dir === 'left' ? '<' : '>'} ${cur.val}: moving ${dir.toUpperCase()} to ${nextNode.val}.`,
+      });
+      cur = nextNode;
+    } else {
+      const newNode: AvlSimNode = { id: 'bst-new', val: insertVal, height: 1 };
+      if (dir === 'left') cur.left = newNode;
+      else cur.right = newNode;
+      events.push(
+        { t: 'create', id: 'bst-new', kind: 'node', value: insertVal },
+        { t: 'link', from: cur.id, to: 'bst-new', label: dir },
+        { t: 'visit', id: 'bst-new' },
+        {
+          t: 'note',
+          text: `Inserted ${insertVal} as ${dir} child of ${cur.val}. Checking ancestor balance factors bottom-up...`,
+        },
+      );
+      break;
+    }
+  }
+
+  if (duplicate) {
+    events.push({ t: 'done' });
+    return uniqueBase;
+  }
+
+  // Rebalance up the path
+  let rotated = false;
+  for (let i = path.length - 1; i >= 0; i--) {
+    const ancestor = path[i].node;
+    avlUpdateHeight(ancestor);
+    const bf = avlBalanceFactor(ancestor);
+    if (Math.abs(bf) <= 1) continue;
+
+    const parentEntry = i > 0 ? path[i - 1] : null;
+    const detachParent = () => {
+      if (parentEntry) {
+        events.push({ t: 'unlink', from: parentEntry.node.id, to: ancestor.id });
+      }
+    };
+    const reattachParent = (newSubRoot: AvlSimNode) => {
+      if (parentEntry) {
+        if (parentEntry.dir === 'left') parentEntry.node.left = newSubRoot;
+        else parentEntry.node.right = newSubRoot;
+        events.push({
+          t: 'link',
+          from: parentEntry.node.id,
+          to: newSubRoot.id,
+          label: parentEntry.dir,
+        });
+      } else {
+        root = newSubRoot;
+      }
+    };
+
+    if (bf > 1 && insertVal < ancestor.left!.val) {
+      events.push(
+        { t: 'compare', a: { id: ancestor.id }, b: { id: ancestor.left!.id } },
+        {
+          t: 'note',
+          text: `LL Imbalance at ${ancestor.val} (BF = +${bf}): performing Single Right Rotation!`,
+        },
+      );
+      detachParent();
+      const newSub = avlRotateRightSim(ancestor, events);
+      reattachParent(newSub);
+      events.push(
+        { t: 'visit', id: newSub.id },
+        { t: 'note', text: `LL Right Rotation complete! ${newSub.val} is now balanced.` },
+      );
+      rotated = true;
+      break;
+    }
+
+    if (bf < -1 && insertVal > ancestor.right!.val) {
+      events.push(
+        { t: 'compare', a: { id: ancestor.id }, b: { id: ancestor.right!.id } },
+        {
+          t: 'note',
+          text: `RR Imbalance at ${ancestor.val} (BF = ${bf}): performing Single Left Rotation!`,
+        },
+      );
+      detachParent();
+      const newSub = avlRotateLeftSim(ancestor, events);
+      reattachParent(newSub);
+      events.push(
+        { t: 'visit', id: newSub.id },
+        { t: 'note', text: `RR Left Rotation complete! ${newSub.val} is now balanced.` },
+      );
+      rotated = true;
+      break;
+    }
+
+    if (bf > 1 && insertVal > ancestor.left!.val) {
+      const leftChild = ancestor.left!;
+      events.push(
+        { t: 'compare', a: { id: leftChild.id }, b: { id: leftChild.right!.id } },
+        {
+          t: 'note',
+          text: `LR Imbalance at ${ancestor.val} (BF = +${bf}): Step 1 Left Rotate ${leftChild.val}, then Step 2 Right Rotate ${ancestor.val}.`,
+        },
+      );
+      events.push({ t: 'unlink', from: ancestor.id, to: leftChild.id });
+      const newLeft = avlRotateLeftSim(leftChild, events);
+      ancestor.left = newLeft;
+      events.push(
+        { t: 'link', from: ancestor.id, to: newLeft.id, label: 'left' },
+        { t: 'note', text: `LR Step 1 complete; now rotating Right around ${ancestor.val}.` },
+      );
+      detachParent();
+      const newSub = avlRotateRightSim(ancestor, events);
+      reattachParent(newSub);
+      events.push(
+        { t: 'visit', id: newSub.id },
+        { t: 'note', text: `LR Double Rotation complete! ${newSub.val} is now balanced.` },
+      );
+      rotated = true;
+      break;
+    }
+
+    if (bf < -1 && insertVal < ancestor.right!.val) {
+      const rightChild = ancestor.right!;
+      events.push(
+        { t: 'compare', a: { id: rightChild.id }, b: { id: rightChild.left!.id } },
+        {
+          t: 'note',
+          text: `RL Imbalance at ${ancestor.val} (BF = ${bf}): Step 1 Right Rotate ${rightChild.val}, then Step 2 Left Rotate ${ancestor.val}.`,
+        },
+      );
+      events.push({ t: 'unlink', from: ancestor.id, to: rightChild.id });
+      const newRight = avlRotateRightSim(rightChild, events);
+      ancestor.right = newRight;
+      events.push(
+        { t: 'link', from: ancestor.id, to: newRight.id, label: 'right' },
+        { t: 'note', text: `RL Step 1 complete; now rotating Left around ${ancestor.val}.` },
+      );
+      detachParent();
+      const newSub = avlRotateLeftSim(ancestor, events);
+      reattachParent(newSub);
+      events.push(
+        { t: 'visit', id: newSub.id },
+        { t: 'note', text: `RL Double Rotation complete! ${newSub.val} is now balanced.` },
+      );
+      rotated = true;
+      break;
+    }
+  }
+
+  if (!rotated) {
+    events.push({
+      t: 'note',
+      text: `Inserted ${insertVal}: all balance factors stay in [-1, 0, +1] — no rotation needed!`,
+    });
+  }
+  events.push({ t: 'done' });
+  return [...uniqueBase, insertVal];
 }
 
 export function runStructureOperation(
@@ -1782,37 +2406,142 @@ export function runStructureOperation(
       break;
     }
 
+    // ==========================================
+    // DEQUE OPERATIONS (Week 5)
+    // ==========================================
+    case 'deque-push-front': {
+      const dqVals = emitBaseDeque(events, customValues);
+      const val = Number.isFinite(paramValue) ? paramValue : 5;
+      updatedValues = [val, ...dqVals];
+      events.push(
+        {
+          t: 'note',
+          text: `Deque has ${dqVals[0]} at the FRONT and ${dqVals[dqVals.length - 1]} at the REAR. Inserting ${val} at the FRONT.`,
+        },
+        { t: 'create', id: 'dq-0', kind: 'node', value: val },
+        { t: 'link', from: 'dq-0', to: 'dq-1', label: 'next' },
+        { t: 'visit', id: 'dq-0' },
+        {
+          t: 'note',
+          text: `Inserted ${val} at the FRONT! Deque is now: ${updatedValues.join(' ⇄ ')}.`,
+        },
+        { t: 'done' },
+      );
+      break;
+    }
+
+    case 'deque-push-rear': {
+      const dqVals = emitBaseDeque(events, customValues);
+      const val = Number.isFinite(paramValue) ? paramValue : 95;
+      const rearId = `dq-${dqVals.length + 1}`;
+      const prevRearId = `dq-${dqVals.length}`;
+      updatedValues = [...dqVals, val];
+      events.push(
+        {
+          t: 'note',
+          text: `Deque has ${dqVals[0]} at the FRONT and ${dqVals[dqVals.length - 1]} at the REAR. Inserting ${val} at the REAR.`,
+        },
+        { t: 'create', id: rearId, kind: 'node', value: val },
+        { t: 'link', from: prevRearId, to: rearId, label: 'next' },
+        { t: 'visit', id: rearId },
+        {
+          t: 'note',
+          text: `Inserted ${val} at the REAR! Deque is now: ${updatedValues.join(' ⇄ ')}.`,
+        },
+        { t: 'done' },
+      );
+      break;
+    }
+
+    case 'deque-pop-front': {
+      const dqVals = emitBaseDeque(events, customValues);
+      updatedValues = dqVals.slice(1);
+      events.push(
+        {
+          t: 'note',
+          text: `Deleting ${dqVals[0]} from the FRONT of the Deque.`,
+        },
+        { t: 'visit', id: 'dq-1' },
+      );
+      if (dqVals.length > 1) {
+        events.push({ t: 'unlink', from: 'dq-1', to: 'dq-2' });
+      }
+      events.push({ t: 'remove', id: 'dq-1' });
+      if (dqVals.length > 1) {
+        events.push(
+          { t: 'visit', id: 'dq-2' },
+          {
+            t: 'note',
+            text: `Removed ${dqVals[0]} from the FRONT! New front is ${dqVals[1]}.`,
+          },
+        );
+      } else {
+        events.push({
+          t: 'note',
+          text: `Removed ${dqVals[0]} from the FRONT! Deque is now empty.`,
+        });
+      }
+      events.push({ t: 'done' });
+      break;
+    }
+
+    case 'deque-pop-rear': {
+      const dqVals = emitBaseDeque(events, customValues);
+      const rearIdx = dqVals.length;
+      const rearId = `dq-${rearIdx}`;
+      const removedVal = dqVals[rearIdx - 1];
+      updatedValues = dqVals.slice(0, -1);
+      events.push(
+        {
+          t: 'note',
+          text: `Deleting ${removedVal} from the REAR of the Deque.`,
+        },
+        { t: 'visit', id: rearId },
+      );
+      if (dqVals.length > 1) {
+        events.push({ t: 'unlink', from: `dq-${rearIdx - 1}`, to: rearId });
+      }
+      events.push({ t: 'remove', id: rearId });
+      if (dqVals.length > 1) {
+        events.push(
+          { t: 'visit', id: `dq-${rearIdx - 1}` },
+          {
+            t: 'note',
+            text: `Removed ${removedVal} from the REAR! New rear is ${dqVals[rearIdx - 2]}.`,
+          },
+        );
+      } else {
+        events.push({
+          t: 'note',
+          text: `Removed ${removedVal} from the REAR! Deque is now empty.`,
+        });
+      }
+      events.push({ t: 'done' });
+      break;
+    }
+
     case 'deque-ops': {
-      const dqVals =
-        customValues && customValues.length >= 1
-          ? customValues.slice(0, 22)
-          : [20, 30];
+      const dqVals = emitBaseDeque(events, customValues, [20, 30]);
       const backVal = Number.isFinite(paramValue) ? paramValue : 95;
       const frontVal = 5;
-      for (let i = 0; i < dqVals.length; i++) {
-        events.push({ t: 'create', id: `q-${i + 1}`, kind: 'node', value: dqVals[i] });
-        if (i > 0) {
-          events.push({ t: 'link', from: `q-${i}`, to: `q-${i + 1}`, label: 'next' });
-        }
-      }
-      const rearId = `q-${dqVals.length + 1}`;
-      const lastExistingId = `q-${dqVals.length}`;
+      const rearId = `dq-${dqVals.length + 1}`;
+      const lastExistingId = `dq-${dqVals.length}`;
       updatedValues = [frontVal, ...dqVals, backVal];
       events.push(
         {
           t: 'note',
           text: 'Double-Ended Queue (Deque): we can add or remove numbers at BOTH the front and back.',
         },
-        { t: 'create', id: 'q-0', kind: 'node', value: frontVal },
-        { t: 'link', from: 'q-0', to: 'q-1', label: 'front' },
-        { t: 'visit', id: 'q-0' },
+        { t: 'create', id: 'dq-0', kind: 'node', value: frontVal },
+        { t: 'link', from: 'dq-0', to: 'dq-1', label: 'next' },
+        { t: 'visit', id: 'dq-0' },
         { t: 'note', text: `Inserted ${frontVal} directly at the FRONT of the Deque.` },
         { t: 'create', id: rearId, kind: 'node', value: backVal },
-        { t: 'link', from: lastExistingId, to: rearId, label: 'rear' },
+        { t: 'link', from: lastExistingId, to: rearId, label: 'next' },
         { t: 'visit', id: rearId },
         {
           t: 'note',
-          text: `Inserted ${backVal} at the BACK of the Deque. Deque is now: ${updatedValues.join(', ')}.`,
+          text: `Inserted ${backVal} at the BACK of the Deque. Deque is now: ${updatedValues.join(' ⇄ ')}.`,
         },
         { t: 'done' },
       );
@@ -2159,6 +2888,43 @@ export function runStructureOperation(
       break;
     }
 
+    // ==========================================
+    // AVL TREE OPERATIONS (Week 12)
+    // ==========================================
+    case 'avl-ll': {
+      const [minV, midV, maxV] = pickThreeDistinctSorted(customValues);
+      emitAvlRotationCase(events, 'LL', minV, midV, maxV);
+      updatedValues = [minV, midV, maxV];
+      break;
+    }
+
+    case 'avl-rr': {
+      const [minV, midV, maxV] = pickThreeDistinctSorted(customValues);
+      emitAvlRotationCase(events, 'RR', minV, midV, maxV);
+      updatedValues = [minV, midV, maxV];
+      break;
+    }
+
+    case 'avl-lr': {
+      const [minV, midV, maxV] = pickThreeDistinctSorted(customValues);
+      emitAvlRotationCase(events, 'LR', minV, midV, maxV);
+      updatedValues = [minV, midV, maxV];
+      break;
+    }
+
+    case 'avl-rl': {
+      const [minV, midV, maxV] = pickThreeDistinctSorted(customValues);
+      emitAvlRotationCase(events, 'RL', minV, midV, maxV);
+      updatedValues = [minV, midV, maxV];
+      break;
+    }
+
+    case 'avl-insert': {
+      const val = Number.isFinite(paramValue) ? paramValue : 25;
+      updatedValues = runAvlInsertTrace(events, customValues, val);
+      break;
+    }
+
     case 'avl-rotation': {
       const distinct: number[] = [];
       if (customValues) {
@@ -2175,133 +2941,39 @@ export function runStructureOperation(
       const isRL = a < b && c < b && c > a;
 
       if (isLL) {
-        events.push(
-          { t: 'create', id: 'bst-50', kind: 'node', value: a },
-          { t: 'create', id: 'bst-30', kind: 'node', value: b },
-          { t: 'create', id: 'bst-20', kind: 'node', value: c },
-          { t: 'link', from: 'bst-50', to: 'bst-30', label: 'left' },
-          { t: 'link', from: 'bst-30', to: 'bst-20', label: 'left' },
-          {
-            t: 'note',
-            text: `Inserted ${a}, ${b}, ${c}: tree leans heavily to the left (Left-Left imbalance, balance factor = +2).`,
-          },
-          { t: 'compare', a: { id: 'bst-50' }, b: { id: 'bst-30' } },
-          {
-            t: 'note',
-            text: `Performing an AVL Right Rotation around ${a} so ${b} rises up to become the balanced root!`,
-          },
-          { t: 'set', target: { id: 'bst-50' }, value: b },
-          { t: 'set', target: { id: 'bst-30' }, value: c },
-          { t: 'unlink', from: 'bst-30', to: 'bst-20' },
-          { t: 'remove', id: 'bst-20' },
-          { t: 'create', id: 'bst-70', kind: 'node', value: a },
-          { t: 'link', from: 'bst-50', to: 'bst-70', label: 'right' },
-          { t: 'visit', id: 'bst-50' },
-          {
-            t: 'note',
-            text: `AVL Right Rotation complete! Root is now ${b} with left child ${c} and right child ${a} (height balanced).`,
-          },
-          { t: 'done' },
+        emitAvlRotationCase(
+          events,
+          'LL',
+          minV,
+          midV,
+          maxV,
+          `Inserted ${a}, ${b}, ${c}: tree leans heavily to the left (Left-Left imbalance, balance factor = +2).`,
         );
       } else if (isLR) {
-        events.push(
-          { t: 'create', id: 'bst-50', kind: 'node', value: a },
-          { t: 'create', id: 'bst-30', kind: 'node', value: b },
-          { t: 'create', id: 'bst-40', kind: 'node', value: c },
-          { t: 'link', from: 'bst-50', to: 'bst-30', label: 'left' },
-          { t: 'link', from: 'bst-30', to: 'bst-40', label: 'right' },
-          {
-            t: 'note',
-            text: `Inserted ${a}, ${b}, ${c}: Left-Right imbalance at ${a} (balance factor = +2).`,
-          },
-          { t: 'compare', a: { id: 'bst-30' }, b: { id: 'bst-40' } },
-          { t: 'set', target: { id: 'bst-30' }, value: c },
-          { t: 'unlink', from: 'bst-30', to: 'bst-40' },
-          { t: 'remove', id: 'bst-40' },
-          { t: 'create', id: 'bst-20', kind: 'node', value: b },
-          { t: 'link', from: 'bst-30', to: 'bst-20', label: 'left' },
-          {
-            t: 'note',
-            text: `Step 1: Left Rotation around ${b} converts Left-Right into a Left-Left line (${a} → ${c} → ${b}).`,
-          },
-          { t: 'set', target: { id: 'bst-50' }, value: c },
-          { t: 'set', target: { id: 'bst-30' }, value: b },
-          { t: 'unlink', from: 'bst-30', to: 'bst-20' },
-          { t: 'remove', id: 'bst-20' },
-          { t: 'create', id: 'bst-70', kind: 'node', value: a },
-          { t: 'link', from: 'bst-50', to: 'bst-70', label: 'right' },
-          { t: 'visit', id: 'bst-50' },
-          {
-            t: 'note',
-            text: `Step 2: Right Rotation around ${a} completes! Root is now ${c} with left ${b} and right ${a}.`,
-          },
-          { t: 'done' },
+        emitAvlRotationCase(
+          events,
+          'LR',
+          minV,
+          midV,
+          maxV,
+          `Inserted ${a}, ${b}, ${c}: Left-Right imbalance at ${a} (balance factor = +2).`,
         );
       } else if (isRL) {
-        events.push(
-          { t: 'create', id: 'bst-50', kind: 'node', value: a },
-          { t: 'create', id: 'bst-70', kind: 'node', value: b },
-          { t: 'create', id: 'bst-60', kind: 'node', value: c },
-          { t: 'link', from: 'bst-50', to: 'bst-70', label: 'right' },
-          { t: 'link', from: 'bst-70', to: 'bst-60', label: 'left' },
-          {
-            t: 'note',
-            text: `Inserted ${a}, ${b}, ${c}: Right-Left imbalance at ${a} (balance factor = -2).`,
-          },
-          { t: 'compare', a: { id: 'bst-70' }, b: { id: 'bst-60' } },
-          { t: 'set', target: { id: 'bst-70' }, value: c },
-          { t: 'unlink', from: 'bst-70', to: 'bst-60' },
-          { t: 'remove', id: 'bst-60' },
-          { t: 'create', id: 'bst-85', kind: 'node', value: b },
-          { t: 'link', from: 'bst-70', to: 'bst-85', label: 'right' },
-          {
-            t: 'note',
-            text: `Step 1: Right Rotation around ${b} converts Right-Left into a Right-Right line (${a} → ${c} → ${b}).`,
-          },
-          { t: 'set', target: { id: 'bst-50' }, value: c },
-          { t: 'set', target: { id: 'bst-70' }, value: b },
-          { t: 'unlink', from: 'bst-70', to: 'bst-85' },
-          { t: 'remove', id: 'bst-85' },
-          { t: 'create', id: 'bst-30', kind: 'node', value: a },
-          { t: 'link', from: 'bst-50', to: 'bst-30', label: 'left' },
-          { t: 'visit', id: 'bst-50' },
-          {
-            t: 'note',
-            text: `Step 2: Left Rotation around ${a} completes! Root is now ${c} with left ${a} and right ${b}.`,
-          },
-          { t: 'done' },
+        emitAvlRotationCase(
+          events,
+          'RL',
+          minV,
+          midV,
+          maxV,
+          `Inserted ${a}, ${b}, ${c}: Right-Left imbalance at ${a} (balance factor = -2).`,
         );
       } else {
-        // Right-Right (either a < b < c directly, or sorted [minV, midV, maxV] when input was already balanced)
         const intro = isRR
           ? `Inserted ${minV}, ${midV}, ${maxV}: tree leans heavily to the right (Right-Right imbalance, balance factor = -2).`
           : `Using ${minV}, ${midV}, ${maxV} in ascending order to demonstrate a Right-Right imbalance (balance factor = -2).`;
-        events.push(
-          { t: 'create', id: 'bst-50', kind: 'node', value: minV },
-          { t: 'create', id: 'bst-70', kind: 'node', value: midV },
-          { t: 'create', id: 'bst-85', kind: 'node', value: maxV },
-          { t: 'link', from: 'bst-50', to: 'bst-70', label: 'right' },
-          { t: 'link', from: 'bst-70', to: 'bst-85', label: 'right' },
-          { t: 'note', text: intro },
-          { t: 'compare', a: { id: 'bst-50' }, b: { id: 'bst-70' } },
-          {
-            t: 'note',
-            text: `Performing an AVL Left Rotation around ${minV} so ${midV} rises up to become the balanced root!`,
-          },
-          { t: 'set', target: { id: 'bst-50' }, value: midV },
-          { t: 'set', target: { id: 'bst-70' }, value: maxV },
-          { t: 'unlink', from: 'bst-70', to: 'bst-85' },
-          { t: 'remove', id: 'bst-85' },
-          { t: 'create', id: 'bst-30', kind: 'node', value: minV },
-          { t: 'link', from: 'bst-50', to: 'bst-30', label: 'left' },
-          { t: 'visit', id: 'bst-50' },
-          {
-            t: 'note',
-            text: `AVL Left Rotation complete! Root is now ${midV} with left child ${minV} and right child ${maxV} (height balanced).`,
-          },
-          { t: 'done' },
-        );
+        emitAvlRotationCase(events, 'RR', minV, midV, maxV, intro);
       }
+      updatedValues = [minV, midV, maxV];
       break;
     }
 

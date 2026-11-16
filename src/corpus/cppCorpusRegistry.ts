@@ -223,7 +223,7 @@ export const CORPUS_FILE_CATALOG: CorpusFileEntry[] = [
     relativePath: '12_avl_tree/avl_tree.cpp',
     weekLabel: 'Week 12 • AVL Tree',
     title: 'AVL Self-Balancing Tree (LL, RR, LR, RL Rotations)',
-    scene: 'bst',
+    scene: 'avl',
     operationId: 'avl-rotation',
   },
 

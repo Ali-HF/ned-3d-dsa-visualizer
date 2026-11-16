@@ -25,7 +25,7 @@ const TOUR_STEPS: TourStep[] = [
     title: 'Structure Selection',
     description: [
       'Select any of the eight core data structures from the left sidebar.',
-      'Includes 1D contiguous arrays, singly and doubly linked lists, vertical LIFO stack slabs, circular queues, BST/AVL balance trees, and binary heaps.',
+      'Includes 1D contiguous arrays, singly and doubly linked lists, vertical LIFO stack slabs, circular queues, binary search trees (BST), self-balancing AVL trees, binary heaps, and graphs.',
     ],
     targetSelector: '[data-tour="structure-picker"]',
     placement: 'right',
