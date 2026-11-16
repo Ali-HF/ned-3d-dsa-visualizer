@@ -340,8 +340,8 @@ export function computeCollisionFreeGraphLayout(
         const posA = out[idA];
         const posB = out[idB];
         let dx = posB[0] - posA[0];
-        let dy = posB[1] - posA[1];
-        let dz = posB[2] - posA[2];
+        const dy = posB[1] - posA[1];
+        const dz = posB[2] - posA[2];
         let dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (dist < 0.001) {
           dx = 0.1;
