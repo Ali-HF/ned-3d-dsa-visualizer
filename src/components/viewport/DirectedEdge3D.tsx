@@ -38,8 +38,11 @@ export function DirectedEdge3D({
       .addScaledVector(dir, -Math.min(nodeRadius + 0.15, len * 0.3));
 
     if (isLoopOrWrap || bidirectional) {
-      const arcY = isLoopOrWrap ? 1.05 : isPrev ? -0.14 : 0.14;
-      const arcZ = isLoopOrWrap ? 0.75 : 0;
+      // Only use the tall jump-over arc when nodes are collinear (e.g. Circular Linked List);
+      // on a 3D circular ring (nodes separated in Z), keep a subtle in-plane arc so arrows stay clean.
+      const isCollinearXZ = Math.abs(from[2] - to[2]) < 0.25;
+      const arcY = isLoopOrWrap ? (isCollinearXZ ? 1.05 : 0.22) : isPrev ? -0.14 : 0.14;
+      const arcZ = isLoopOrWrap && isCollinearXZ ? 0.75 : 0;
       const pts: [number, number, number][] = [];
       const steps = 16;
       for (let i = 0; i <= steps; i++) {

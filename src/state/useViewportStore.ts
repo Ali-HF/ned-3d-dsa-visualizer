@@ -884,9 +884,15 @@ export function buildSceneObjectsForScene(
       kind = 'stack-slab';
     } else if (scene === 'queue' || scene === 'deque') {
       if (node.id.startsWith('cq-')) {
-        // Circular Queue ring layout
-        const angle = (idx / Math.max(4, count)) * Math.PI * 2;
-        pos = [Math.cos(angle) * 2.6, 1.0, Math.sin(angle) * 2.6];
+        // Circular Queue ring layout (scaled radius so nodes & labels never overlap)
+        const ringCount = Math.max(4, count);
+        const ringRadius = Math.max(3.8, ringCount * 0.78);
+        const angle = -Math.PI * 0.65 + (idx / ringCount) * Math.PI * 2;
+        pos = [
+          Number((Math.cos(angle) * ringRadius).toFixed(3)),
+          1.0,
+          Number((Math.sin(angle) * ringRadius).toFixed(3)),
+        ];
       } else {
         const orderedIdx = queueOrderMap[node.id] ?? idx;
         const spacing = 2.4;
