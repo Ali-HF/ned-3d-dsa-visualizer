@@ -56,11 +56,7 @@ export type StructureOperationId =
   | 'graph-prim'
   | 'graph-kruskal'
   | 'graph-toposort'
-  // Hash Table (Week 15)
-  | 'hash-linear'
-  | 'hash-quadratic'
-  | 'hash-double'
-  | 'hash-chaining';
+  // Hash Table (Week 15);
 
 export interface StructureOpDefinition {
   id: StructureOperationId;
@@ -543,54 +539,6 @@ export const STRUCTURE_OP_CATALOG: StructureOpDefinition[] = [
     timeComplexity: 'O(V + E)',
     spaceComplexity: 'O(V)',
   },
-
-  // ==========================================
-  // HASH TABLE (Week 15)
-  // ==========================================
-  {
-    id: 'hash-linear',
-    scene: 'hash-table',
-    label: 'Linear Probing (Step +1 on Collision)',
-    group: 'Add',
-    corpusPath: '15_hashing/linear_probing.cpp',
-    timeComplexity: 'O(1) avg',
-    spaceComplexity: 'O(m)',
-    needsNumber: true,
-    numberLabel: 'Key',
-  },
-  {
-    id: 'hash-quadratic',
-    scene: 'hash-table',
-    label: 'Quadratic Probing (+1², +2², +3²)',
-    group: 'Add',
-    corpusPath: '15_hashing/linear_probing.cpp',
-    timeComplexity: 'O(1) avg',
-    spaceComplexity: 'O(m)',
-    needsNumber: true,
-    numberLabel: 'Key',
-  },
-  {
-    id: 'hash-double',
-    scene: 'hash-table',
-    label: 'Double Hashing (Second Hash Step)',
-    group: 'Add',
-    corpusPath: '15_hashing/linear_probing.cpp',
-    timeComplexity: 'O(1) avg',
-    spaceComplexity: 'O(m)',
-    needsNumber: true,
-    numberLabel: 'Key',
-  },
-  {
-    id: 'hash-chaining',
-    scene: 'hash-table',
-    label: 'Separate Chaining (Bucket Chains)',
-    group: 'Add',
-    corpusPath: '15_hashing/separate_chaining.cpp',
-    timeComplexity: 'O(1 + α)',
-    spaceComplexity: 'O(n + m)',
-    needsNumber: true,
-    numberLabel: 'Key',
-  },
 ];
 
 function getLinkedListNodeIds(count: number): string[] {
@@ -855,8 +803,8 @@ const STRUCTURE_LABELS: Record<Exclude<PreviewSceneKind, 'array'>, { title: stri
     defaultCorpus: '13_graph_traversal/bfs_dfs_traversal.cpp',
   },
   'hash-table': {
-    title: 'Hash Table (Select an Operation)',
-    defaultCorpus: '15_hashing/linear_probing.cpp',
+    title: 'Hash Table',
+    defaultCorpus: '01_arrays_and_searching/array_operations.cpp',
   },
 };
 
@@ -3325,105 +3273,6 @@ export function runStructureOperation(
         },
         { t: 'done' },
       );
-      break;
-    }
-
-    // ==========================================
-    // HASH TABLE OPERATIONS (Week 15)
-    // ==========================================
-    case 'hash-linear':
-    case 'hash-quadratic':
-    case 'hash-double': {
-      const buckets: (number | null)[] = [null, 15, 22, null, 18, null, null];
-      events.push({ t: 'create', id: 'arr', kind: 'array', value: 7 });
-      buckets.forEach((v, idx) => {
-        events.push({ t: 'set', target: { id: 'arr', index: idx }, value: v ?? 0 });
-      });
-      const key = Number.isFinite(paramValue) ? paramValue : 29;
-      const h1 = ((key % 7) + 7) % 7;
-      const step2 = 5 - (((Math.abs(key) % 5) + 5) % 5);
-      const probeMethod =
-        opId === 'hash-linear'
-          ? 'Linear Probing (+1)'
-          : opId === 'hash-quadratic'
-            ? 'Quadratic Probing (+i²)'
-            : `Double Hashing (step2=${step2})`;
-
-      events.push({
-        t: 'note',
-        text: `Hash Table (7 buckets, ${probeMethod}). Inserting key ${key}: hash(${key}) = ${key} % 7 = ${h1}.`,
-      });
-
-      for (let i = 0; i < 7; i++) {
-        const idx =
-          opId === 'hash-linear'
-            ? (h1 + i) % 7
-            : opId === 'hash-quadratic'
-              ? (h1 + i * i) % 7
-              : (h1 + i * step2) % 7;
-        if (buckets[idx] !== null) {
-          events.push(
-            { t: 'compare', a: { id: 'arr', index: idx }, b: { id: 'arr', index: idx } },
-            {
-              t: 'note',
-              text: `Collision at index ${idx} (already holds ${buckets[idx]})! Probing next slot...`,
-            },
-          );
-        } else {
-          events.push(
-            { t: 'set', target: { id: 'arr', index: idx }, value: key },
-            { t: 'visit', id: `arr[${idx}]` },
-            {
-              t: 'note',
-              text: `Index ${idx} is empty! Stored key ${key} at bucket [${idx}].`,
-            },
-          );
-          break;
-        }
-      }
-      events.push({ t: 'done' });
-      break;
-    }
-
-    case 'hash-chaining': {
-      const val = Number.isFinite(paramValue) ? paramValue : 36;
-      const bucketIdx = ((val % 3) + 3) % 3;
-      const bucketId = `b-${bucketIdx}`;
-      events.push(
-        { t: 'create', id: 'b-0', kind: 'node', value: 'B0' },
-        { t: 'create', id: 'b-1', kind: 'node', value: 'B1:15' },
-        { t: 'create', id: 'b-2', kind: 'node', value: 'B2:22' },
-        { t: 'create', id: 'c-1', kind: 'node', value: 29 },
-        { t: 'link', from: 'b-1', to: 'c-1', label: 'chain' },
-        {
-          t: 'note',
-          text: `Separate Chaining (3 buckets): hashing ${val} → ${val} % 3 = Bucket ${bucketIdx}.`,
-        },
-        { t: 'visit', id: bucketId },
-      );
-      if (bucketIdx === 1) {
-        events.push(
-          { t: 'visit', id: 'c-1' },
-          { t: 'create', id: 'c-2', kind: 'node', value: val },
-          { t: 'link', from: 'c-1', to: 'c-2', label: 'chain' },
-          { t: 'visit', id: 'c-2' },
-          {
-            t: 'note',
-            text: `Appended ${val} to Bucket 1's chain: 15 → 29 → ${val}!`,
-          },
-        );
-      } else {
-        events.push(
-          { t: 'create', id: 'c-2', kind: 'node', value: val },
-          { t: 'link', from: bucketId, to: 'c-2', label: 'chain' },
-          { t: 'visit', id: 'c-2' },
-          {
-            t: 'note',
-            text: `Chained ${val} directly onto Bucket ${bucketIdx}!`,
-          },
-        );
-      }
-      events.push({ t: 'done' });
       break;
     }
   }

@@ -8,9 +8,9 @@ import { executeCustomCodeTrace } from '../../src/engine/codeRunner';
 import { STRUCTURE_OP_CATALOG } from '../../src/algorithms/structures/structureAlgorithms';
 import { useViewportStore } from '../../src/state/useViewportStore';
 
-describe('CT-159 C++ Corpus Integration (All 33 Files)', () => {
-  it('registers all 33 C++ files with valid source content', () => {
-    expect(CORPUS_FILE_CATALOG.length).toBe(33);
+describe('CT-159 C++ Corpus Integration (All 31 Files)', () => {
+  it('registers all 31 C++ files with valid source content', () => {
+    expect(CORPUS_FILE_CATALOG.length).toBe(31);
     for (const entry of CORPUS_FILE_CATALOG) {
       const raw = getCorpusRawText(entry.relativePath);
       expect(raw, `${entry.relativePath} should exist`).not.toContain(
@@ -32,7 +32,7 @@ describe('CT-159 C++ Corpus Integration (All 33 Files)', () => {
     }
   });
 
-  it('runs selectAndRunCorpusFile cleanly for all 33 corpus files', () => {
+  it('runs selectAndRunCorpusFile cleanly for all 31 corpus files', () => {
     const store = useViewportStore.getState();
     for (const entry of CORPUS_FILE_CATALOG) {
       store.selectAndRunCorpusFile(entry.relativePath);

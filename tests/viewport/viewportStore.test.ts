@@ -419,12 +419,6 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
     useViewportStore.getState().skipToEnd();
     state = useViewportStore.getState();
     expect(state.workingArray).toEqual([7, 12, 45, 88]);
-
-    // Hash table linear probing uses actual key % 7 (e.g. 21 % 7 = 0, empty!)
-    store.runStructureOperationNow('hash-linear', 21);
-    useViewportStore.getState().skipToEnd();
-    state = useViewportStore.getState();
-    expect(state.currentSnapshot.arrays['arr']?.values[0]).toBe(21);
   });
 
   it('positions new head node on the left when inserting at front of linked list', () => {
@@ -710,11 +704,11 @@ describe('Phase 1 & 2 — Blender Viewport Store & Camera Presets', () => {
       op: 'avl-ll' | 'avl-rr' | 'avl-lr' | 'avl-rl';
       expectedNote: string;
     }> = [
-      { op: 'avl-ll', expectedNote: 'AVL Right Rotation complete (LL)' },
-      { op: 'avl-rr', expectedNote: 'AVL Left Rotation complete (RR)' },
-      { op: 'avl-lr', expectedNote: 'LR Step 2' },
-      { op: 'avl-rl', expectedNote: 'RL Step 2' },
-    ];
+        { op: 'avl-ll', expectedNote: 'AVL Right Rotation complete (LL)' },
+        { op: 'avl-rr', expectedNote: 'AVL Left Rotation complete (RR)' },
+        { op: 'avl-lr', expectedNote: 'LR Step 2' },
+        { op: 'avl-rl', expectedNote: 'RL Step 2' },
+      ];
     for (const { op, expectedNote } of rotationAssertions) {
       store.runStructureOperationNow(op);
       useViewportStore.getState().skipToEnd();

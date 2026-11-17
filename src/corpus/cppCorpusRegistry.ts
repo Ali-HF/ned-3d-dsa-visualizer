@@ -266,21 +266,6 @@ export const CORPUS_FILE_CATALOG: CorpusFileEntry[] = [
     operationId: 'graph-toposort',
   },
 
-  // Week 15: Hashing
-  {
-    relativePath: '15_hashing/linear_probing.cpp',
-    weekLabel: 'Week 15 • Hashing',
-    title: 'Open Addressing Hash Table (Linear Probing)',
-    scene: 'hash-table',
-    operationId: 'hash-linear',
-  },
-  {
-    relativePath: '15_hashing/separate_chaining.cpp',
-    weekLabel: 'Week 15 • Hashing',
-    title: 'Separate Chaining Hash Table (Linked Buckets)',
-    scene: 'hash-table',
-    operationId: 'hash-chaining',
-  },
 ];
 
 /**
@@ -340,8 +325,6 @@ export const CORPUS_DEFAULT_DRIVERS: Record<string, string> = {
   "14_graph_mst_toposort/dijkstra.cpp": "int main() {\n    for (int i = 0; i < V; i++) {\n        for (int j = 0; j < V; j++) {\n            graph[i][j] = 0;\n        }\n    }\n\n    addEdge(0, 1, 4);\n    addEdge(0, 2, 1);\n    addEdge(2, 1, 2);\n    addEdge(1, 3, 1);\n    addEdge(2, 3, 5);\n    addEdge(3, 4, 3);\n\n    dijkstra(0);\n\n    return 0;\n}\n",
   "14_graph_mst_toposort/kruskal_mst.cpp": "int main() {\n    edges[0] = {0, 1, 4};\n    edges[1] = {0, 2, 3};\n    edges[2] = {1, 2, 1};\n    edges[3] = {1, 3, 2};\n    edges[4] = {2, 3, 5};\n    edges[5] = {3, 4, 7};\n    edges[6] = {2, 4, 6};\n\n    kruskal();\n\n    return 0;\n}\n",
   "14_graph_mst_toposort/topological_sort.cpp": "int main() {\n    for (int i = 0; i < V; i++) {\n        for (int j = 0; j < V; j++) {\n            graph[i][j] = 0;\n        }\n    }\n\n    addEdge(5, 2);\n    addEdge(5, 0);\n    addEdge(4, 0);\n    addEdge(4, 1);\n    addEdge(2, 3);\n    addEdge(3, 1);\n\n    topologicalSort();\n\n    return 0;\n}\n",
-  "15_hashing/linear_probing.cpp": "int main()\n{\n    HashTableLinearProbing ht(7);\n\n    ht.insert(10); // 10 % 7 = 3\n    ht.insert(17); // 17 % 7 = 3 -> probes to 4\n    ht.insert(24); // 24 % 7 = 3 -> probes to 5\n    ht.insert(5);  // 5 % 7 = 5 -> probes to 6\n\n    ht.display();\n\n    cout << \"/nDeleting 17 (places tombstone at index 4)...\" << endl;\n    ht.remove(17);\n    ht.display();\n\n    cout << \"/nSearch 24 (must probe past tombstone): \" << (ht.search(24) ? \"Found\" : \"Not Found\") << endl;\n    cout << \"Search 17: \" << (ht.search(17) ? \"Found\" : \"Not Found\") << endl;\n\n    cout << \"/nInserting 31 (31 % 7 = 3, reuses tombstone at index 4)...\" << endl;\n    ht.insert(31);\n    ht.display();\n\n    return 0;\n}\n\n",
-  "15_hashing/separate_chaining.cpp": "int main()\n{\n    HashTableSeparateChaining ht(5);\n\n    int keys[] = {10, 15, 20, 7, 12, 22, 3}; // 10, 15, 20 collide at 0; 7, 12, 22 collide at 2\n    for (int k : keys)\n    {\n        ht.insert(k);\n    }\n\n    cout << \"Hash Table after insertions:\" << endl;\n    ht.display();\n\n    cout << \"/nSearch 12: \" << (ht.search(12) ? \"Found\" : \"Not Found\") << endl;\n    cout << \"Search 99: \" << (ht.search(99) ? \"Found\" : \"Not Found\") << endl;\n\n    cout << \"/nDeleting 15 (middle of bucket 0) and 22 (head of bucket 2)...\" << endl;\n    ht.remove(15);\n    ht.remove(22);\n    ht.display();\n\n    return 0;\n}\n\n"
 };
 
 
