@@ -164,35 +164,3 @@ public:
         cout << endl;
     }
 };
-
-int main()
-{
-    BinarySearchTree bst;
-    int values[] = {50, 30, 70, 20, 40, 60, 80, 65};
-
-    for (int val : values)
-    {
-        bst.insert(val);
-    }
-
-    cout << "Initial BST (in-order): ";
-    bst.inOrder();
-
-    cout << "Search 40: " << (bst.search(40) ? "Found" : "Not Found") << endl;
-    cout << "Search 99: " << (bst.search(99) ? "Found" : "Not Found") << endl;
-
-    bst.deleteKey(20); // case 1: delete leaf node
-    cout << "After deleting 20 (leaf):          ";
-    bst.inOrder();
-
-    bst.deleteKey(60); // case 2: delete node with single child (65)
-    cout << "After deleting 60 (single child):  ";
-    bst.inOrder();
-
-    bst.deleteKey(50); // case 3: delete root with two children
-    cout << "After deleting 50 (two children):  ";
-    bst.inOrder();
-
-    return 0;
-}
-

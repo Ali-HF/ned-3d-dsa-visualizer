@@ -24,7 +24,7 @@ import {
 } from '../algorithms/structures/structureAlgorithms';
 import {
   getCorpusCodeLines,
-  getCorpusRawText,
+  appendCorpusDriver,
 } from '../corpus/cppCorpusRegistry';
 import type { PreviewSceneKind, Primitive, TraceEvent } from '../types/trace';
 import { runCppTrace } from './cppInterpreter';
@@ -223,7 +223,7 @@ export function runCorpusArrayOperation(
   paramValue = 42,
 ): CorpusOperationTraceResult {
   const corpusPath = ARRAY_CORPUS_MAP[op];
-  const rawCpp = getCorpusRawText(corpusPath);
+  const rawCpp = appendCorpusDriver(corpusPath);
   const corpusLines = getCorpusCodeLines(corpusPath, ARRAY_ALGORITHM_METADATA[op].code);
   const baseMeta: AlgorithmMetadata = {
     ...ARRAY_ALGORITHM_METADATA[op],
@@ -351,7 +351,7 @@ export function runCorpusStructureOperation(
   const def = STRUCTURE_OP_CATALOG.find((item) => item.id === op);
   const corpusPath = def?.corpusPath ?? '02_singly_linked_list/singly_linked_list.cpp';
   const scene: PreviewSceneKind = def?.scene ?? 'linked-list';
-  const rawCpp = getCorpusRawText(corpusPath);
+  const rawCpp = appendCorpusDriver(corpusPath);
   const corpusLines = getCorpusCodeLines(corpusPath, []);
   const safeArr = workingArray.length > 0 ? workingArray.slice(0, 12) : [10, 25, 40, 55];
 

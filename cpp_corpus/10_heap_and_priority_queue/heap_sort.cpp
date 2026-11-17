@@ -55,19 +55,3 @@ void printArray(const vector<int>& arr)
     }
     cout << endl;
 }
-
-int main()
-{
-    vector<int> arr = {12, 11, 13, 5, 6, 7, -3, 13};
-
-    cout << "Original array: ";
-    printArray(arr);
-
-    heapSort(arr);
-
-    cout << "Sorted array:   ";
-    printArray(arr);
-
-    return 0;
-}
-

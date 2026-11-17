@@ -90,37 +90,3 @@ TreeNode* findLCA(TreeNode* root, int p, int q) // locate lowest common ancestor
 
     return nullptr;
 }
-
-int main()
-{
-    TreeNode* validRoot = new TreeNode(20); // construct valid BST
-    validRoot->left = new TreeNode(10);
-    validRoot->right = new TreeNode(30);
-    validRoot->left->left = new TreeNode(5);
-    validRoot->left->right = new TreeNode(15);
-    validRoot->right->left = new TreeNode(25);
-    validRoot->right->right = new TreeNode(35);
-
-    cout << "Tree 1 is valid BST: " << (isValidBST(validRoot) ? "true" : "false") << endl;
-
-    TreeNode* lca1 = findLCA(validRoot, 5, 15);
-    cout << "LCA(5, 15) = " << (lca1 != nullptr ? to_string(lca1->val) : "Not found") << endl;
-
-    TreeNode* lca2 = findLCA(validRoot, 5, 30);
-    cout << "LCA(5, 30) = " << (lca2 != nullptr ? to_string(lca2->val) : "Not found") << endl;
-
-    TreeNode* lca3 = findLCA(validRoot, 10, 15);
-    cout << "LCA(10, 15) = " << (lca3 != nullptr ? to_string(lca3->val) : "Not found") << endl;
-
-    TreeNode* invalidRoot = new TreeNode(20); // construct invalid BST (22 in left subtree of 20)
-    invalidRoot->left = new TreeNode(10);
-    invalidRoot->right = new TreeNode(30);
-    invalidRoot->left->right = new TreeNode(22);
-
-    cout << "Tree 2 is valid BST: " << (isValidBST(invalidRoot) ? "true" : "false") << endl;
-
-    destroyTree(validRoot);
-    destroyTree(invalidRoot);
-    return 0;
-}
-

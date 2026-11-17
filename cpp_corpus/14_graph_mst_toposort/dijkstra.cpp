@@ -54,22 +54,3 @@ void dijkstra(int start) {
         cout << start << " to " << i << " = " << dist[i] << endl;
     }
 }
-
-int main() {
-    for (int i = 0; i < V; i++) {
-        for (int j = 0; j < V; j++) {
-            graph[i][j] = 0;
-        }
-    }
-
-    addEdge(0, 1, 4);
-    addEdge(0, 2, 1);
-    addEdge(2, 1, 2);
-    addEdge(1, 3, 1);
-    addEdge(2, 3, 5);
-    addEdge(3, 4, 3);
-
-    dijkstra(0);
-
-    return 0;
-}

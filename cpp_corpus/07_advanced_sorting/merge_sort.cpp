@@ -59,28 +59,3 @@ void mergeSort(int arr[], int left, int right)
         merge(arr, left, mid, right);
     }
 }
-
-int main()
-{
-    int arr[100], n;
-
-    cout << "Enter array size: ";
-    cin >> n;
-
-    cout << "Enter elements: ";
-    for (int i = 0; i < n; i++)
-    {
-        cin >> arr[i];
-    }
-
-    mergeSort(arr, 0, n - 1);
-
-    cout << "Sorted Array: ";
-
-    for (int i = 0; i < n; i++)
-    {
-        cout << arr[i] << " ";
-    }
-
-    return 0;
-}

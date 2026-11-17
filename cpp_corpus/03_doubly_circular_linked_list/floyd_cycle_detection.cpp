@@ -58,33 +58,3 @@ bool detectCycle(Node* head)
 
     return false;
 }
-
-int main()
-{
-    Node* head = NULL;
-
-    int n, value;
-
-    cout << "Enter number of nodes: ";
-    cin >> n;
-
-    cout << "Enter elements: ";
-
-    for (int i = 0; i < n; i++)
-    {
-        cin >> value;
-        insertEnd(head, value);
-    }
-
-    // Check for cycle
-    if (detectCycle(head))
-    {
-        cout << "Cycle detected";
-    }
-    else
-    {
-        cout << "No cycle detected";
-    }
-
-    return 0;
-}

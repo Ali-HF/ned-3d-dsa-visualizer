@@ -37,29 +37,3 @@ void quickSort(int arr[], int low, int high)
         quickSort(arr, pi + 1, high);
     }
 }
-
-int main()
-{
-    int arr[100], n;
-
-    cout << "Enter array size: ";
-    cin >> n;
-
-    cout << "Enter elements: ";
-
-    for (int i = 0; i < n; i++)
-    {
-        cin >> arr[i];
-    }
-
-    quickSort(arr, 0, n - 1);
-
-    cout << "Sorted Array: ";
-
-    for (int i = 0; i < n; i++)
-    {
-        cout << arr[i] << " ";
-    }
-
-    return 0;
-}

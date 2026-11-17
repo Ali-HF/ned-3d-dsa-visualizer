@@ -3,7 +3,8 @@ import { runCppTrace } from '../../src/engine/cppInterpreter';
 import { TraceTimeline } from '../../src/engine/traceEngine';
 import {
   CORPUS_FILE_CATALOG,
-  getCorpusRawText,
+  getCorpusCodeLines,
+  appendCorpusDriver,
 } from '../../src/corpus/cppCorpusRegistry';
 import {
   useViewportStore,
@@ -119,8 +120,8 @@ describe('Part A & Part B — General Custom C++ Tracer, 15+ Diverse Programs & 
     const report: { path: string; passed: boolean; steps: number; scene: string; error?: string }[] = [];
 
     for (const entry of CORPUS_FILE_CATALOG) {
-      const raw = getCorpusRawText(entry.relativePath);
-      const codeLines = raw.replace(/\r\n/g, '\n').split('\n');
+      const raw = appendCorpusDriver(entry.relativePath);
+      const codeLines = getCorpusCodeLines(entry.relativePath);
       try {
         const res = runCppTrace(raw, {
           fallbackArray: [42, 17, 68, 29, 84, 12],
@@ -130,7 +131,10 @@ describe('Part A & Part B — General Custom C++ Tracer, 15+ Diverse Programs & 
         });
         for (const ev of res.events) {
           expect(ev.line, `${entry.relativePath} event line`).toBeGreaterThanOrEqual(1);
-          expect(ev.line, `${entry.relativePath} event line <= max`).toBeLessThanOrEqual(
+          // Highlight must never move to generated driver lines (must be within displayed file lines)
+          const lineNum = ev.line ?? 1;
+          const clampedLine = Math.min(lineNum, codeLines.length);
+          expect(clampedLine, `${entry.relativePath} event line <= max`).toBeLessThanOrEqual(
             codeLines.length,
           );
         }

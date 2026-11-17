@@ -159,28 +159,3 @@ public:
         cout << endl;
     }
 };
-
-int main()
-{
-    BinaryTree tree;
-
-    for (int i = 1; i <= 7; i++) // construct complete binary tree with values 1..7
-    {
-        tree.insertLevelOrder(i);
-    }
-
-    cout << "Preorder traversal (DFS):    ";
-    tree.preOrder();
-
-    cout << "Inorder traversal (DFS):     ";
-    tree.inOrder();
-
-    cout << "Postorder traversal (DFS):   ";
-    tree.postOrder();
-
-    cout << "Level-order traversal (BFS): ";
-    tree.levelOrder();
-
-    return 0;
-}
-

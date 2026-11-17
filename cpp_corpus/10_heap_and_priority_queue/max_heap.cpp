@@ -115,33 +115,3 @@ public:
         cout << endl;
     }
 };
-
-int main()
-{
-    MaxHeap pq;
-    pq.insert(15);
-    pq.insert(40);
-    pq.insert(25);
-    pq.insert(60);
-    pq.insert(10);
-
-    cout << "Max-Heap after insertions: ";
-    pq.printHeap();
-    cout << "Current max (peek): " << pq.peekMax() << endl;
-
-    cout << "Extracting elements in descending order: ";
-    while (!pq.empty())
-    {
-        cout << pq.extractMax() << " ";
-    }
-    cout << endl;
-
-    vector<int> raw = {4, 10, 3, 5, 1, 18, 12};
-    pq.buildHeap(raw); // O(n) bottom-up construction
-
-    cout << "Heap built from [4, 10, 3, 5, 1, 18, 12]: ";
-    pq.printHeap();
-
-    return 0;
-}
-

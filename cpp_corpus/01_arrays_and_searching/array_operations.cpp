@@ -1,148 +1,96 @@
-
 #include <iostream>
 using namespace std;
 
-int main()
+bool insertAt(int arr[], int& n, int pos, int value)
 {
-    int arr[100], n, choice, pos, value;
-
-    cout << "Enter array size: ";
-    cin >> n;
-
-    cout << "Enter array elements: ";
-    for (int i = 0; i < n; i++)
+    if (n >= 100 || pos < 0 || pos > n)
     {
-        cin >> arr[i];
+        return false;
     }
 
-    cout << "\n1. Insert";
-    cout << "\n2. Delete by Index";
-    cout << "\n3. Update";
-    cout << "\n4. Reverse";
-    cout << "\n5. Rotate Right";
-    cout << "\n6. Delete by Value";
-
-    cout << "\nEnter choice: ";
-    cin >> choice;
-
-    switch (choice)
+    for (int i = n; i > pos; i--)
     {
-        case 1:
-            cout << "Enter position and value: ";
-            cin >> pos >> value;
+        arr[i] = arr[i - 1];
+    }
 
-            if (n >= 100 || pos < 0 || pos > n)
-            {
-                cout << "Invalid position or full array";
-                break;
-            }
+    arr[pos] = value;
+    n++;
+    return true;
+}
 
-            for (int i = n; i > pos; i--)
-            {
-                arr[i] = arr[i - 1];
-            }
+bool deleteAtIndex(int arr[], int& n, int pos)
+{
+    if (pos < 0 || pos >= n)
+    {
+        return false;
+    }
 
-            arr[pos] = value;
-            n++;
-            break;
+    for (int i = pos; i < n - 1; i++)
+    {
+        arr[i] = arr[i + 1];
+    }
 
-        case 2:
-            cout << "Enter position to delete: ";
-            cin >> pos;
+    n--;
+    return true;
+}
 
-            if (pos < 0 || pos >= n)
-            {
-                cout << "Invalid position";
-                break;
-            }
+bool updateAt(int arr[], int n, int pos, int value)
+{
+    if (pos < 0 || pos >= n)
+    {
+        return false;
+    }
 
-            for (int i = pos; i < n - 1; i++)
-            {
-                arr[i] = arr[i + 1];
-            }
+    arr[pos] = value;
+    return true;
+}
 
-            n--;
-            break;
+void reverseArray(int arr[], int n)
+{
+    for (int i = 0; i < n / 2; i++)
+    {
+        int temp = arr[i];
+        arr[i] = arr[n - 1 - i];
+        arr[n - 1 - i] = temp;
+    }
+}
 
-        case 3:
-            cout << "Enter position and new value: ";
-            cin >> pos >> value;
+void rotateRight(int arr[], int n)
+{
+    if (n == 0) return;
 
-            if (pos < 0 || pos >= n)
-            {
-                cout << "Invalid position";
-                break;
-            }
+    int value = arr[n - 1];
 
-            arr[pos] = value;
-            break;
+    for (int i = n - 1; i > 0; i--)
+    {
+        arr[i] = arr[i - 1];
+    }
 
-        case 4:
-            for (int i = 0; i < n / 2; i++)
-            {
-                int temp = arr[i];
-                arr[i] = arr[n - 1 - i];
-                arr[n - 1 - i] = temp;
-            }
-            break;
+    arr[0] = value;
+}
 
-        case 5:
-            if (n == 0)
-            {
-                cout << "Array is empty";
-                break;
-            }
-
-            value = arr[n - 1];
-
-            for (int i = n - 1; i > 0; i--)
-            {
-                arr[i] = arr[i - 1];
-            }
-
-            arr[0] = value;
-            break;
-
-        case 6:
+bool deleteByValue(int arr[], int& n, int value)
+{
+    int foundIdx = -1;
+    for (int i = 0; i < n; i++)
+    {
+        if (arr[i] == value)
         {
-            cout << "Enter value to delete: ";
-            cin >> value;
-
-            int foundIdx = -1;
-            for (int i = 0; i < n; i++)
-            {
-                if (arr[i] == value)
-                {
-                    foundIdx = i;
-                    break;
-                }
-            }
-
-            if (foundIdx == -1)
-            {
-                cout << "Value not found";
-                break;
-            }
-
-            for (int i = foundIdx; i < n - 1; i++)
-            {
-                arr[i] = arr[i + 1];
-            }
-
-            n--;
+            foundIdx = i;
             break;
         }
-
-        default:
-            cout << "Invalid choice";
     }
 
-    cout << "\nUpdated Array: ";
-
-    for (int i = 0; i < n; i++)
+    if (foundIdx == -1)
     {
-        cout << arr[i] << " ";
+        return false;
     }
 
-    return 0;
+    for (int i = foundIdx; i < n - 1; i++)
+    {
+        arr[i] = arr[i + 1];
+    }
+
+    n--;
+    return true;
 }

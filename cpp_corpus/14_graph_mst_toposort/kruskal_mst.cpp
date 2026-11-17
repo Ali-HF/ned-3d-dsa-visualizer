@@ -67,17 +67,3 @@ void kruskal() {
 
     cout << "Total weight = " << total << endl;
 }
-
-int main() {
-    edges[0] = {0, 1, 4};
-    edges[1] = {0, 2, 3};
-    edges[2] = {1, 2, 1};
-    edges[3] = {1, 3, 2};
-    edges[4] = {2, 3, 5};
-    edges[5] = {3, 4, 7};
-    edges[6] = {2, 4, 6};
-
-    kruskal();
-
-    return 0;
-}

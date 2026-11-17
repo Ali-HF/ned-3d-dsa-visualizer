@@ -3,6 +3,7 @@ import type { AlgorithmMetadata } from '../algorithms/array/arrayAlgorithms';
 import {
   CORPUS_FILE_CATALOG,
   getCorpusRawText,
+  appendCorpusDriver,
   type CorpusFileEntry,
 } from '../corpus/cppCorpusRegistry';
 import {
@@ -109,18 +110,44 @@ export function executeCustomCodeTrace(
   fileName?: string,
 ): CustomCodeRunResult {
   const unmodifiedCorpus = findUnmodifiedCorpusEntry(sourceCode, fallbackCorpusPath);
-  const traceRes = runCppTrace(sourceCode, {
+  let effectiveSource = sourceCode;
+  let corpusLineCount = 0;
+
+  if (unmodifiedCorpus) {
+    corpusLineCount = sourceCode.replace(/\r\n/g, '\n').trimEnd().split('\n').length;
+    effectiveSource = appendCorpusDriver(unmodifiedCorpus.relativePath, sourceCode);
+  } else if (!/int\s+main\s*\(/.test(sourceCode) && fallbackCorpusPath) {
+    // Code without main() that matches a known corpus file
+    const entry = CORPUS_FILE_CATALOG.find((c) => c.relativePath === fallbackCorpusPath);
+    if (entry) {
+      corpusLineCount = sourceCode.replace(/\r\n/g, '\n').trimEnd().split('\n').length;
+      effectiveSource = appendCorpusDriver(fallbackCorpusPath, sourceCode);
+    }
+  }
+
+  const traceRes = runCppTrace(effectiveSource, {
     fallbackArray,
     fileName,
     maxSteps: 20000,
     timeoutMs: 4000,
   });
 
+  // Clamp any trace events occurring in appended driver back to displayed corpus lines
+  let filteredEvents = traceRes.events;
+  if (corpusLineCount > 0) {
+    filteredEvents = traceRes.events.map((ev) => {
+      if (typeof ev.line === 'number' && ev.line > corpusLineCount) {
+        return { ...ev, line: corpusLineCount };
+      }
+      return ev;
+    });
+  }
+
   // Ensure minimum 3D scene richness if a corpus file had interactive-only menu paths
   if (unmodifiedCorpus) {
     return {
       scene: unmodifiedCorpus.scene,
-      events: traceRes.events,
+      events: filteredEvents,
       steps: traceRes.steps,
       extractedArray: traceRes.extractedArray,
       executionMode: 'cpp-interpreter',
@@ -135,7 +162,7 @@ export function executeCustomCodeTrace(
 
   return {
     scene: traceRes.scene,
-    events: traceRes.events,
+    events: filteredEvents,
     steps: traceRes.steps,
     extractedArray: traceRes.extractedArray,
     executionMode: 'cpp-interpreter',

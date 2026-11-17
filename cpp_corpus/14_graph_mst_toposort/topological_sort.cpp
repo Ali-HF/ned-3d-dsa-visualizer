@@ -58,22 +58,3 @@ void topologicalSort() {
         cout << "Cycle found, topological sort not possible" << endl;
     }
 }
-
-int main() {
-    for (int i = 0; i < V; i++) {
-        for (int j = 0; j < V; j++) {
-            graph[i][j] = 0;
-        }
-    }
-
-    addEdge(5, 2);
-    addEdge(5, 0);
-    addEdge(4, 0);
-    addEdge(4, 1);
-    addEdge(2, 3);
-    addEdge(3, 1);
-
-    topologicalSort();
-
-    return 0;
-}

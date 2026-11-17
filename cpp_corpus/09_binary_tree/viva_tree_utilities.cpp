@@ -85,31 +85,3 @@ void printInOrder(TreeNode* node) // in-order traversal for verification
     cout << node->val << " ";
     printInOrder(node->right);
 }
-
-int main()
-{
-    TreeNode* root = new TreeNode(1); // construct sample binary tree
-    root->left = new TreeNode(2);
-    root->right = new TreeNode(3);
-    root->left->left = new TreeNode(4);
-    root->left->right = new TreeNode(5);
-    root->right->right = new TreeNode(6);
-
-    cout << "Original tree (in-order): ";
-    printInOrder(root);
-    cout << endl;
-
-    cout << "Tree height:      " << getHeight(root) << endl;
-    cout << "Total nodes:      " << countTotalNodes(root) << endl;
-    cout << "Leaf node count:  " << countLeafNodes(root) << endl;
-
-    mirrorTree(root); // invert tree structure
-
-    cout << "Mirrored tree (in-order): ";
-    printInOrder(root);
-    cout << endl;
-
-    destroyTree(root);
-    return 0;
-}
-

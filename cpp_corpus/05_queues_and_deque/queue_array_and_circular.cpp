@@ -103,30 +103,3 @@ public:
         cout << endl;
     }
 };
-
-int main() {
-    cout << "Linear Queue" << endl;
-    LinearQueue lq;
-    lq.enqueue(10);
-    lq.enqueue(20);
-    lq.enqueue(30);
-    lq.display();
-    lq.dequeue();
-    lq.display();
-
-    cout << endl << "Circular Queue" << endl;
-    CircularQueue cq;
-    cq.enqueue(1);
-    cq.enqueue(2);
-    cq.enqueue(3);
-    cq.enqueue(4);
-    cq.enqueue(5);
-    cq.enqueue(6);
-    cq.dequeue();
-    cq.dequeue();
-    cq.enqueue(7);
-    cq.enqueue(8);
-    cq.display();
-
-    return 0;
-}

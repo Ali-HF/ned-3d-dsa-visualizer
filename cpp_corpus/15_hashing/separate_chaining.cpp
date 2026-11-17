@@ -121,28 +121,3 @@ public:
         }
     }
 };
-
-int main()
-{
-    HashTableSeparateChaining ht(5);
-
-    int keys[] = {10, 15, 20, 7, 12, 22, 3}; // 10, 15, 20 collide at 0; 7, 12, 22 collide at 2
-    for (int k : keys)
-    {
-        ht.insert(k);
-    }
-
-    cout << "Hash Table after insertions:" << endl;
-    ht.display();
-
-    cout << "\nSearch 12: " << (ht.search(12) ? "Found" : "Not Found") << endl;
-    cout << "Search 99: " << (ht.search(99) ? "Found" : "Not Found") << endl;
-
-    cout << "\nDeleting 15 (middle of bucket 0) and 22 (head of bucket 2)..." << endl;
-    ht.remove(15);
-    ht.remove(22);
-    ht.display();
-
-    return 0;
-}
-

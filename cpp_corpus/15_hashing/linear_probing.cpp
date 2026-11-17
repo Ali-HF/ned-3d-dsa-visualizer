@@ -148,29 +148,3 @@ public:
         }
     }
 };
-
-int main()
-{
-    HashTableLinearProbing ht(7);
-
-    ht.insert(10); // 10 % 7 = 3
-    ht.insert(17); // 17 % 7 = 3 -> probes to 4
-    ht.insert(24); // 24 % 7 = 3 -> probes to 5
-    ht.insert(5);  // 5 % 7 = 5 -> probes to 6
-
-    ht.display();
-
-    cout << "\nDeleting 17 (places tombstone at index 4)..." << endl;
-    ht.remove(17);
-    ht.display();
-
-    cout << "\nSearch 24 (must probe past tombstone): " << (ht.search(24) ? "Found" : "Not Found") << endl;
-    cout << "Search 17: " << (ht.search(17) ? "Found" : "Not Found") << endl;
-
-    cout << "\nInserting 31 (31 % 7 = 3, reuses tombstone at index 4)..." << endl;
-    ht.insert(31);
-    ht.display();
-
-    return 0;
-}
-

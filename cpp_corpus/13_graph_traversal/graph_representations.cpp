@@ -88,39 +88,3 @@ public:
         }
     }
 };
-
-int main() {
-    cout << "Undirected Graph - Adjacency Matrix" << endl;
-    MatrixGraph m1;
-    m1.addEdge(0, 1);
-    m1.addEdge(0, 2);
-    m1.addEdge(1, 3);
-    m1.addEdge(2, 4);
-    m1.display();
-
-    cout << endl << "Directed Graph - Adjacency Matrix" << endl;
-    MatrixGraph m2;
-    m2.addDirectedEdge(0, 1);
-    m2.addDirectedEdge(0, 2);
-    m2.addDirectedEdge(1, 3);
-    m2.addDirectedEdge(2, 4);
-    m2.display();
-
-    cout << endl << "Undirected Graph - Adjacency List" << endl;
-    ListGraph l1;
-    l1.addEdge(0, 1);
-    l1.addEdge(0, 2);
-    l1.addEdge(1, 3);
-    l1.addEdge(2, 4);
-    l1.display();
-
-    cout << endl << "Directed Graph - Adjacency List" << endl;
-    ListGraph l2;
-    l2.addDirectedEdge(0, 1);
-    l2.addDirectedEdge(0, 2);
-    l2.addDirectedEdge(1, 3);
-    l2.addDirectedEdge(2, 4);
-    l2.display();
-
-    return 0;
-}

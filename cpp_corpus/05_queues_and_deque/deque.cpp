@@ -78,16 +78,3 @@ public:
         cout << endl;
     }
 };
-
-int main() {
-    Deque d;
-    d.insertRear(10);
-    d.insertRear(20);
-    d.insertFront(5);
-    d.insertFront(1);
-    d.display();
-    d.deleteFront();
-    d.deleteRear();
-    d.display();
-    return 0;
-}
